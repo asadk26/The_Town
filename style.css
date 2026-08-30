@@ -343,13 +343,35 @@ button {
 }
 
 .spine {
-  flex: 0 1 12px;
-  min-width: 4px;
+  flex: 0 1 16px;
+  min-width: 9px;
   border-radius: 2px 2px 0 0;
   background: var(--sp, #8a6a4a);
   box-shadow: inset -2px 0 0 rgba(0, 0, 0, .25), 0 -1px 3px rgba(0, 0, 0, .3);
   transform-origin: bottom center;
   animation: spinePop .4s cubic-bezier(.2, 1.3, .5, 1) both;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  overflow: hidden;
+  pointer-events: none;          /* the whole bay is the tap target */
+}
+
+/* Titles run up the spine, the way they do on a real shelf. The bay decides how
+   much fits; the full title lives on the element's tooltip and in game state. */
+.spine-label {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-height: 100%;
+  padding: 4px 0;
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-size: 7.5px;
+  letter-spacing: .01em;
+  color: rgba(255, 250, 240, .93);
+  text-shadow: 0 1px 1px rgba(0, 0, 0, .55);
 }
 
 @keyframes spinePop {
@@ -976,7 +998,8 @@ button {
   .bays { height: 236px; gap: 10px; padding: 10px 0; }
   .shelf-name { font-size: 14px; }
   .shelf-spines { gap: 3px; }
-  .spine { flex-basis: 18px; }
+  .spine { flex-basis: 22px; }
+  .spine-label { font-size: 9px; }
   .slip { min-height: 130px; padding: 16px 20px; }
   .slip-title { font-size: 22px; }
   .floor { grid-template-columns: 160px 1fr; }

@@ -107,7 +107,8 @@ html { overflow: hidden; }            /* gameplay never scrolls the page */
   .landscape .shelf-tag  { font-size: clamp(7px, 4.3cqi, 9.5px); }
 }
 .landscape .shelf-spines { gap: 2px; padding: 4px 3px 0; }
-.landscape .spine { flex-basis: 12px; }
+.landscape .spine { flex-basis: 17px; min-width: 10px; }
+.landscape .spine-label { font-size: 8px; }
 
 /* ── Desk: a reserved toast lane above the prompt ──────────
    In portrait the toast floats above the slip. Here it gets its own row, so
@@ -237,6 +238,8 @@ html { overflow: hidden; }            /* gameplay never scrolls the page */
   .landscape .toast { padding: 3px 9px; font-size: 10.5px; }
   .landscape .bookcase { padding: 4px; }
   .landscape .shelf-tag { display: none; }
+  .landscape .spine { flex-basis: 15px; }
+  .landscape .spine-label { font-size: 7.5px; padding: 3px 0; }
 }
 
 /* ── Portrait: ask for a turn rather than cramming ─────────── */

@@ -1,0 +1,297 @@
+/* ============================================================
+   Quiet Stacks — LANDSCAPE layout
+   Loaded after V0's style.css. Everything here is layout only:
+   the palette, the wood, the type and the components are V0's.
+   Every rule is scoped to `.landscape` so it outranks the base
+   stylesheet's own media queries without fighting them.
+   ============================================================ */
+
+html { overflow: hidden; }            /* gameplay never scrolls the page */
+
+.landscape {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+.landscape .room {
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ── The plan ──────────────────────────────────────────────
+   ┌───────────────────────────────────────────┐
+   │ hud   slim, one line, full width          │
+   ├───────────────────────────────────────────┤
+   │ case  every shelf, side by side           │
+   ├────────┬────────────────────┬─────────────┤
+   │ cart   │ desk (the prompt)  │ queue       │
+   └────────┴────────────────────┴─────────────┘
+   Shelves sit directly above the prompt, with the cart and the
+   queue flanking it, so the whole loop is one short glance. */
+
+.landscape .counter {
+  max-width: 1100px;
+  height: 100%;
+  padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+  gap: 6px;
+  display: grid;
+  grid-template-columns: minmax(92px, 112px) minmax(0, 1.05fr) minmax(0, 1.2fr);
+  grid-template-rows: auto minmax(0, 2.7fr) minmax(0, 4fr);
+  grid-template-areas:
+    "hud  hud   hud"
+    "case case  case"
+    "cart desk  queue";
+}
+
+.landscape .hud      { grid-area: hud; }
+.landscape .bookcase { grid-area: case; min-height: 0; }
+.landscape .desk     { grid-area: desk; min-height: 0; }
+.landscape .cart     { grid-area: cart; min-height: 0; height: 100%; }
+.landscape .queue-wrap { grid-area: queue; min-height: 0; height: 100%; }
+
+/* .floor is only a wrapper in V0; dissolving it lets the cart and the queue
+   take their own grid areas without touching the markup. */
+.landscape .floor { display: contents; }
+
+/* ── Slim single-line HUD ─────────────────────────────────── */
+
+.landscape .hud {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 10px;
+}
+.landscape .hud-row { flex: 0 0 auto; margin: 0; gap: 8px; }
+.landscape .hud-row-lower { margin: 0; }
+.landscape .shift-bar { flex: 1 1 auto; margin: 0; height: 6px; min-width: 70px; }
+.landscape .clock { flex-direction: row; align-items: baseline; gap: 7px; }
+.landscape .clock-time { font-size: 20px; }
+.landscape .clock-phase { margin-top: 0; font-size: 9px; }
+.landscape .readout { padding: 2px 7px 3px; min-width: 48px; }
+.landscape .readout-label { font-size: 8px; }
+.landscape .readout-value { font-size: 14px; }
+.landscape .hud-buttons { flex-direction: row; gap: 5px; }
+.landscape .icon-btn { width: 30px; height: 30px; font-size: 14px; }
+.landscape .goal { font-size: 11px; padding: 3px 7px; }
+.landscape .mood { margin-left: 0; }
+.landscape .mood-bar { width: 52px; }
+
+/* ── Shelves: one row, however many there are ─────────────── */
+
+.landscape .bookcase { padding: 5px; }
+.landscape .bookcase-top,
+.landscape .bookcase-base { height: 5px; }
+
+/* Auto-flow columns means a fourth, sixth or eighth genre just appears
+   alongside the others — no template to rewrite. */
+.landscape .bays {
+  flex: 1 1 auto;
+  height: auto;
+  min-height: 0;
+  grid-template-columns: none;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 5px;
+  padding: 5px 0;
+}
+.landscape .shelf { padding: 5px 4px 0; container-type: inline-size; }
+
+/* Labels size to their own bay, so names stay whole whether there are three
+   shelves or eight. The plain values are the fallback where cqi is unsupported. */
+.landscape .shelf-name { font-size: 12px; }
+.landscape .shelf-tag  { font-size: 9px; }
+@supports (font-size: 1cqi) {
+  .landscape .shelf-name { font-size: clamp(8.5px, 6.6cqi, 13px); }
+  .landscape .shelf-tag  { font-size: clamp(7px, 4.3cqi, 9.5px); }
+}
+.landscape .shelf-spines { gap: 2px; padding: 4px 3px 0; }
+.landscape .spine { flex-basis: 12px; }
+
+/* ── Desk: a reserved toast lane above the prompt ──────────
+   In portrait the toast floats above the slip. Here it gets its own row, so
+   a message can never sit on top of the title or the description. */
+
+.landscape .desk {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.landscape .toast {
+  position: static;
+  transform: none;
+  flex: 0 0 auto;
+  align-self: center;
+  max-width: 100%;
+  padding: 4px 11px;
+  font-size: 11.5px;
+  line-height: 1.35;
+  opacity: 0;
+}
+.landscape .toast.show { animation: toastFadeOnly 2.2s ease forwards; }
+
+@keyframes toastFadeOnly {
+  0%   { opacity: 0; }
+  12%  { opacity: 1; }
+  80%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.landscape .slip {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 9px 12px;
+  gap: 4px;
+  overflow: hidden;
+}
+.landscape .slip-kicker { font-size: 9px; }
+.landscape .slip-title { font-size: 16px; line-height: 1.15; }
+.landscape .slip-author { font-size: 11.5px; }
+.landscape .slip-desc { font-size: 12.5px; line-height: 1.35; }
+.landscape .slip-ask { font-size: 13.5px; line-height: 1.35; }
+.landscape .slip-hint { font-size: 12.5px; line-height: 1.4; }
+.landscape .slip-foot { margin-top: auto; }
+.landscape .slip-nudge { font-size: 11px; }
+.landscape .slip-back { min-height: 30px; padding: 4px 11px; font-size: 12px; }
+
+/* ── Cart and queue, side by side under the shelves ────────── */
+
+.landscape .cart { padding: 6px 6px 14px; }
+.landscape .cart-title { font-size: 9px; }
+.landscape .cart-title b { font-size: 12px; }
+
+.landscape .queue-wrap { padding: 5px 6px 7px; }
+.landscape .queue-title { font-size: 9px; }
+.landscape .queue { gap: 5px; padding-top: 4px; }
+.landscape .patron { max-width: 104px; padding: 5px 4px; gap: 4px; }
+.landscape .face { width: 30px; height: 30px; font-size: 13px; }
+.landscape .patron-name { font-size: 9.5px; }
+
+/* ── Celebrations stay out of the way ──────────────────────
+   V0 puts the streak banner across the middle of the screen; here that is
+   the shelves. Tucked into the corner instead. */
+
+.landscape .milestone {
+  left: auto;
+  right: 10px;
+  top: 7px;
+  transform: none;
+  font-size: 13px;
+  padding: 6px 13px;
+  animation: milestoneCorner 1.5s ease forwards;
+}
+
+@keyframes milestoneCorner {
+  0%   { opacity: 0; transform: translateY(-6px) scale(.95); }
+  18%  { opacity: 1; transform: none; }
+  75%  { opacity: 1; transform: none; }
+  100% { opacity: 0; transform: translateY(-6px); }
+}
+
+/* ── Title and results cards, sized for a short screen ─────── */
+
+.landscape .overlay { padding: 10px; }
+.landscape .card { max-width: 640px; padding: 14px 18px; }
+.landscape .card h1 { font-size: 23px; }
+.landscape .card h2 { font-size: 20px; margin-bottom: 6px; }
+.landscape .card .sub { font-size: 11px; margin-bottom: 9px; }
+.landscape .card p { font-size: 13px; line-height: 1.45; margin-bottom: 7px; }
+.landscape .rules { margin-bottom: 10px; }
+.landscape .rules li { font-size: 12.5px; line-height: 1.4; padding: 2px 0; }
+.landscape .lengths { margin: 4px 0 10px; }
+.landscape .len { min-height: 40px; font-size: 14px; }
+.landscape .best-line { margin: -4px 0 8px; font-size: 12px; }
+.landscape .btn { min-height: 44px; font-size: 15px; }
+.landscape .btn.ghost { min-height: 38px; font-size: 13px; margin-top: 7px; }
+.landscape .grade { width: 62px; height: 62px; font-size: 31px; margin-bottom: 8px; }
+.landscape .result-row { padding: 5px 2px; font-size: 13px; }
+.landscape .result-row b { font-size: 14px; }
+.landscape .result-row span { font-size: 12px; }
+.landscape .results { margin-bottom: 9px; }
+.landscape .verdict { font-size: 13px; margin-bottom: 10px; }
+
+/* Two columns of results on a short screen, so the card stops growing. */
+@media (max-height: 430px) {
+  .landscape .results {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 16px;
+  }
+  .landscape .rules { display: grid; grid-template-columns: 1fr 1fr; column-gap: 16px; }
+}
+
+/* Shortest screens: tighten the prompt so a long description still fits
+   whole. The description is the puzzle, so it is never clamped or scrolled. */
+@media (max-height: 400px) {
+  .landscape .slip { padding: 7px 10px; gap: 2px; }
+  .landscape .slip-title { font-size: 14.5px; }
+  .landscape .slip-author { font-size: 10.5px; }
+  .landscape .slip-desc { font-size: 11.5px; line-height: 1.3; }
+  .landscape .slip-ask { font-size: 12.5px; line-height: 1.3; }
+  .landscape .slip-hint { font-size: 11.5px; line-height: 1.35; }
+  .landscape .slip-kicker { font-size: 8.5px; }
+  .landscape .slip-nudge { font-size: 10px; }
+  .landscape .slip-back { min-height: 26px; font-size: 11px; padding: 3px 9px; }
+  .landscape .toast { padding: 3px 9px; font-size: 10.5px; }
+  .landscape .bookcase { padding: 4px; }
+  .landscape .shelf-tag { display: none; }
+}
+
+/* ── Portrait: ask for a turn rather than cramming ─────────── */
+
+.rotate { display: none; }
+
+@media (orientation: portrait) {
+  .landscape .room > .counter,
+  .landscape .overlay,
+  .landscape .fx { display: none; }
+
+  .rotate {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    align-items: center;
+    justify-content: center;
+    padding: 28px;
+    text-align: center;
+  }
+}
+
+.rotate-inner { max-width: 300px; }
+
+.rotate-inner h2 {
+  margin: 0 0 8px;
+  font-size: 23px;
+  color: var(--cream);
+}
+
+.rotate-inner p {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: rgba(246, 236, 217, .68);
+}
+
+/* A phone turning on its side. */
+.rotate-phone {
+  width: 52px;
+  height: 86px;
+  margin: 0 auto 20px;
+  border-radius: 9px;
+  border: 2px solid var(--brass);
+  box-shadow: 0 0 22px rgba(216, 166, 87, .22), inset 0 0 0 3px rgba(216, 166, 87, .12);
+  animation: turnPhone 2.8s ease-in-out infinite;
+}
+
+@keyframes turnPhone {
+  0%, 30%   { transform: rotate(0deg); }
+  55%, 85%  { transform: rotate(-90deg); }
+  100%      { transform: rotate(0deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rotate-phone { animation: none; transform: rotate(-90deg); }
+}

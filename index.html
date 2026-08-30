@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Quiet Stacks — a small library shift</title>
+<meta name="description" content="A cozy one-shift librarian game. Shelve returns, help patrons, keep the reading room calm.">
+<meta name="theme-color" content="#2a1a12">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="room">
+  <div class="lamp-glow" aria-hidden="true"></div>
+
+  <main class="counter" id="counter">
+
+    <!-- ───────────── HUD ───────────── -->
+    <header class="hud">
+      <div class="hud-row">
+        <div class="clock">
+          <span class="clock-time" id="clockTime">5:00</span>
+          <span class="clock-phase" id="clockPhase">Opening</span>
+        </div>
+
+        <div class="readouts">
+          <div class="readout">
+            <span class="readout-label">Score</span>
+            <span class="readout-value" id="scoreValue">0</span>
+          </div>
+          <div class="readout" id="streakBox">
+            <span class="readout-label">Streak</span>
+            <span class="readout-value" id="streakValue">0</span>
+          </div>
+        </div>
+
+        <div class="hud-buttons">
+          <button class="icon-btn" id="soundBtn" type="button" aria-pressed="true" title="Sound on or off">
+            <span id="soundIcon">♪</span>
+          </button>
+          <button class="icon-btn" id="restartBtn" type="button" title="Start the shift over">↻</button>
+        </div>
+      </div>
+
+      <div class="shift-bar" role="progressbar" aria-label="Shift progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="shiftBar">
+        <div class="shift-fill" id="shiftFill"></div>
+      </div>
+
+      <div class="hud-row hud-row-lower">
+        <div class="goal" id="goalBooks">
+          <span class="goal-icon" aria-hidden="true">▤</span>
+          <span class="goal-text">Shelved <b id="goalBooksValue">0</b>/<span id="goalBooksTarget">8</span></span>
+        </div>
+        <div class="goal" id="goalPatrons">
+          <span class="goal-icon" aria-hidden="true">☺</span>
+          <span class="goal-text">Helped <b id="goalPatronsValue">0</b>/<span id="goalPatronsTarget">6</span></span>
+        </div>
+        <div class="mood">
+          <span class="mood-label" id="moodLabel">Calm</span>
+          <div class="mood-bar"><div class="mood-fill" id="moodFill"></div></div>
+        </div>
+      </div>
+    </header>
+
+    <!-- ───────────── SHELVES ───────────── -->
+    <section class="bookcase" aria-label="Library shelves">
+      <div class="bookcase-top" aria-hidden="true"></div>
+      <div class="bays" id="shelves"></div>
+      <div class="bookcase-base" aria-hidden="true"></div>
+    </section>
+
+    <!-- ───────────── DESK / HAND ───────────── -->
+    <section class="desk" aria-label="Front desk">
+      <div class="toast" id="toast" role="status" aria-live="polite"></div>
+      <div class="slip" id="slip"></div>
+    </section>
+
+    <!-- ───────────── FLOOR: CART + QUEUE ───────────── -->
+    <section class="floor">
+      <button class="cart" id="cart" type="button" aria-label="Return cart">
+        <span class="cart-title">Return cart <b id="cartCount">0</b></span>
+        <span class="cart-stack" id="cartStack"></span>
+        <span class="cart-body" aria-hidden="true">
+          <span class="wheel"></span><span class="wheel"></span>
+        </span>
+      </button>
+
+      <div class="queue-wrap">
+        <span class="queue-title">At the desk</span>
+        <div class="queue" id="queue"></div>
+        <span class="queue-empty" id="queueEmpty">Nobody waiting.</span>
+      </div>
+    </section>
+  </main>
+
+  <div class="fx" id="fx" aria-hidden="true"></div>
+
+  <!-- ───────────── OVERLAY ───────────── -->
+  <div class="overlay" id="overlay">
+    <div class="card" id="overlayCard"></div>
+  </div>
+</div>
+
+<script src="game.js"></script>
+</body>
+</html>

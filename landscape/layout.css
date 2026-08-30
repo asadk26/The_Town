@@ -106,9 +106,65 @@ html { overflow: hidden; }            /* gameplay never scrolls the page */
   .landscape .shelf-name { font-size: clamp(8.5px, 6.6cqi, 13px); }
   .landscape .shelf-tag  { font-size: clamp(7px, 4.3cqi, 9.5px); }
 }
-.landscape .shelf-spines { gap: 2px; padding: 4px 3px 0; }
-.landscape .spine { flex-basis: 17px; min-width: 10px; }
-.landscape .spine-label { font-size: 8px; }
+/* Books lie flat here rather than standing upright.
+   A landscape bay is wide and short — roughly 190x85 — so an upright spine has
+   only ~52px of height to print a title into, and most titles were losing their
+   endings. Laid flat the same title gets the bay's full width instead, which is
+   over three times the room, and nearly every title fits whole. Still a stack of
+   books on a shelf, just resting the way the short shelf actually allows. */
+.landscape .shelf-spines {
+  flex-direction: column-reverse;      /* newest on top of the pile */
+  align-items: stretch;
+  justify-content: flex-start;         /* the pile rests on the shelf floor */
+  gap: 2px;
+  padding: 4px 4px 0;
+}
+
+.landscape .spine {
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;                        /* ignore the upright height variation */
+  min-width: 0;
+  min-height: 11px;
+  padding: 0 6px 0 9px;
+  border-radius: 2px 3px 3px 2px;
+  align-items: center;
+  justify-content: flex-start;
+  box-shadow:
+    inset 3px 0 0 rgba(0, 0, 0, .3),      /* the spine edge of the book */
+    inset -4px 0 0 rgba(255, 252, 244, .16), /* the page block at the fore edge */
+    inset 0 1px 0 rgba(255, 255, 255, .12),
+    0 1px 2px rgba(0, 0, 0, .34);
+  animation: bookLandsFlat .38s cubic-bezier(.2, 1.2, .4, 1) both;
+}
+
+.landscape .spine-label {
+  writing-mode: horizontal-tb;
+  transform: none;
+  max-height: none;
+  width: 100%;
+  padding: 0;
+  font-size: 9px;
+  line-height: 1.35;
+  text-align: left;      /* titles read from the spine edge, not centred like a list */
+}
+
+@keyframes bookLandsFlat {
+  0%   { transform: translateY(-8px); opacity: 0; }
+  100% { transform: none; opacity: 1; }
+}
+
+/* Six flat books fit a short bay; the seventh stays in state and in the DOM,
+   just not shown. The rows tighten too, so the pile never overruns the bay and
+   gets clipped at the top. */
+@media (max-height: 430px) {
+  .landscape .shelf-spines > .spine:nth-last-child(n+7) { display: none; }
+  /* Six 10px books exactly fill a 64px bay, so they stack flush — which is how
+     books in a pile actually sit; the drop shadow keeps them separable. */
+  .landscape .shelf-spines { gap: 0; padding: 2px 3px 0; }
+  .landscape .spine { min-height: 10px; padding: 0 5px 0 8px; }
+  .landscape .spine-label { font-size: 8px; line-height: 1.25; }
+}
 
 /* ── Desk: a reserved toast lane above the prompt ──────────
    In portrait the toast floats above the slip. Here it gets its own row, so
@@ -191,6 +247,17 @@ html { overflow: hidden; }            /* gameplay never scrolls the page */
   100% { opacity: 0; transform: translateY(-6px); }
 }
 
+/* Landscape has little headroom, so the score float stays over the shelves
+   rather than drifting up across the HUD. */
+.landscape ~ .fx .float-score,
+.fx .float-score { animation-name: floatUpShort; }
+
+@keyframes floatUpShort {
+  0%   { transform: translate(-50%, 0); opacity: 0; }
+  20%  { opacity: 1; }
+  100% { transform: translate(-50%, -24px); opacity: 0; }
+}
+
 /* ── Title and results cards, sized for a short screen ─────── */
 
 .landscape .overlay { padding: 10px; }
@@ -238,8 +305,6 @@ html { overflow: hidden; }            /* gameplay never scrolls the page */
   .landscape .toast { padding: 3px 9px; font-size: 10.5px; }
   .landscape .bookcase { padding: 4px; }
   .landscape .shelf-tag { display: none; }
-  .landscape .spine { flex-basis: 15px; }
-  .landscape .spine-label { font-size: 7.5px; padding: 3px 0; }
 }
 
 /* ── Portrait: ask for a turn rather than cramming ─────────── */

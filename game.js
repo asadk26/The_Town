@@ -781,7 +781,7 @@ function addSpine(genreId, book) {
   const el = document.createElement('span');
   el.className = 'spine';
   el.style.setProperty('--sp', shadeOf(shelfById(genreId).color, count));
-  el.style.height = (72 + ((count * 37) % 22)) + '%';   // slight variation, like real spines
+  el.style.setProperty('--spine-h', (78 + ((count * 37) % 20)) + '%');  // varied, like real spines
   if (book) {
     el.title = book.author ? book.title + ' — ' + book.author : book.title;
     const label = document.createElement('span');

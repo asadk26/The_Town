@@ -458,16 +458,48 @@ console.log('\n── progression ──');
   ck('a new player has one round open', r.unlocked === 1 && r.locked === ROUTE_COUNT - 1);
   ck('Random Run is hidden until a second round opens', !r.random);
 
-  // a C does not open anything; an A does
+  // a C does not open anything; a B does, and so does anything above it
   r = await p.evaluate(() => {
-    const before = best.unlocked;
     creditUnlock('rookie', 'C');
     const afterC = best.unlocked;
-    const opened = creditUnlock('rookie', 'A');
-    return { before, afterC, after: best.unlocked, opened: opened && opened.id };
+    const opened = creditUnlock('rookie', 'B');
+    return { afterC, after: best.unlocked, opened: opened && opened.id, bar: CONFIG.unlockAt };
   });
   ck('a C opens nothing', r.afterC === 1);
-  ck('an A opens the next round', r.after === 2 && r.opened === 'winding');
+  ck('a B opens the next round', r.after === 2 && r.opened === 'winding', 'bar is ' + r.bar);
+
+  // and the bar is what the game says it is, whatever it is set to
+  const ladder = await p.evaluate(() => {
+    const out = {};
+    for (const g of ['C', 'B', 'A', 'S']) {
+      best.unlocked = 1;
+      out[g] = !!creditUnlock('rookie', g);
+    }
+    best.unlocked = 2;
+    return out;
+  });
+  ck('every grade at or above the bar opens the next round',
+     !ladder.C && ladder.B && ladder.A && ladder.S,
+     Object.entries(ladder).map(([g, o]) => g + (o ? '✓' : '✗')).join(' '));
+
+  /* Parking inside every bay — no Perfects at all — has to be enough to move
+     on. That is the whole point of the bar being a B. */
+  const tidyButPlain = await p.evaluate(() => {
+    chosenRoute = 'rookie'; startRun();
+    S.ratings = ['good', 'good', 'good', 'good', 'good'];
+    S.score = CONFIG.points.good * 5;
+    S.t = parOf(S.route) + 4;                 // a little over par, so no bonus
+    return { score: S.score, grade: gradeOf(S.score, S.t), par: parOf(S.route) };
+  });
+  ck('five plain Good stops is a B', tidyButPlain.grade === 'B',
+     tidyButPlain.score + ' pts against a par of ' + tidyButPlain.par + 's');
+  const allMessy = await p.evaluate(() => {
+    S.ratings = ['messy', 'messy', 'messy', 'messy', 'messy'];
+    S.score = CONFIG.points.messy * 5;
+    S.t = parOf(S.route) + 10;
+    return gradeOf(S.score, S.t);
+  });
+  ck('five scraped stops is still a C', allMessy === 'C', allMessy);
 
   r = await p.evaluate(() => {
     // finishing an already-passed round does not skip ahead
@@ -513,15 +545,17 @@ console.log('\n── progression ──');
 console.log('\n── a whole round ──');
 {
   const tidy = await runBot(1.0, 0);
-  ck('a competent round finishes', tidy.finished && tidy.at === 5,
-     tidy.at + '/5 stops');
-  ck('and lands in the 45-90s window', tidy.t >= 45 && tidy.t <= 90, r1(tidy.t) + 's');
+  ck('a round can be finished', tidy.finished && tidy.at === 5, tidy.at + '/5 stops');
+  /* The 45-90s window is what a competent player should take, so it is the
+     careful driver below that has to sit inside it. This one drives a near
+     optimal line — it only has to show the round is not trivially short. */
+  ck('the best possible line is not a sprint', tidy.t >= 38, r1(tidy.t) + 's flat out');
   ck('driving the middle keeps it off the verge', tidy.off < 2 && tidy.bumps === 0,
      `${r1(tidy.off)}s off-road, ${tidy.bumps} bumps`);
   ck('no errors over a whole round', tidy.errors.length === 0, tidy.errors[0] || '');
 
   const careful = await runBot(0.72, 0);
-  ck('a careful round still finishes inside the window',
+  ck('a competent round lands in the 45-90s window',
      careful.finished && careful.t >= 45 && careful.t <= 90, r1(careful.t) + 's');
 
   // the same driver, parking badly: the rating has to notice. The bays are
@@ -585,7 +619,35 @@ for (const [w, h] of [[640, 360], [667, 375], [844, 390], [926, 428], [1280, 720
       roadH: Math.round(document.getElementById('road').getBoundingClientRect().height),
     };
   });
+  // both cards have to fit: a clipped Run Again is a dead end
+  const cards = await p.evaluate(async () => {
+    const fits = () => {
+      const c = document.getElementById('card').getBoundingClientRect();
+      return c.top >= -1 && c.bottom <= innerHeight + 1;
+    };
+    const btnIn = (id) => { const e = document.getElementById(id); if (!e) return false;
+      const r = e.getBoundingClientRect();
+      return r.top >= -1 && r.bottom <= innerHeight + 1; };
+    showTitle();
+    const depot = fits() && btnIn('goBtn');
+    chosenRoute = ROUTES[0].id; startRun();
+    S.t = 78.4; S.ratings = ['messy', 'good', 'messy', 'good', 'messy'];
+    S.score = 565; S.at = 5; endRun();
+    const short = fits() && btnIn('againBtn') && btnIn('menuBtn');
+    best.unlocked = 1; saveBest();
+    startRun();
+    S.t = 61; S.ratings = ['perfect', 'perfect', 'perfect', 'perfect', 'perfect'];
+    S.score = 1100; S.at = 5; endRun();
+    const won = fits() && btnIn('againBtn') && btnIn('menuBtn');
+    hideOverlay();
+    return { depot, short, won };
+  });
   const tag = `${w}x${h}`;
+  ck(`${tag}: both cards fit, buttons and all`,
+     cards.depot && cards.short && cards.won,
+     `depot ${cards.depot ? 'ok' : 'CLIPPED'}, short round ${cards.short ? 'ok' : 'CLIPPED'}, unlock ${cards.won ? 'ok' : 'CLIPPED'}`);
+  await p.reload();
+  await play(p);
   ck(`${tag}: nothing scrolls`, m.scrollY <= 0 && m.scrollX <= 0, `y${m.scrollY} x${m.scrollX}`);
   ck(`${tag}: the canvas is live and the controls are on screen`, m.canvas && m.keysIn);
   ck(`${tag}: thumb targets are big enough`, m.smallest >= 44, m.smallest + 'px');

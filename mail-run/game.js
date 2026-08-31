@@ -78,9 +78,16 @@ const CONFIG = {
   camLookAhead:  0.78,  // how far ahead of the truck it sits, per unit speed
 
   /* ── scoring ─────────────────────────────────────────────────────────── */
-  points:        { perfect: 220, good: 140, messy: 70 },
-  parTime:       62,    // a clean, competent round
-  timeBonus:     14,    // points per second under par
+  /* Parking inside the bay at all is worth most of a Perfect: the round is
+     about judging the approach, and a tidy round should read as a good one
+     even when none of the five were spot on. */
+  points:        { perfect: 220, good: 155, messy: 85 },
+  /* Being quick is worth about one extra Perfect over a whole round — a
+     lever, not the whole score. Any higher and a scruffy fast round outscores
+     a tidy careful one, which is the wrong lesson for this game to teach. */
+  timeBonus:      8,    // points per second under the round's par
+  gradeAt:       { A: 950, B: 600 },
+  unlockAt:      'B',   // the grade that opens the next round along
 };
 
 const SAVE_KEY = 'mailrun.best.v1';
@@ -205,6 +212,7 @@ const ROUTES = [
     name: 'Rookie Round',
     where: 'The suburbs',
     blurb: 'Wide streets, easy bends, and bays you could park a bus in.',
+    par: 70,          // seconds a competent round takes; under it earns bonus
     bay: { w: 1.00, h: 1.00 },
     // An open loop: three square-ish corners and out again, so the return
     // leg never runs alongside the one it started on.
@@ -226,6 +234,7 @@ const ROUTES = [
     name: 'Winding Neighbourhood',
     where: 'Off the main road',
     blurb: 'Bend after bend. The straights are short and the kerbs come quickly.',
+    par: 70,          // seconds a competent round takes; under it earns bonus
     bay: { w: 0.90, h: 0.94 },
     start: { x: 420, y: 3200, a: -90, w: 116 },
     pieces: [
@@ -249,6 +258,7 @@ const ROUTES = [
     name: 'Town Centre',
     where: 'Narrow streets',
     blurb: 'Tight lanes, square corners, and a kerb waiting just past each one.',
+    par: 72,          // seconds a competent round takes; under it earns bonus
     bay: { w: 0.80, h: 0.88 },
     // Square corners, but never so tight that a clean line has to leave the
     // tarmac: the radii sit just above what the truck can hold at pace.
@@ -272,6 +282,7 @@ const ROUTES = [
     name: 'Long Haul',
     where: 'The edge of town',
     blurb: 'Open road and real speed, so every bay is a braking decision.',
+    par: 80,          // seconds a competent round takes; under it earns bonus
     bay: { w: 0.92, h: 0.92 },
     start: { x: 400, y: 3800, a: -90, w: 124 },
     pieces: [
@@ -293,6 +304,7 @@ const ROUTES = [
     name: 'The Technical',
     where: 'The old quarter',
     blurb: 'Short streets, constant direction changes, and the tightest bays on the round.',
+    par: 68,          // seconds a competent round takes; under it earns bonus
     bay: { w: 0.74, h: 0.84 },
     start: { x: 520, y: 2600, a: -90, w: 92 },
     pieces: [
@@ -686,7 +698,7 @@ const isUnlocked = (id) => unlockedRoutes().some((r) => r.id === id);
 /* An A or an S opens the next round along. */
 function creditUnlock(routeId, grade) {
   const i = ROUTES.findIndex((r) => r.id === routeId);
-  if (i < 0 || (grade !== 'A' && grade !== 'S')) return null;
+  if (i < 0 || !atLeast(grade, CONFIG.unlockAt)) return null;
   if (i !== best.unlocked - 1 || best.unlocked >= ROUTES.length) return null;
   best.unlocked++;
   return ROUTES[best.unlocked - 1];
@@ -1381,7 +1393,8 @@ function renderRouteNote() {
         rec.perfects + ' perfect</b>'
       : '') +
     (next && ROUTES[best.unlocked - 1].id === chosenRoute
-      ? '<br><span class="unlock-hint">An A on this round opens ' + next.name + '.</span>'
+      ? '<br><span class="unlock-hint">A ' + CONFIG.unlockAt + ' on this round opens ' +
+        next.name + '. Par is ' + parOf(route) + 's.</span>'
       : '');
 }
 
@@ -1402,18 +1415,23 @@ function startRun() {
   playCue('start');
 }
 
+const GRADE_ORDER = ['C', 'B', 'A', 'S'];
+const atLeast = (grade, bar) => GRADE_ORDER.indexOf(grade) >= GRADE_ORDER.indexOf(bar);
+
+function parOf(route) { return route.par || 70; }
+
 function gradeOf(score, time) {
   const perfects = S.ratings.filter((r) => r === 'perfect').length;
-  if (perfects === S.stops.length && time <= CONFIG.parTime) return 'S';
-  if (score >= 900) return 'A';
-  if (score >= 620) return 'B';
+  if (perfects === S.stops.length && time <= parOf(S.route)) return 'S';
+  if (score >= CONFIG.gradeAt.A) return 'A';
+  if (score >= CONFIG.gradeAt.B) return 'B';
   return 'C';
 }
 
 function endRun() {
   S.phase = 'over';
   const time = S.t;
-  const bonus = Math.max(0, Math.round((CONFIG.parTime - time) * CONFIG.timeBonus));
+  const bonus = Math.max(0, Math.round((parOf(S.route) - time) * CONFIG.timeBonus));
   const score = S.score + bonus;
   const grade = gradeOf(score, time);
   const perfects = S.ratings.filter((x) => x === 'perfect').length;
@@ -1445,13 +1463,30 @@ function endRun() {
     '</div>' +
     (opened
       ? '<p class="opened"><b>' + opened.name + '</b> is open &mdash; ' + opened.blurb + '</p>'
-      : '') +
+      : nextGoal(grade, score, time)) +
     '<button class="btn" type="button" id="againBtn">Run again</button>' +
     '<button class="btn ghost" type="button" id="menuBtn">Back to the depot</button>';
   $('againBtn').addEventListener('click', () => startRun());
   $('menuBtn').addEventListener('click', showTitle);
   playCue(opened ? 'unlock' : 'finish');
   renderStops();
+}
+
+/* When a round did not open the next one, say plainly what would have — a
+   number of points, or a number of seconds, rather than a shrug. */
+function nextGoal(grade, score, time) {
+  const i = ROUTES.findIndex((r) => r.id === S.route.id);
+  const isFrontier = i === best.unlocked - 1 && best.unlocked < ROUTES.length;
+  if (!isFrontier || atLeast(grade, CONFIG.unlockAt)) return '';
+  const short = CONFIG.gradeAt[CONFIG.unlockAt] - score;
+  const secs = Math.ceil(short / CONFIG.timeBonus);
+  const underPar = time < parOf(S.route);
+  return '<p class="goal">A <b>' + CONFIG.unlockAt + '</b> opens ' +
+    ROUTES[i + 1].name + ' &mdash; ' + short + ' more points. ' +
+    (underPar
+      ? 'Park inside the bay every time and you are there.'
+      : 'Worth ' + secs + 's off the clock, or one tidier stop.') +
+    '</p>';
 }
 
 function row(label, value, isBest) {

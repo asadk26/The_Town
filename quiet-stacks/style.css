@@ -25,9 +25,35 @@
   --mystery:     #4e7f8c;
   --biography:   #a9714a;
 
+  /* Reading-room greens, so the room is lit rather than uniformly brown. */
+  --shade:       #1d3a33;
+  --shade-lit:   #2f5b4d;
+  --lamp:        #ffd68f;
+  --lamp-warm:   rgba(255, 202, 122, .34);
+
   --radius:      14px;
   --tap:         56px;
   --shadow-soft: 0 8px 22px rgba(20, 10, 4, .35);
+
+  /* ── Type scale ────────────────────────────────────────────
+     Every size here is driven by vmin, which is the same number in
+     portrait and landscape — one scale serves both builds, and text
+     grows with the screen instead of sitting at a fixed 8.5px.
+     Floors are what stays readable on the smallest phone. */
+  --fs-clock:   clamp(22px,   6vmin,   30px);
+  --fs-hud:     clamp(12px,   3.2vmin, 16px);
+  --fs-hud-lab: clamp(8.5px,  2.3vmin, 11px);
+  --fs-goal:    clamp(11.5px, 3.1vmin, 15px);
+
+  --fs-shelf:   clamp(12px,   3.3vmin, 17px);
+  --fs-tag:     clamp(9px,    2.4vmin, 12px);
+  --fs-spine:   clamp(10.5px, 2.9vmin, 14px);
+
+  --fs-title:   clamp(18px,   5vmin,   26px);
+  --fs-ask:     clamp(15px,   4.3vmin, 21px);
+  --fs-body:    clamp(14px,   3.9vmin, 19px);
+  --fs-meta:    clamp(11.5px, 3.1vmin, 15px);
+  --fs-kicker:  clamp(9.5px,  2.6vmin, 12.5px);
 }
 
 * { box-sizing: border-box; }
@@ -75,9 +101,51 @@ button {
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(52% 34% at 50% 8%, rgba(255, 205, 130, .20), transparent 70%),
+    radial-gradient(52% 34% at 50% 8%, rgba(255, 205, 130, .22), transparent 70%),
+    /* the working light over the desk, where the reading actually happens */
+    radial-gradient(46% 30% at 50% 72%, rgba(255, 198, 122, .16), transparent 72%),
     radial-gradient(80% 50% at 50% 105%, rgba(255, 190, 120, .10), transparent 70%);
   animation: lampBreathe 9s ease-in-out infinite;
+}
+
+/* Corners fall away, so the lit middle reads as the middle. */
+.room::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  background:
+    radial-gradient(120% 86% at 50% 44%, transparent 42%, rgba(12, 6, 3, .34) 88%, rgba(9, 4, 2, .52) 100%);
+}
+
+/* Dust in the lamplight. Three specks, drifting; enough to say the air is
+   moving in here without ever pulling the eye off the desk. */
+.motes {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+}
+.motes i {
+  position: absolute;
+  top: -6px;
+  width: 3px; height: 3px;
+  border-radius: 50%;
+  background: rgba(255, 226, 178, .5);
+  box-shadow: 0 0 6px 1px rgba(255, 214, 143, .32);
+  animation: drift linear infinite;
+}
+.motes i:nth-child(1) { left: 22%; animation-duration: 26s; animation-delay: -4s; }
+.motes i:nth-child(2) { left: 54%; animation-duration: 34s; animation-delay: -17s; width: 2px; height: 2px; }
+.motes i:nth-child(3) { left: 79%; animation-duration: 29s; animation-delay: -9s; }
+
+@keyframes drift {
+  0%   { transform: translate(0, 0); opacity: 0; }
+  12%  { opacity: .8; }
+  88%  { opacity: .6; }
+  100% { transform: translate(26px, 104vh); opacity: 0; }
 }
 
 @keyframes lampBreathe {
@@ -123,7 +191,7 @@ button {
 .clock { display: flex; flex-direction: column; line-height: 1; }
 
 .clock-time {
-  font-size: 26px;
+  font-size: var(--fs-clock);
   font-weight: 700;
   letter-spacing: .5px;
   color: var(--cream);
@@ -132,7 +200,7 @@ button {
 
 .clock-phase {
   margin-top: 3px;
-  font-size: 11px;
+  font-size: var(--fs-hud-lab);
   letter-spacing: .1em;
   text-transform: uppercase;
   color: var(--brass);
@@ -156,7 +224,7 @@ button {
 
 .readout-label {
   display: block;
-  font-size: 9px;
+  font-size: var(--fs-hud-lab);
   letter-spacing: .12em;
   text-transform: uppercase;
   color: rgba(246, 236, 217, .55);
@@ -165,7 +233,7 @@ button {
 
 .readout-value {
   display: block;
-  font-size: 18px;
+  font-size: calc(var(--fs-hud) * 1.28);
   font-weight: 700;
   color: var(--cream);
   font-variant-numeric: tabular-nums;
@@ -238,7 +306,7 @@ body.streaking .bookcase {
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 12px;
+  font-size: var(--fs-goal);
   font-family: ui-sans-serif, system-ui, sans-serif;
   color: rgba(246, 236, 217, .8);
   background: rgba(20, 11, 6, .3);
@@ -258,7 +326,7 @@ body.streaking .bookcase {
   gap: 6px;
 }
 .mood-label {
-  font-size: 9px;
+  font-size: var(--fs-hud-lab);
   letter-spacing: .12em;
   text-transform: uppercase;
   color: rgba(246, 236, 217, .5);
@@ -326,7 +394,7 @@ body.streaking .bookcase {
   flex-direction: column;
   justify-content: flex-end;
   min-height: var(--tap);
-  padding: 6px 5px 0;
+  padding: 6px 3px 0;
   border-radius: 10px;
   background:
     linear-gradient(180deg, rgba(24, 13, 7, .62), rgba(38, 22, 13, .38));
@@ -338,7 +406,7 @@ body.streaking .bookcase {
 }
 
 .shelf-name {
-  font-size: 12px;
+  font-size: var(--fs-shelf);
   letter-spacing: .06em;
   text-transform: uppercase;
   text-align: center;
@@ -350,7 +418,7 @@ body.streaking .bookcase {
 
 .shelf-tag {
   display: block;
-  font-size: 9px;
+  font-size: var(--fs-tag);
   letter-spacing: .04em;
   text-transform: none;
   color: rgba(246, 236, 217, .42);
@@ -359,22 +427,25 @@ body.streaking .bookcase {
 
 .shelf-spines {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   flex: 1 1 auto;
   display: flex;
   flex-direction: column-reverse;   /* newest rests on top of the pile */
   align-items: flex-start;
   justify-content: flex-start;      /* the pile sits on the shelf floor */
   gap: 2px;
-  padding: 5px 4px 0;
+  padding: 5px 2px 0;
   min-height: 0;
 }
 
 .spine {
   flex: 0 0 auto;
-  width: var(--spine-h, 96%);    /* books in a pile are not all the same size */
+  width: var(--spine-h, 98%);    /* books in a pile are not all the same size */
   min-height: 12px;
-  padding: 1px 5px 1px 8px;
+  /* The left edge is the spine of the book, so it keeps its width; everything
+     else here is chrome, and in a 104px portrait bay chrome was eating a third
+     of the room the title had to read in. */
+  padding: 1px 4px 1px 7px;
   border-radius: 2px 3px 3px 2px;
   background: var(--sp, #8a6a4a);
   box-shadow:
@@ -398,9 +469,46 @@ body.streaking .bookcase {
 
 /* The title reads across the book. A long one takes a second line rather than
    losing its ending; the full title lives on the element and in game state. */
+/* ── The stock the library already owns ──────────────────────
+   A row of books standing at the very back of every bay from the moment the
+   shift opens. They are scenery: dim, unlabelled, behind everything, and never
+   a tap target — but they turn three empty boxes into three bookshelves. */
+.shelf-stock {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  bottom: 6px;
+  height: 74%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  gap: 1.5px;
+  overflow: hidden;
+  opacity: .62;
+  filter: saturate(.72) brightness(.8);
+  pointer-events: none;
+}
+/* Widths are a share of the bay, so one row of books fills a wide landscape
+   bay and a narrow portrait one alike; the floor keeps them book-shaped
+   rather than hatching when the bay is small, and the rest is clipped. */
+.stock {
+  flex: 0 0 auto;
+  width: var(--w, 2.5%);
+  min-width: 4px;
+  height: var(--h, 70%);
+  border-radius: 1.5px 1.5px 0 0;
+  background: var(--sp, #6b4a30);
+  box-shadow:
+    inset -1.5px 0 0 rgba(0, 0, 0, .34),
+    inset 1px 0 0 rgba(255, 240, 214, .1),
+    inset 0 3px 0 rgba(255, 240, 214, .14);   /* the head of the pages, catching the light */
+}
+.stock.lean { transform: rotate(7deg) translateY(1px); transform-origin: bottom left; }
+
 /* Older books stand at the back of the bay, unlabelled — the shelf fills up. */
 .shelf-back {
   position: absolute;
+  z-index: 1;
   left: 5px;
   right: 5px;
   bottom: 6px;
@@ -427,15 +535,17 @@ body.streaking .bookcase {
 .spine-label {
   width: 100%;
   font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
-  font-size: 8.5px;
-  line-height: 1.3;
+  font-size: var(--fs-spine);
+  line-height: 1.25;
   letter-spacing: .01em;
   text-align: left;
-  color: rgba(255, 250, 240, .95);
+  color: rgba(255, 250, 240, .96);
   text-shadow: 0 1px 1px rgba(0, 0, 0, .55);
   overflow: hidden;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  /* A portrait bay is narrow but tall, so a long title takes a third line
+     rather than losing its ending. Landscape bays are short and take two. */
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
 }
 
@@ -510,6 +620,77 @@ body.streaking .bookcase {
   transform: rotate(-.35deg);
 }
 
+/* ── The returned book, as a catalogue card ──────────────────────────
+   Stock that has been in a drawer for forty years: warmer than the desk
+   note, ruled, foxed at the corners, and typed. The title and the clue stay
+   in the serif — they are the puzzle, and they have to read first. */
+.slip.paper {
+  background:
+    /* the red margin rule, a hand's width in from the bound edge */
+    linear-gradient(90deg, transparent 0 33px, rgba(185, 112, 95, .42) 33px 34.2px, transparent 34.2px),
+    /* ruled lines, as on a date-due card */
+    repeating-linear-gradient(180deg, transparent 0 21px, rgba(120, 80, 40, .1) 21px 22px),
+    /* foxing: age spreading in from the corners */
+    radial-gradient(70% 90% at 2% 100%, rgba(176, 130, 74, .2), transparent 62%),
+    radial-gradient(60% 80% at 100% 0%, rgba(176, 130, 74, .16), transparent 60%),
+    /* the fibre in the stock */
+    repeating-linear-gradient(64deg, rgba(150, 112, 66, .05) 0 1px, transparent 1px 4px),
+    linear-gradient(90deg, rgba(120,80,40,.2) 0 5px, rgba(255,252,244,.5) 5px 9px, transparent 9px),
+    linear-gradient(176deg, #fbf3df, #ecdcbc);
+  background-position: 0 0, 0 6px, 0 0, 0 0, 0 0, 0 0, 0 0;
+  box-shadow:
+    inset 5px 0 0 var(--unsorted, #8a7c6a),
+    inset 0 0 34px rgba(150, 110, 62, .16),
+    0 6px 14px rgba(20, 10, 4, .45),
+    0 1px 0 rgba(255, 252, 244, .5);
+}
+
+/* Typed fields, in the typewriter the card would have gone through; the
+   serif stays on the title and the clue. */
+.slip.paper .slip-kicker,
+.slip.paper .slip-author,
+.slip.paper .slip-nudge,
+.slip.paper::after {
+  font-family: ui-monospace, "Courier New", Courier, monospace;
+}
+.slip.paper .slip-kicker,
+.slip.paper .slip-nudge { font-size: calc(var(--fs-kicker) * 1.08); }
+.slip.paper .slip-author { font-size: calc(var(--fs-meta) * 1.02); }
+.slip.paper .slip-title { letter-spacing: -.005em; }
+
+/* The accession number: what order it arrived in, never what it is about. */
+.slip-acc {
+  margin-left: .9em;
+  font-weight: 400;
+  color: rgba(120, 80, 40, .5);
+  letter-spacing: .02em;
+  text-transform: none;
+}
+
+/* A rubber stamp in the corner — it names the library, never where the book
+   belongs, so it can sit on the card without giving the puzzle away. */
+.slip.paper::after {
+  content: "Quiet Stacks";
+  position: absolute;
+  right: 12px;
+  bottom: 10px;
+  padding: 2px 7px 3px;
+  border: 2px solid rgba(185, 112, 95, .5);
+  border-radius: 4px;
+  color: rgba(185, 112, 95, .62);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: var(--fs-kicker);
+  font-weight: 700;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  transform: rotate(-5deg);
+  pointer-events: none;
+  opacity: .8;
+  max-width: 45%;
+}
+/* The idle prompt and a patron's ask are not returned books. */
+.slip:not(.paper)::after { content: none; }
+
 .slip.enter { animation: bookLands .3s cubic-bezier(.2, 1.25, .4, 1) both; }
 .slip.dragging { opacity: .25; }
 
@@ -522,19 +703,22 @@ body.streaking .bookcase {
   justify-content: center;
   align-items: center;
   text-align: center;
+  background-image:
+    repeating-linear-gradient(180deg, transparent 0 21px, rgba(120, 80, 40, .07) 21px 22px),
+    linear-gradient(178deg, rgba(251, 246, 234, .82), rgba(230, 216, 189, .82));
   box-shadow: inset 5px 0 0 rgba(138, 124, 106, .35), 0 4px 10px rgba(20, 10, 4, .3);
   background: linear-gradient(178deg, rgba(251, 246, 234, .82), rgba(230, 216, 189, .82));
 }
 
 .slip-hint {
-  font-size: 14px;
+  font-size: var(--fs-body);
   line-height: 1.5;
   color: var(--ink-soft);
   max-width: 30ch;
 }
 
 .slip-kicker {
-  font-size: 10px;
+  font-size: var(--fs-kicker);
   letter-spacing: .14em;
   text-transform: uppercase;
   color: var(--brass-dim);
@@ -542,13 +726,13 @@ body.streaking .bookcase {
 }
 
 .slip-title {
-  font-size: 19px;
+  font-size: var(--fs-title);
   font-weight: 700;
   line-height: 1.2;
 }
 
 .slip-author {
-  font-size: 13px;
+  font-size: var(--fs-meta);
   letter-spacing: .02em;
   color: var(--brass-dim);
   font-family: ui-sans-serif, system-ui, sans-serif;
@@ -556,13 +740,13 @@ body.streaking .bookcase {
 }
 
 .slip-desc {
-  font-size: 14px;
+  font-size: var(--fs-body);
   line-height: 1.45;
   color: var(--ink-soft);
 }
 
 .slip-ask {
-  font-size: 16px;
+  font-size: var(--fs-ask);
   line-height: 1.4;
 }
 
@@ -571,10 +755,11 @@ body.streaking .bookcase {
   align-items: center;
   gap: 10px;
   margin-top: 2px;
+  padding-right: 8.5em;         /* the library's stamp sits in this corner */
 }
 
 .slip-nudge {
-  font-size: 12px;
+  font-size: var(--fs-meta);
   letter-spacing: .04em;
   color: var(--brass-dim);
   font-family: ui-sans-serif, system-ui, sans-serif;
@@ -588,7 +773,7 @@ body.streaking .bookcase {
   background: rgba(120, 80, 40, .1);
   border: 1px solid rgba(120, 80, 40, .25);
   color: var(--ink-soft);
-  font-size: 13px;
+  font-size: var(--fs-meta);
   font-family: ui-sans-serif, system-ui, sans-serif;
 }
 .slip-back:active { background: rgba(120, 80, 40, .2); }
@@ -647,8 +832,14 @@ body.streaking .bookcase {
   min-height: 128px;
   border-radius: var(--radius);
   padding: 8px 8px 16px;
-  background: linear-gradient(180deg, var(--wood-mid), var(--wood-dark));
-  box-shadow: var(--shadow-soft), inset 0 0 0 1px rgba(255, 220, 170, .12);
+  background:
+    /* the second shelf of the trolley, glimpsed below the top one */
+    linear-gradient(180deg, transparent 0 63%, rgba(0, 0, 0, .26) 63% 66%, transparent 66%),
+    /* planking across the deck */
+    repeating-linear-gradient(90deg, rgba(0,0,0,.13) 0 1px, transparent 1px 11px),
+    linear-gradient(180deg, var(--wood-mid), var(--wood-dark));
+  box-shadow: var(--shadow-soft), inset 0 0 0 1px rgba(255, 220, 170, .12),
+              inset 0 -22px 26px -18px rgba(0, 0, 0, .5);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -657,7 +848,7 @@ body.streaking .bookcase {
 .cart:active { transform: translateY(1px); }
 
 .cart-title {
-  font-size: 10px;
+  font-size: var(--fs-kicker);
   letter-spacing: .1em;
   text-transform: uppercase;
   color: rgba(246, 236, 217, .62);
@@ -665,9 +856,11 @@ body.streaking .bookcase {
   text-align: center;
   line-height: 1.4;
 }
-.cart-title b { color: var(--brass); font-size: 13px; }
+.cart-title b { color: var(--brass); font-size: var(--fs-goal); }
 
 .cart-stack {
+  position: relative;
+  z-index: 1;
   flex: 1 1 auto;
   overflow: hidden;
   width: 100%;
@@ -735,7 +928,7 @@ body.streaking .bookcase {
 }
 
 .queue-title {
-  font-size: 10px;
+  font-size: var(--fs-kicker);
   letter-spacing: .1em;
   text-transform: uppercase;
   color: rgba(246, 236, 217, .55);
@@ -753,13 +946,51 @@ body.streaking .bookcase {
 }
 .queue::-webkit-scrollbar { display: none; }
 
+/* An empty queue was an empty box. Now it is a desk with a lamp on it: the
+   shade, its brass stem, and the pool of light it throws on the counter. */
+.desk-lamp {
+  display: block;
+  position: relative;
+  width: clamp(34px, 12vmin, 58px);
+  height: clamp(17px, 6vmin, 29px);
+  margin: 0 auto clamp(14px, 4.4vmin, 22px);
+  border-radius: 999px 999px 5px 5px / 999px 999px 3px 3px;
+  background: linear-gradient(178deg, var(--shade-lit), var(--shade));
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, .16),
+    0 3px 0 rgba(0, 0, 0, .3),
+    0 9px 20px 3px var(--lamp-warm),
+    0 30px 40px -6px var(--lamp-warm);
+}
+/* the brass stem, and the disc of light it drops on the counter */
+.desk-lamp::before {
+  content: "";
+  position: absolute;
+  left: 50%; top: 100%;
+  width: 3px;
+  height: clamp(7px, 2.4vmin, 12px);
+  transform: translateX(-50%);
+  border-radius: 0 0 2px 2px;
+  background: linear-gradient(180deg, var(--brass-dim), var(--brass));
+}
+.desk-lamp::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: calc(100% + clamp(7px, 2.4vmin, 12px));
+  width: 190%; height: 5px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(255, 209, 140, .34), transparent);
+}
+
 .queue-empty {
   position: absolute;
   left: 0; right: 0;
   top: 50%;
-  transform: translateY(-40%);
+  transform: translateY(-46%);
   text-align: center;
-  font-size: 12px;
+  font-size: var(--fs-goal);
   color: rgba(246, 236, 217, .35);
   font-family: ui-sans-serif, system-ui, sans-serif;
   pointer-events: none;
@@ -809,18 +1040,17 @@ body.streaking .bookcase {
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  display: grid;
-  place-items: center;
-  font-size: 15px;
-  font-weight: 700;
-  color: rgba(255, 250, 240, .95);
+  overflow: hidden;                       /* the portrait is cropped to the circle */
   background: var(--fc, #8a6a4a);
-  box-shadow: inset 0 -3px 6px rgba(0, 0, 0, .28), 0 2px 5px rgba(0, 0, 0, .35);
-  font-family: ui-sans-serif, system-ui, sans-serif;
+  box-shadow:
+    inset 0 -4px 8px rgba(0, 0, 0, .3),
+    inset 0 0 0 1.5px rgba(255, 240, 214, .18),
+    0 2px 5px rgba(0, 0, 0, .35);
 }
+.face svg { width: 100%; height: 100%; display: block; }
 
 .patron-name {
-  font-size: 10px;
+  font-size: var(--fs-kicker);
   color: rgba(246, 236, 217, .75);
   font-family: ui-sans-serif, system-ui, sans-serif;
   max-width: 100%;
@@ -858,7 +1088,7 @@ body.streaking .bookcase {
   background: rgba(30, 18, 10, .95);
   border: 1px solid rgba(216, 166, 87, .45);
   color: var(--paper);
-  font-size: 9.5px;
+  font-size: var(--fs-kicker);
   font-family: ui-sans-serif, system-ui, sans-serif;
   white-space: nowrap;
   max-width: 150px;
@@ -1090,11 +1320,42 @@ body.streaking .bookcase {
   animation: slipIn .35s cubic-bezier(.2, .9, .3, 1) both;
 }
 
+/* A shelf of books across the head of the card, in the sections' own colours. */
+.shelf-band {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: clamp(26px, 7vmin, 40px);
+  margin: -22px -20px 14px;
+  padding: 0 14px;
+  border-radius: 18px 18px 0 0;
+  background:
+    /* the plank the row is standing on */
+    linear-gradient(180deg, transparent 0 calc(100% - 4px), var(--wood-light) calc(100% - 4px)),
+    linear-gradient(180deg, var(--wood-dark), var(--wood));
+  box-shadow: inset 0 -9px 10px -6px rgba(0, 0, 0, .5), inset 0 1px 0 rgba(255, 220, 170, .12);
+  overflow: hidden;
+}
+.shelf-band i {
+  flex: 0 0 auto;
+  width: var(--w, 3%);
+  min-width: 5px;
+  height: var(--h, 70%);
+  margin-bottom: 4px;                 /* standing on the plank, not hanging */
+  border-radius: 1.5px 1.5px 0 0;
+  background: var(--sp, #8a6a4a);
+  box-shadow:
+    inset -1.5px 0 0 rgba(0, 0, 0, .3),
+    inset 0 3px 0 rgba(255, 240, 214, .16);
+}
+
 .card h1 {
   margin: 0 0 2px;
-  font-size: 30px;
+  font-size: clamp(30px, 8vmin, 44px);
+  line-height: 1.05;
   letter-spacing: .01em;
 }
+.card h1 b { font-weight: 700; color: var(--amber); }
 .card h2 {
   margin: 0 0 10px;
   font-size: 24px;
@@ -1258,14 +1519,15 @@ body.streaking .bookcase {
   width: 100%;
   min-height: var(--tap);
   border-radius: 12px;
-  background: linear-gradient(180deg, var(--wood-mid), var(--wood-dark));
+  background: linear-gradient(180deg, var(--shade-lit), var(--shade));
   color: var(--cream);
-  font-size: 17px;
+  font-size: clamp(17px, 4.6vmin, 21px);
   letter-spacing: .04em;
-  box-shadow: 0 5px 0 #2a1a12, 0 8px 18px rgba(0, 0, 0, .3);
+  box-shadow: 0 5px 0 #12241f, 0 8px 18px rgba(0, 0, 0, .3),
+              inset 0 1px 0 rgba(255, 255, 255, .14);
   transition: transform .1s ease, box-shadow .1s ease;
 }
-.btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #2a1a12, 0 4px 10px rgba(0,0,0,.3); }
+.btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #12241f, 0 4px 10px rgba(0,0,0,.3); }
 .btn.ghost {
   margin-top: 10px;
   background: none;
@@ -1343,42 +1605,12 @@ body.streaking .bookcase {
   }
   .bookcase { padding: 10px; }
   .bays { height: 236px; gap: 10px; padding: 10px 0; }
-  .shelf-name { font-size: 14px; }
   .shelf-spines { gap: 3px; }
-  /* Older books stand at the back of the bay, unlabelled — the shelf fills up. */
-.shelf-back {
-  position: absolute;
-  left: 5px;
-  right: 5px;
-  bottom: 6px;
-  height: 62%;
-  display: flex;
-  align-items: flex-end;
-  gap: 1px;
-  opacity: .5;
-  pointer-events: none;
-}
-
-.back-spine {
-  border-radius: 1px 1px 0 0;
-  background: var(--sp, #8a6a4a);
-  box-shadow: inset -1px 0 0 rgba(0, 0, 0, .3);
-  animation: backSpineIn .3s ease both;
-}
-
-@keyframes backSpineIn {
-  0%   { transform: translateY(6px); opacity: 0; }
-  100% { transform: none; opacity: 1; }
-}
-
-.spine-label { font-size: 9.5px; }
   .slip { min-height: 130px; padding: 16px 20px; }
-  .slip-title { font-size: 22px; }
   .floor { grid-template-columns: 160px 1fr; }
   .cart, .queue-wrap { min-height: 150px; }
   .patron { max-width: 150px; }
   .face { width: 40px; height: 40px; font-size: 17px; }
-  .clock-time { font-size: 30px; }
 }
 
 @media (min-height: 760px) {
@@ -1395,20 +1627,19 @@ body.streaking .bookcase {
 
   /* Five sections need two rows of bays, and a short screen has no spare
      height, so the HUD folds onto one line and hands the shelf the difference. */
+  :root { --fs-clock: clamp(18px, 5vmin, 24px); --fs-hud: clamp(10.5px, 2.9vmin, 14px);
+          --fs-hud-lab: clamp(8px, 2.2vmin, 10px); --fs-goal: clamp(10px, 2.8vmin, 13px); }
   .hud { display: flex; align-items: center; gap: 8px; padding: 5px 9px; }
   .hud-row { flex: 0 0 auto; margin: 0; gap: 7px; }
   .hud-row-lower { margin: 0; }
   .shift-bar { flex: 1 1 auto; margin: 0; height: 5px; min-width: 34px; }
   .clock { flex-direction: row; align-items: baseline; gap: 6px; }
-  .clock-time { font-size: 18px; }
-  .clock-phase { margin-top: 0; font-size: 8px; }
+  .clock-phase { margin-top: 0; }
   .readouts { gap: 6px; }
   .readout { padding: 2px 6px 3px; min-width: 42px; }
-  .readout-label { font-size: 7.5px; }
-  .readout-value { font-size: 13px; }
   .hud-buttons { flex-direction: row; gap: 4px; }
   .icon-btn { width: 26px; height: 26px; font-size: 12px; }
-  .goal { font-size: 10px; padding: 2px 5px; }
+  .goal { padding: 2px 5px; }
   .goal-icon { display: none; }
   .mood { margin-left: 0; }
   .mood-label { display: none; }
@@ -1417,18 +1648,12 @@ body.streaking .bookcase {
   .bays { height: 168px; }
   .bays[data-count="4"],
   .bays[data-count="5"] { height: 250px; }
-  .slip { min-height: 92px; padding: 10px 12px; }
-  .slip-title { font-size: 17px; }
-  .slip-author {
-  font-size: 13px;
+  .slip { min-height: 92px; padding: 10px 12px; }.slip-author {
   letter-spacing: .02em;
   color: var(--brass-dim);
   font-family: ui-sans-serif, system-ui, sans-serif;
   margin-top: -2px;
 }
-
-.slip-desc { font-size: 13px; }
-  .slip-ask { font-size: 14.5px; }
   .cart, .queue-wrap { min-height: 112px; }
   .face { width: 30px; height: 30px; font-size: 13px; }
 }
@@ -1437,33 +1662,21 @@ body.streaking .bookcase {
 @media (max-height: 520px) {
   .counter { gap: 6px; padding: 6px 10px calc(8px + env(safe-area-inset-bottom)); max-width: 760px; }
   .hud { padding: 6px 9px 7px; }
-  .clock-time { font-size: 19px; }
-  .clock-phase { font-size: 9px; }
   .readout { padding: 2px 7px 3px; min-width: 50px; }
-  .readout-value { font-size: 15px; }
   .icon-btn { width: 28px; height: 28px; font-size: 13px; }
   .hud-buttons { flex-direction: row; }
   .shift-bar { margin-top: 6px; height: 5px; }
   .hud-row-lower { margin-top: 6px; }
   .bays { height: 88px; }
   .shelf-tag { display: none; }
-  .shelf-name { font-size: 11px; }
-  .slip { min-height: 66px; padding: 8px 12px; }
-  .slip-title { font-size: 15px; }
-  .slip-author {
-  font-size: 13px;
+  .slip { min-height: 66px; padding: 8px 12px; }.slip-author {
   letter-spacing: .02em;
   color: var(--brass-dim);
   font-family: ui-sans-serif, system-ui, sans-serif;
   margin-top: -2px;
-}
-
-.slip-desc { font-size: 12px; line-height: 1.35; }
-  .slip-ask { font-size: 13px; line-height: 1.35; }
-  .slip-hint { font-size: 12.5px; }
+}.slip-desc { line-height: 1.35; }.slip-ask { line-height: 1.35; }
   .cart, .queue-wrap { min-height: 92px; }
   .face { width: 26px; height: 26px; font-size: 12px; }
-  .patron-name { font-size: 9px; }
 }
 
 /* Wide + short (landscape phones, small laptops): put the desk beside the shelves. */
@@ -1486,7 +1699,7 @@ body.streaking .bookcase {
 }
 
 @media (max-width: 380px) {
-  .goal { padding: 4px 6px; font-size: 11px; }
+  .goal { padding: 4px 6px; }
   .mood-bar { width: 44px; }
   .readout { min-width: 52px; }
 }

@@ -3,28 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Quiet Stacks — landscape</title>
-<meta name="description" content="Landscape build of Quiet Stacks: every shelf, the cart and the desk queue on one screen.">
+<title>Quiet Stacks — a small library shift</title>
+<meta name="description" content="A cozy one-shift librarian game. Shelve returns, help patrons, keep the reading room calm.">
 <meta name="theme-color" content="#2a1a12">
-<!-- V0's stylesheet first, then landscape-only layout overrides on top. -->
-<link rel="stylesheet" href="../style.css">
-<link rel="stylesheet" href="layout.css">
+<link rel="stylesheet" href="style.css">
 </head>
-<body class="landscape">
+<body>
 
 <div class="room">
   <div class="lamp-glow" aria-hidden="true"></div>
-
-  <!-- Portrait gets a friendly nudge rather than a squeezed-in game. -->
-  <div class="rotate">
-    <div class="rotate-inner">
-      <div class="rotate-phone" aria-hidden="true"></div>
-      <h2>Turn your phone sideways</h2>
-      <p>This build puts every shelf, the return cart and the desk queue on one
-         screen. It needs the long edge.</p>
-    </div>
-  </div>
-
+  <div class="motes" aria-hidden="true"><i></i><i></i><i></i></div>
 
   <main class="counter" id="counter">
 
@@ -101,7 +89,7 @@
       <div class="queue-wrap">
         <span class="queue-title">At the desk</span>
         <div class="queue" id="queue"></div>
-        <span class="queue-empty" id="queueEmpty">Nobody waiting.</span>
+        <span class="queue-empty" id="queueEmpty"><i class="desk-lamp" aria-hidden="true"></i>Nobody waiting.</span>
       </div>
     </section>
   </main>
@@ -114,31 +102,6 @@
   </div>
 </div>
 
-<script src="../game.js"></script>
-<script>
-  // Presentation only: the shift should not tick away behind the rotate card.
-  // Uses the globals game.js already defines; no game logic lives here.
-  (function () {
-    var pausedByRotation = false;
-    var portraitQuery = window.matchMedia('(orientation: portrait)');
-
-    function sync() {
-      if (typeof S === 'undefined' || !S) return;
-      if (portraitQuery.matches) {
-        if (S.phase === 'playing') { S.phase = 'paused'; pausedByRotation = true; }
-      } else if (pausedByRotation) {
-        S.phase = 'playing';
-        pausedByRotation = false;
-        lastFrame = performance.now();   // don't bank the time spent turned away
-      }
-    }
-
-    if (portraitQuery.addEventListener) portraitQuery.addEventListener('change', sync);
-    else portraitQuery.addListener(sync);
-    window.addEventListener('resize', sync);
-    window.addEventListener('orientationchange', sync);
-    sync();
-  })();
-</script>
+<script src="game.js"></script>
 </body>
 </html>

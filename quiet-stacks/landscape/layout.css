@@ -65,18 +65,24 @@ html { overflow: hidden; }            /* gameplay never scrolls the page */
   gap: 10px;
   padding: 5px 10px;
 }
+/* The rail is a fixed strip in landscape, so its half of the scale tightens —
+   at the token, so nothing falls off the scale onto a hard pixel value. */
+.landscape {
+  --fs-clock:   clamp(19px, 5.2vmin, 26px);
+  --fs-hud:     clamp(11px, 3vmin,   15px);
+  --fs-hud-lab: clamp(8px,  2.2vmin, 10.5px);
+  --fs-goal:    clamp(10.5px, 2.9vmin, 14px);
+}
+
 .landscape .hud-row { flex: 0 0 auto; margin: 0; gap: 8px; }
 .landscape .hud-row-lower { margin: 0; }
 .landscape .shift-bar { flex: 1 1 auto; margin: 0; height: 6px; min-width: 70px; }
 .landscape .clock { flex-direction: row; align-items: baseline; gap: 7px; }
-.landscape .clock-time { font-size: 20px; }
-.landscape .clock-phase { margin-top: 0; font-size: 9px; }
+.landscape .clock-phase { margin-top: 0; }
 .landscape .readout { padding: 2px 7px 3px; min-width: 48px; }
-.landscape .readout-label { font-size: 8px; }
-.landscape .readout-value { font-size: 14px; }
 .landscape .hud-buttons { flex-direction: row; gap: 5px; }
 .landscape .icon-btn { width: 30px; height: 30px; font-size: 14px; }
-.landscape .goal { font-size: 11px; padding: 3px 7px; }
+.landscape .goal { padding: 3px 7px; }
 .landscape .mood { margin-left: 0; }
 .landscape .mood-bar { width: 52px; }
 
@@ -103,17 +109,15 @@ html { overflow: hidden; }            /* gameplay never scrolls the page */
 
 /* Labels size to their own bay, so names stay whole whether there are three
    shelves or eight. The plain values are the fallback where cqi is unsupported. */
-.landscape .shelf-name { font-size: 12px; }
-.landscape .shelf-tag  { font-size: 9px; }
 @supports (font-size: 1cqi) {
-  .landscape .shelf-name { font-size: clamp(8.5px, 6.6cqi, 13px); }
-  .landscape .shelf-tag  { font-size: clamp(7px, 4.3cqi, 9.5px); }
+  .landscape .shelf-name { font-size: clamp(11px, 7.4cqi, 17px); }
+  .landscape .shelf-tag  { font-size: clamp(8.5px, 4.8cqi, 12px); }
 }
 /* Books lie flat in both builds (see style.css); landscape only tunes the
    sizes, since its bays are the widest and shortest in the game. */
 .landscape .shelf-spines { gap: 2px; padding: 4px 4px 0; }
-.landscape .spine { min-height: 11px; padding: 1px 5px 1px 8px; }
-.landscape .spine-label { font-size: 9px; line-height: 1.3; }
+.landscape .spine { min-height: 13px; padding: 1px 5px 1px 8px; }
+.landscape .spine-label { -webkit-line-clamp: 2; }   /* short bays, wide books */
 
 /* A roomier landscape screen has the height for more of them. */
 @media (min-height: 431px) {
@@ -134,9 +138,8 @@ html { overflow: hidden; }            /* gameplay never scrolls the page */
   .landscape .shelf-spines > .spine:nth-last-child(n+4) { display: none; }
   /* Six 10px books exactly fill a 64px bay, so they stack flush — which is how
      books in a pile actually sit; the drop shadow keeps them separable. */
-  .landscape .shelf-spines { gap: 0; padding: 2px 3px 0; }
-  .landscape .spine { min-height: 10px; padding: 0 5px 0 8px; }
-  .landscape .spine-label { font-size: 8px; line-height: 1.25; }
+  .landscape .shelf-spines { gap: 1px; padding: 2px 3px 0; }
+  .landscape .spine { min-height: 12px; padding: 0 5px 0 8px; }
 }
 
 /* ── Desk: a reserved toast lane above the prompt ──────────
@@ -176,16 +179,23 @@ html { overflow: hidden; }            /* gameplay never scrolls the page */
   gap: 4px;
   overflow: hidden;
 }
-.landscape .slip-kicker { font-size: 9px; }
-.landscape .slip-title { font-size: 16px; line-height: 1.15; }
-.landscape .slip-author { font-size: 11.5px; }
-.landscape .slip-desc { font-size: 12.5px; line-height: 1.35; }
-.landscape .slip-ask { font-size: 13.5px; line-height: 1.35; }
-.landscape .slip-hint { font-size: 12.5px; line-height: 1.4; }
+/* The desk is wide and short here, so the reading scale tightens a step — but
+   the title and the clue are what the whole decision rests on, so they stay on
+   the scale rather than dropping to a fixed size. */
+.landscape .slip {
+  --fs-title:  clamp(16px,   4.4vmin, 23px);
+  --fs-ask:    clamp(14px,   3.9vmin, 19px);
+  --fs-body:   clamp(13px,   3.6vmin, 17px);
+  --fs-meta:   clamp(11px,   3vmin,   14px);
+  --fs-kicker: clamp(9px,    2.5vmin, 12px);
+}
+.landscape .slip-title { line-height: 1.15; }
+.landscape .slip-desc,
+.landscape .slip-ask   { line-height: 1.35; }
+.landscape .slip-hint  { line-height: 1.4; }
 .landscape .slip { justify-content: center; }   /* short clues sit centred, not stranded at the top */
 .landscape .slip-foot { margin-top: 6px; }
-.landscape .slip-nudge { font-size: 11px; }
-.landscape .slip-back { min-height: 30px; padding: 4px 11px; font-size: 12px; }
+.landscape .slip-back { min-height: 30px; padding: 4px 11px; }
 
 /* The queue stacks two-by-two so it stays narrow enough for the desk to centre. */
 .landscape .queue {
@@ -200,15 +210,12 @@ html { overflow: hidden; }            /* gameplay never scrolls the page */
 /* ── Cart and queue, side by side under the shelves ────────── */
 
 .landscape .cart { padding: 6px 6px 14px; }
-.landscape .cart-title { font-size: 9px; }
-.landscape .cart-title b { font-size: 12px; }
+
 
 .landscape .queue-wrap { padding: 5px 6px 7px; }
-.landscape .queue-title { font-size: 9px; }
 .landscape .queue { gap: 5px; padding-top: 4px; }
 .landscape .patron { max-width: 104px; padding: 5px 4px; gap: 4px; }
 .landscape .face { width: 30px; height: 30px; font-size: 13px; }
-.landscape .patron-name { font-size: 9.5px; }
 
 /* ── Celebrations stay out of the way ──────────────────────
    V0 puts the streak banner across the middle of the screen; here that is
@@ -308,14 +315,7 @@ html { overflow: hidden; }            /* gameplay never scrolls the page */
 /* Shortest screens: tighten the prompt so a long description still fits
    whole. The description is the puzzle, so it is never clamped or scrolled. */
 @media (max-height: 400px) {
-  .landscape .slip { padding: 7px 10px; gap: 2px; }
-  .landscape .slip-title { font-size: 14.5px; }
-  .landscape .slip-author { font-size: 10.5px; }
-  .landscape .slip-desc { font-size: 11.5px; line-height: 1.3; }
-  .landscape .slip-ask { font-size: 12.5px; line-height: 1.3; }
-  .landscape .slip-hint { font-size: 11.5px; line-height: 1.35; }
-  .landscape .slip-kicker { font-size: 8.5px; }
-  .landscape .slip-nudge { font-size: 10px; }
+  .landscape .slip { padding: 7px 10px; gap: 2px; }.landscape .slip-desc { line-height: 1.3; }.landscape .slip-ask { line-height: 1.3; }.landscape .slip-hint { line-height: 1.35; }
   .landscape .slip-back { min-height: 26px; font-size: 11px; padding: 3px 9px; }
   .landscape .toast { padding: 3px 9px; font-size: 10.5px; }
   .landscape .bookcase { padding: 4px; }

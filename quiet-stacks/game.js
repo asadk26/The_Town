@@ -315,6 +315,61 @@ const PATRON_NAMES = [
 
 const FACE_COLORS = ['#8a6a4a', '#7a6b93', '#5d7a7f', '#96694f', '#6d7f5d', '#9a6470', '#5f6f8c'];
 
+/* ── Faces ────────────────────────────────────────────────────────────────
+   A patron is a person, not their initial. Each one is drawn from a small
+   parts bin — skin, hair, sometimes glasses or a scarf — picked once when
+   they arrive and kept for as long as they are at the desk. Nothing here
+   correlates with what they are looking for. */
+const SKIN  = ['#f0cfae', '#e8b98d', '#d3a273', '#b07b4f', '#8d5a3a', '#6f4429'];
+const HAIR  = ['#2b1f1a', '#4a3226', '#6b4327', '#a8763c', '#c9a227', '#8a8f96', '#d8d3cc', '#a8332c'];
+const WEAR  = ['#7f9a6f', '#5d7a8c', '#9a6470', '#b98a4a', '#6d6f8c', '#8a6a4a'];
+
+/* Hair shapes, drawn over a 40x40 head. Kept few and simple: at 34px on a
+   phone anything fussier turns to mud. */
+const HAIR_STYLES = [
+  'M6 20a14 14 0 0 1 28 0c0-5-4-11-14-11S6 15 6 20z',                      // short
+  // Side locks hug the head; any further out and they read as headphones.
+  'M6 21a14 14 0 0 1 28 0c0-6-5-12-14-12S6 15 6 21z' +
+    'M6.6 19.5h3.2v11.5a1.6 1.6 0 0 1-3.2 0z' +
+    'M30.2 19.5h3.2v11.5a1.6 1.6 0 0 1-3.2 0z',                            // long
+  'M7 19a13 13 0 0 1 26 0c0-6-4-10-13-10S7 13 7 19zM13 7a7 5 0 0 1 14 0z', // bun
+  'M6 22c0-9 6-14 14-14s14 5 14 14c0-3-3-4-5-6-3 3-15 4-19 1-2 2-4 2-4 5z',// curly
+  // A blunt fringe has to join the cap — a detached band reads as a headband.
+  'M7 20a13 13 0 0 1 26 0V16.5H7z',                                        // fringe
+];
+
+function faceSVG(f) {
+  const brow = f.glasses ? '' :
+    '<path d="M13 17.5c1.6-1.2 4-1.2 5.6 0M21.4 17.5c1.6-1.2 4-1.2 5.6 0" stroke="rgba(0,0,0,.4)"' +
+    ' stroke-width="1.5" fill="none" stroke-linecap="round"/>';
+  return '<svg viewBox="0 0 40 40" aria-hidden="true">' +
+    (f.scarf ? '<path d="M5.5 40c0-7.5 6.5-10.5 14.5-10.5s14.5 3 14.5 10.5z" fill="' + f.wear + '"/>' : '') +
+    '<circle cx="20" cy="21" r="13.5" fill="' + f.skin + '"/>' +
+    '<path d="' + HAIR_STYLES[f.hairStyle] + '" fill="' + f.hair + '"/>' +
+    brow +
+    '<circle cx="15.5" cy="22" r="1.9" fill="#241a15"/>' +
+    '<circle cx="24.5" cy="22" r="1.9" fill="#241a15"/>' +
+    '<path d="M16.5 28c2 1.9 5 1.9 7 0" stroke="#241a15" stroke-width="1.9"' +
+    ' fill="none" stroke-linecap="round"/>' +
+    (f.glasses
+      ? '<g fill="none" stroke="' + f.wear + '" stroke-width="1.6">' +
+        '<circle cx="15.5" cy="22" r="4.4"/><circle cx="24.5" cy="22" r="4.4"/>' +
+        '<path d="M19.9 22h.2M6.6 20.6l4.6 1M33.4 20.6l-4.6 1"/></g>'
+      : '') +
+    '</svg>';
+}
+
+function makeFace() {
+  return {
+    skin: pick(SKIN),
+    hair: pick(HAIR),
+    wear: pick(WEAR),
+    hairStyle: Math.floor(Math.random() * HAIR_STYLES.length),
+    glasses: Math.random() < 0.3,
+    scarf: Math.random() < 0.45,
+  };
+}
+
 /* Returns waiting on the cart are unsorted, so they must look unsorted: one
    worn library binding, varied only by position in the stack. Nothing here
    correlates with genre — that is what the description is for. */
@@ -604,6 +659,7 @@ function addPatron() {
     id: S.nextPatronId++,
     name: PATRON_NAMES[S.nameCursor],
     color: pick(FACE_COLORS),
+    face: makeFace(),
     request: makeRequest(),
     patience: patience,
     maxPatience: patience,
@@ -1123,6 +1179,7 @@ function buildShelves() {
     btn.innerHTML =
       '<span class="shelf-name">' + (sh.short || sh.name) +
         '<span class="shelf-tag">' + sh.tag + '</span></span>' +
+      '<span class="shelf-stock">' + stockBooks(sh) + '</span>' +
       '<span class="shelf-back"></span>' +
       '<span class="shelf-spines"></span>' +
       '<span class="shelf-plank"></span>';
@@ -1131,6 +1188,27 @@ function buildShelves() {
     shelfEls[sh.id] = { root: btn, spines: btn.querySelector('.shelf-spines'),
                         back: btn.querySelector('.shelf-back') };
   });
+}
+
+/* The library did not open empty. Every bay starts with a row of books already
+   standing in it — dim, unlabelled, purely scenery — so a section reads as a
+   shelf before the player has filed anything. Deterministic per section, so the
+   same bay looks the same all shift. */
+const STOCK_COUNT = 34;
+function stockBooks(shelf) {
+  let seed = 0;
+  for (let i = 0; i < shelf.id.length; i++) seed = (seed * 31 + shelf.id.charCodeAt(i)) % 9973;
+  const out = [];
+  for (let i = 0; i < STOCK_COUNT; i++) {
+    seed = (seed * 1103515245 + 12345) % 2147483648;
+    const r = seed / 2147483648;
+    const lean = r > 0.93 ? ' lean' : '';           // one or two rest at an angle
+    out.push('<i class="stock' + lean + '" style="' +
+      '--h:' + (54 + Math.floor(r * 44)) + '%;' +
+      '--w:' + (1.9 + r * 1.4).toFixed(2) + '%;' +
+      '--sp:' + shadeOf(shelf.color, i + 3) + '"></i>');
+  }
+  return out.join('');
 }
 
 function shadeOf(base, i) {
@@ -1158,7 +1236,7 @@ function addSpine(genreId, book) {
   const el = document.createElement('span');
   el.className = 'spine';
   el.style.setProperty('--sp', shadeOf(shelfById(genreId).color, count));
-  el.style.setProperty('--spine-h', (90 + ((count * 37) % 11)) + '%');  // books in a pile vary a little
+  el.style.setProperty('--spine-h', (94 + ((count * 37) % 7)) + '%');  // books in a pile vary a little
   if (book) {
     el.title = book.author ? book.title + ' — ' + book.author : book.title;
     const label = document.createElement('span');
@@ -1288,7 +1366,7 @@ function renderQueue() {
     el.innerHTML =
       '<span class="bubble" aria-hidden="true">?</span>' +
       '<span class="reaction" aria-hidden="true"></span>' +
-      '<span class="face" style="--fc:' + p.color + '">' + p.name.charAt(0) + '</span>' +
+      '<span class="face" style="--fc:' + p.color + '">' + faceSVG(p.face) + '</span>' +
       '<span class="patron-name">' + p.name + '</span>' +
       '<span class="patience"><span class="patience-fill"></span></span>';
     el.addEventListener('click', () => selectPatron(p.id));
@@ -1297,6 +1375,15 @@ function renderQueue() {
   });
 
   elQueueEmpty.classList.toggle('hidden', S.patrons.length > 0);
+}
+
+/* The accession number a library stamps inside the cover: what order the book
+   arrived in, nothing more. Deliberately not a call number — a call number
+   encodes the subject, and the subject is the puzzle. */
+function accessionOf(book) {
+  let n = 0;
+  for (let i = 0; i < book.title.length; i++) n = (n * 33 + book.title.charCodeAt(i)) % 100000;
+  return 'no. ' + String(n).padStart(5, '0');
 }
 
 /* A short line above the patron themselves, rather than a message at the desk. */
@@ -1332,6 +1419,7 @@ function renderSlip() {
 
   if (!h) {
     elSlip.classList.add('idle');
+    elSlip.classList.remove('paper');
     elSlip.innerHTML =
       '<p class="slip-hint">Tap the <b>return cart</b> to pick up the top book, ' +
       'or tap a <b>patron</b> to hear what they need.<br>Then tap a shelf.</p>';
@@ -1339,13 +1427,17 @@ function renderSlip() {
   }
 
   elSlip.classList.remove('idle');
+  // Only a returned book gets the catalogue-card treatment; a patron's ask
+  // keeps the plain desk note it has always had.
+  elSlip.classList.toggle('paper', h.kind === 'book');
   if (h.kind !== 'book') elSlip.classList.remove('stained');
 
   if (h.kind === 'book') {
     const stain = S.stains.get(h.book);
     elSlip.classList.toggle('stained', !!stain);
     elSlip.innerHTML =
-      '<span class="slip-kicker">' + (stain ? 'Returned book — coffee damage' : 'Returned book') + '</span>' +
+      '<span class="slip-kicker">' + (stain ? 'Returned book — coffee damage' : 'Returned book') +
+        '<b class="slip-acc">' + accessionOf(h.book) + '</b></span>' +
       '<div class="slip-title">' + (stain ? segsHTML(stain.title) : esc(h.book.title)) + '</div>' +
       (h.book.author ? '<div class="slip-author">' + esc(h.book.author) + '</div>' : '') +
       '<div class="slip-desc">' + (stain ? segsHTML(stain.desc) : esc(h.book.desc)) + '</div>' +
@@ -1516,6 +1608,19 @@ function showMilestone(n) {
 
 let chosenShelves = SHELF_TIERS[0];
 
+/* A row of spines across the head of the title card — the game's own sections,
+   in their own colours, so the first thing on screen is a shelf. */
+function bandSpines() {
+  const colors = SHELVES.map((sh) => sh.color);
+  const out = [];
+  for (let i = 0; i < 26; i++) {
+    out.push('<i style="--sp:' + shadeOf(colors[i % colors.length], i) +
+             ';--h:' + (62 + ((i * 43) % 38)) + '%' +
+             ';--w:' + (2.4 + ((i * 17) % 9) / 5).toFixed(1) + '%"></i>');
+  }
+  return out.join('');
+}
+
 function hideOverlay() { elOverlay.classList.add('hidden'); }
 
 function showTitle() {
@@ -1524,7 +1629,8 @@ function showTitle() {
     '<button class="chip" type="button" data-tier="' + n + '">' + n + ' shelves</button>').join('');
 
   elCard.innerHTML =
-    '<h1>Quiet Stacks</h1>' +
+    '<div class="shelf-band" aria-hidden="true">' + bandSpines() + '</div>' +
+    '<h1>Quiet <b>Stacks</b></h1>' +
     '<p class="sub">One short shift</p>' +
     '<ul class="rules">' +
       '<li><i>1</i><span>Take the top book off the <b>cart</b>, read it, put it on the right shelf.</span></li>' +

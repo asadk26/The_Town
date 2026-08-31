@@ -3,104 +3,276 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Quiet Stacks — a small library shift</title>
-<meta name="description" content="A cozy one-shift librarian game. Shelve returns, help patrons, keep the reading room calm.">
-<meta name="theme-color" content="#2a1a12">
-<link rel="stylesheet" href="style.css">
+<title>The Town</title>
+<meta name="description" content="A small collection of browser games. One town, a few places in it, no story required.">
+<meta name="theme-color" content="#1a120c">
+<style>
+/* ============================================================
+   The Town — the door onto a small collection of games.
+   One file, no dependencies, same as everything it links to.
+   ============================================================ */
+
+:root {
+  --night:     #1a120c;
+  --night-lit: #34211596;
+  --brass:     #d8a657;
+  --paper:     #f6ecd9;
+  --paper-dim: #cdbfa6;
+  --ink-soft:  #a08d76;
+
+  --stacks:    #6f6cb0;
+  --stacks-2:  #4e7f8c;
+  --stacks-3:  #a9714a;
+  --diner:     #1c4f4a;
+  --cherry:    #d9483f;
+  --mustard:   #efb034;
+  --cream:     #f7ead1;
+
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --sans:  ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  padding: clamp(28px, 7vmin, 72px) clamp(16px, 5vw, 32px) clamp(40px, 8vmin, 80px);
+  background:
+    radial-gradient(90% 55% at 50% -8%, #4a2f1e 0%, #2a1a12 48%, var(--night) 100%);
+  color: var(--paper);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Corners fall away, the way they do in both games. */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(118% 84% at 50% 42%, transparent 44%, rgba(10, 5, 2, .5) 100%);
+}
+
+.wrap { position: relative; z-index: 1; max-width: 940px; margin: 0 auto; }
+
+/* ── masthead ─────────────────────────────────────────── */
+
+header { text-align: center; margin-bottom: clamp(30px, 6vmin, 56px); }
+
+h1 {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: clamp(38px, 11vmin, 74px);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: .01em;
+  text-wrap: balance;
+}
+h1 b { font-weight: 700; color: var(--brass); }
+
+.tagline {
+  margin: 12px auto 0;
+  max-width: 34ch;
+  font-size: clamp(14px, 3.6vmin, 17px);
+  line-height: 1.55;
+  color: var(--ink-soft);
+  text-wrap: balance;
+}
+
+/* ── the places in it ─────────────────────────────────── */
+
+.places {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: clamp(16px, 3.4vmin, 26px);
+}
+
+.place {
+  display: flex;
+  flex-direction: column;
+  border-radius: 16px;
+  overflow: hidden;
+  background: linear-gradient(178deg, #3a2517, #26170e);
+  box-shadow:
+    0 16px 38px rgba(0, 0, 0, .5),
+    inset 0 0 0 1px rgba(216, 166, 87, .22);
+}
+
+/* Each sign is drawn in its own game's colours, so the two are told apart
+   before a word is read. */
+.sign {
+  height: clamp(96px, 22vmin, 132px);
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  padding: 0 12px;
+  overflow: hidden;
+  border-bottom: 3px solid rgba(0, 0, 0, .4);
+}
+
+.sign-stacks {
+  background:
+    linear-gradient(180deg, transparent 0 calc(100% - 7px), #8a5c39 calc(100% - 7px)),
+    linear-gradient(180deg, #3d2618, #5c3a24);
+}
+.sign-stacks i {
+  flex: 0 0 auto;
+  width: var(--w);
+  min-width: 4px;
+  height: var(--h);
+  margin-bottom: 7px;
+  border-radius: 2px 2px 0 0;
+  background: var(--c);
+  box-shadow: inset -2px 0 0 rgba(0, 0, 0, .3), inset 0 4px 0 rgba(255, 240, 214, .18);
+}
+
+.sign-diner {
+  position: relative;
+  align-items: center;
+  justify-content: center;
+  background:
+    repeating-linear-gradient(90deg, rgba(0,0,0,.14) 0 1px, transparent 1px 30px),
+    repeating-linear-gradient(0deg, rgba(0,0,0,.14) 0 1px, transparent 1px 26px),
+    linear-gradient(180deg, #2a6f67, var(--diner));
+}
+.sign-diner span {
+  font-weight: 800;
+  font-size: clamp(13px, 3.4vmin, 17px);
+  letter-spacing: .3em;
+  text-transform: uppercase;
+  color: var(--mustard);
+  text-shadow: 0 0 12px rgba(239, 176, 52, .8), 0 0 28px rgba(239, 176, 52, .4);
+}
+.sign-diner::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 26%;
+  background: linear-gradient(180deg, #cf9f6a, #9c7346);
+  box-shadow: 0 -3px 10px rgba(0, 0, 0, .4);
+}
+
+.body { padding: clamp(16px, 3.6vmin, 22px); display: flex; flex-direction: column; flex: 1 1 auto; }
+
+.place h2 {
+  margin: 0 0 4px;
+  font-family: var(--serif);
+  font-size: clamp(22px, 5.4vmin, 28px);
+  font-weight: 700;
+}
+.kind {
+  margin: 0 0 10px;
+  font-size: clamp(10px, 2.6vmin, 11.5px);
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--brass);
+}
+.place p {
+  margin: 0 0 18px;
+  font-size: clamp(13.5px, 3.4vmin, 15.5px);
+  line-height: 1.6;
+  color: var(--paper-dim);
+  flex: 1 1 auto;
+}
+
+.doors { display: flex; flex-wrap: wrap; gap: 9px; }
+
+a.door {
+  flex: 1 1 auto;
+  min-width: 120px;
+  padding: 13px 16px;
+  border-radius: 10px;
+  text-align: center;
+  text-decoration: none;
+  font-size: clamp(14px, 3.4vmin, 15.5px);
+  font-weight: 600;
+  color: var(--night);
+  background: linear-gradient(180deg, var(--brass), #b1832f);
+  box-shadow: 0 4px 0 #6d4f19;
+  transition: transform .1s ease, box-shadow .1s ease;
+}
+a.door.quiet {
+  color: var(--paper);
+  background: linear-gradient(180deg, #4a3222, #33210f);
+  box-shadow: 0 4px 0 #1c1109, inset 0 0 0 1px rgba(216, 166, 87, .3);
+}
+a.door:hover { transform: translateY(-1px); }
+a.door:active { transform: translateY(3px); box-shadow: 0 1px 0 #6d4f19; }
+a.door.quiet:active { box-shadow: 0 1px 0 #1c1109, inset 0 0 0 1px rgba(216, 166, 87, .3); }
+a.door:focus-visible { outline: 3px solid var(--brass); outline-offset: 3px; }
+
+.note {
+  margin: clamp(28px, 6vmin, 48px) auto 0;
+  max-width: 50ch;
+  text-align: center;
+  font-size: clamp(12.5px, 3vmin, 14px);
+  line-height: 1.6;
+  color: #7d6c5a;
+}
+.note a { color: var(--ink-soft); }
+
+@media (prefers-reduced-motion: reduce) {
+  a.door { transition: none; }
+}
+</style>
 </head>
 <body>
 
-<div class="room">
-  <div class="lamp-glow" aria-hidden="true"></div>
+<div class="wrap">
 
-  <main class="counter" id="counter">
+  <header>
+    <h1>The <b>Town</b></h1>
+    <p class="tagline">A few small places, and something to do in each one.
+      Everything here runs in a browser and saves nothing but your best.</p>
+  </header>
 
-    <!-- ───────────── HUD ───────────── -->
-    <header class="hud">
-      <div class="hud-row">
-        <div class="clock">
-          <span class="clock-time" id="clockTime">5:00</span>
-          <span class="clock-phase" id="clockPhase">Opening</span>
-        </div>
+  <main class="places">
 
-        <div class="readouts">
-          <div class="readout">
-            <span class="readout-label">Score</span>
-            <span class="readout-value" id="scoreValue">0</span>
-          </div>
-          <div class="readout" id="streakBox">
-            <span class="readout-label">Streak</span>
-            <span class="readout-value" id="streakValue">0</span>
-          </div>
-        </div>
-
-        <div class="hud-buttons">
-          <button class="icon-btn" id="soundBtn" type="button" aria-pressed="true" title="Sound on or off">
-            <span id="soundIcon">♪</span>
-          </button>
-          <button class="icon-btn" id="restartBtn" type="button" title="Start the shift over">↻</button>
-        </div>
+    <section class="place">
+      <div class="sign sign-stacks" aria-hidden="true">
+        <i style="--w:2.7%;--h:66%;--c:#6f6cb0"></i><i style="--w:3.6%;--h:62%;--c:#5d5a9a"></i><i style="--w:2.8%;--h:67%;--c:#4e7f8c"></i><i style="--w:2.2%;--h:64%;--c:#43707c"></i>
+        <i style="--w:3.0%;--h:76%;--c:#a9714a"></i><i style="--w:2.1%;--h:55%;--c:#96694f"></i><i style="--w:2.1%;--h:77%;--c:#8a5c39"></i><i style="--w:3.1%;--h:43%;--c:#7a6b93"></i>
+        <i style="--w:3.7%;--h:84%;--c:#6f6cb0"></i><i style="--w:3.1%;--h:69%;--c:#5d5a9a"></i><i style="--w:2.2%;--h:42%;--c:#4e7f8c"></i><i style="--w:2.9%;--h:44%;--c:#43707c"></i>
+        <i style="--w:2.2%;--h:52%;--c:#a9714a"></i><i style="--w:2.0%;--h:62%;--c:#96694f"></i><i style="--w:2.7%;--h:79%;--c:#8a5c39"></i><i style="--w:2.8%;--h:70%;--c:#7a6b93"></i>
+        <i style="--w:2.8%;--h:71%;--c:#6f6cb0"></i><i style="--w:2.7%;--h:54%;--c:#5d5a9a"></i><i style="--w:3.7%;--h:85%;--c:#4e7f8c"></i><i style="--w:3.4%;--h:73%;--c:#43707c"></i>
+        <i style="--w:2.5%;--h:52%;--c:#a9714a"></i><i style="--w:2.4%;--h:45%;--c:#96694f"></i><i style="--w:3.3%;--h:59%;--c:#8a5c39"></i><i style="--w:3.4%;--h:59%;--c:#7a6b93"></i>
+        <i style="--w:3.6%;--h:79%;--c:#6f6cb0"></i><i style="--w:1.9%;--h:51%;--c:#5d5a9a"></i><i style="--w:3.5%;--h:62%;--c:#4e7f8c"></i><i style="--w:3.7%;--h:59%;--c:#43707c"></i>
       </div>
-
-      <div class="shift-bar" role="progressbar" aria-label="Shift progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="shiftBar">
-        <div class="shift-fill" id="shiftFill"></div>
-      </div>
-
-      <div class="hud-row hud-row-lower">
-        <div class="goal" id="goalBooks">
-          <span class="goal-icon" aria-hidden="true">▤</span>
-          <span class="goal-text">Shelved <b id="goalBooksValue">0</b>/<span id="goalBooksTarget">8</span></span>
+      <div class="body">
+        <h2>Quiet Stacks</h2>
+        <p class="kind">The library</p>
+        <p>One short shift on the desk. Returns pile into a cart and patrons queue
+          up, and both are answered the same way — by pointing at a shelf — so you
+          can only ever attend to one of them at a time.</p>
+        <div class="doors">
+          <a class="door" href="quiet-stacks/landscape/">Play &mdash; landscape</a>
+          <a class="door quiet" href="quiet-stacks/">Portrait</a>
         </div>
-        <div class="goal" id="goalPatrons">
-          <span class="goal-icon" aria-hidden="true">☺</span>
-          <span class="goal-text">Helped <b id="goalPatronsValue">0</b>/<span id="goalPatronsTarget">6</span></span>
-        </div>
-        <div class="mood">
-          <span class="mood-label" id="moodLabel">Calm</span>
-          <div class="mood-bar"><div class="mood-fill" id="moodFill"></div></div>
-        </div>
-      </div>
-    </header>
-
-    <!-- ───────────── SHELVES ───────────── -->
-    <section class="bookcase" aria-label="Library shelves">
-      <div class="bookcase-top" aria-hidden="true"></div>
-      <div class="bays" id="shelves"></div>
-      <div class="bookcase-base" aria-hidden="true"></div>
-    </section>
-
-    <!-- ───────────── DESK / HAND ───────────── -->
-    <section class="desk" aria-label="Front desk">
-      <div class="toast" id="toast" role="status" aria-live="polite"></div>
-      <div class="slip" id="slip"></div>
-    </section>
-
-    <!-- ───────────── FLOOR: CART + QUEUE ───────────── -->
-    <section class="floor">
-      <button class="cart" id="cart" type="button" aria-label="Return cart">
-        <span class="cart-title">Return cart <b id="cartCount">0</b></span>
-        <span class="cart-stack" id="cartStack"></span>
-        <span class="cart-body" aria-hidden="true">
-          <span class="wheel"></span><span class="wheel"></span>
-        </span>
-      </button>
-
-      <div class="queue-wrap">
-        <span class="queue-title">At the desk</span>
-        <div class="queue" id="queue"></div>
-        <span class="queue-empty" id="queueEmpty">Nobody waiting.</span>
       </div>
     </section>
+
+    <section class="place">
+      <div class="sign sign-diner" aria-hidden="true"><span>Order Up</span></div>
+      <div class="body">
+        <h2>Order Up</h2>
+        <p class="kind">The lunch counter</p>
+        <p>A customer orders, the counter slides away, and you rebuild the ticket
+          at the pass from memory. Every five tickets the orders grow by an item.
+          Get one wrong and you can always go back and ask.</p>
+        <div class="doors">
+          <a class="door" href="order-up/">Play &mdash; landscape</a>
+        </div>
+      </div>
+    </section>
+
   </main>
 
-  <div class="fx" id="fx" aria-hidden="true"></div>
+  <p class="note">Both games are plain HTML, CSS and JavaScript — no frameworks,
+    no build step, no backend, nothing to install. Turn your phone sideways for
+    the landscape builds.</p>
 
-  <!-- ───────────── OVERLAY ───────────── -->
-  <div class="overlay" id="overlay">
-    <div class="card" id="overlayCard"></div>
-  </div>
 </div>
 
-<script src="game.js"></script>
 </body>
 </html>

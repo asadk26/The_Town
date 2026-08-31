@@ -1,4 +1,4 @@
-# Publishes the game to GitHub Pages on every push to main.
+# Publishes the collection to GitHub Pages on every push to main.
 #
 # `enablement: true` turns Pages on via the API the first time this runs, so
 # the site needs no visit to the repository settings to come up.
@@ -32,7 +32,7 @@ jobs:
         with:
           enablement: true
 
-      # The whole repo is the site: three static files and nothing to build.
+      # The whole repo is the site: static files and nothing to build.
       - uses: actions/upload-pages-artifact@v3
         with:
           path: .

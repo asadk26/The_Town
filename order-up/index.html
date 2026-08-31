@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Order Up</title>
+<meta name="description" content="A tiny diner memory game: take the order, walk to the pass, rebuild it from memory.">
+<meta name="theme-color" content="#12312e">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Portrait gets a nudge rather than a squeezed-in diner. -->
+<div class="turn">
+  <i aria-hidden="true"></i>
+  <h2>Turn your phone</h2>
+  <p>Order Up runs along the counter, so it needs the long edge.</p>
+</div>
+
+<div class="diner">
+
+  <!-- ── chrome rail ────────────────────────────────── -->
+  <header class="rail">
+    <div class="rail-sign"><span>Order</span><b>Up</b></div>
+    <div class="rail-stats">
+      <div class="stat"><span>Ticket</span><b id="statRound">1</b></div>
+      <div class="stat"><span>Items</span><b id="statSize">3</b></div>
+      <div class="stat"><span>Streak</span><b id="statStreak">0</b></div>
+    </div>
+    <div class="rail-right">
+      <div class="strikes" id="strikes" aria-label="Mistakes remaining"></div>
+      <button class="icon" id="soundBtn" type="button" aria-pressed="true" title="Sound">♪</button>
+    </div>
+  </header>
+
+  <!-- ── the restaurant: two rooms, one camera ───────── -->
+  <main class="stage">
+    <div class="rooms" id="rooms">
+
+      <!-- counter -->
+      <section class="room counter" aria-label="The counter">
+        <div class="wall"></div>
+        <div class="lamps" aria-hidden="true"><i></i><i></i><i></i></div>
+        <div class="clock" aria-hidden="true"></div>
+        <div class="neon">Today&rsquo;s Special</div>
+        <div class="guest" id="guest"></div>
+        <div class="bubble" id="bubble" aria-live="polite"></div>
+        <div class="countertop"><span class="edge"></span></div>
+        <div class="stools"><i></i><i></i><i></i></div>
+      </section>
+
+      <!-- kitchen pass -->
+      <section class="room kitchen" aria-label="The kitchen pass">
+        <div class="tiles"></div>
+        <div class="pass">
+          <div class="menu" id="menu"></div>
+          <div class="ticket-rail">
+            <span class="spike" aria-hidden="true"></span>
+            <div class="ticket" id="ticket">
+              <div class="ticket-head">Order <b id="ticketNo">#1</b>
+                <button class="clear" id="clearBtn" type="button">Clear</button>
+              </div>
+              <ul class="ticket-lines" id="ticketLines"></ul>
+              <div class="ticket-foot">
+                <span class="ticket-count" id="ticketCount">0 items</span>
+                <button class="send" id="sendBtn" type="button">Send</button>
+              </div>
+              <div class="stamp" id="stamp" aria-hidden="true">Served</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <div class="fx" id="fx" aria-hidden="true"></div>
+
+  <div class="overlay" id="overlay">
+    <div class="card" id="card"></div>
+  </div>
+</div>
+
+<script src="game.js"></script>
+</body>
+</html>

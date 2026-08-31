@@ -38,9 +38,15 @@
     <div class="pointer" id="pointer" aria-hidden="true"><i></i></div>
 
     <!-- ── controls ──────────────────────────────────── -->
-    <div class="pad pad-steer">
-      <button class="key key-left"  id="keyLeft"  type="button" aria-label="Steer left"></button>
-      <button class="key key-right" id="keyRight" type="button" aria-label="Steer right"></button>
+    <!-- Steering is one horizontal stick. The generous outer zone is the
+         part you actually have to hit; the base is only the picture. -->
+    <div class="stick-zone" id="stickZone">
+      <div class="stick" id="stick">
+        <i class="stick-track" aria-hidden="true"></i>
+        <button class="stick-knob" id="stickKnob" type="button"
+                aria-label="Steering" role="slider"
+                aria-valuemin="-1" aria-valuemax="1" aria-valuenow="0"></button>
+      </div>
     </div>
     <div class="pad pad-drive">
       <button class="key key-brake" id="keyBrake" type="button" aria-label="Brake and reverse"></button>

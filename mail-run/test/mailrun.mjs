@@ -19,6 +19,7 @@ const ck = (name, ok, extra = '') => {
 };
 const r1 = (n) => Math.round(n * 10) / 10;
 
+let ROUTE_COUNT = 5;
 const browser = await chromium.launch(CHROME ? { executablePath: CHROME } : {});
 
 async function open(w = 844, h = 390) {
@@ -41,11 +42,23 @@ const place = (page, x, y, angle, speed = 0) =>
     S.truck.x = x; S.truck.y = y; S.truck.angle = a; S.truck.speed = v;
     S.truck.steer = 0; S.cam.x = x; S.cam.y = y;
   }, [x, y, angle, speed]);
-const hold = (page, keys, ms) => page.evaluate(([keys, ms]) => new Promise((done) => {
-  Object.keys(input).forEach((k) => { input[k] = false; });
-  keys.forEach((k) => { input[k] = true; });
-  setTimeout(() => { Object.keys(input).forEach((k) => { input[k] = false; }); done(); }, ms);
-}), [keys, ms]);
+/* Hold a set of controls for a while. `steer` is the analog axis the stick
+   and the keys both write to, so a test drives exactly what a player does. */
+const hold = (page, keys, ms, steer = 0) =>
+  page.evaluate(([keys, ms, steer]) => new Promise((done) => {
+    input.gas = input.brake = false;
+    keys.forEach((k) => { input[k] = true; });
+    input.steer = steer;
+    setTimeout(() => {
+      input.gas = input.brake = false; input.steer = 0;
+      done();
+    }, ms);
+  }), [keys, ms, steer]);
+
+/* Open every route, for the tests that need to reach past the first one. */
+const unlockAll = (page) => page.evaluate(() => {
+  best.unlocked = ROUTES.length; saveBest();
+});
 
 console.log('\n── the round ──');
 {
@@ -68,8 +81,7 @@ console.log('\n── handling ──');
 {
   const p = await open();
   await play(p);
-  const road = (n) => p.evaluate((i) => ({ x: ROAD[i].x, y: ROAD[i].y }), n);
-  const straight = await road(0);
+  const straight = await p.evaluate(() => ({ x: ROAD[0].x, y: ROAD[0].y }));
 
   // gas
   await place(p, straight.x, straight.y, -Math.PI / 2);
@@ -105,20 +117,20 @@ console.log('\n── handling ──');
 
   // steering is a vehicle, not a sprite
   await place(p, straight.x, straight.y, -Math.PI / 2, 0);
-  await hold(p, ['left'], 800);
+  await hold(p, [], 800, -1);
   const spun = await p.evaluate(() => S.truck.angle);
   ck('it will not turn on the spot', Math.abs(spun + Math.PI / 2) < 0.02,
      'turned ' + r1((spun + Math.PI / 2) * 57) + '°');
 
   await place(p, straight.x, straight.y, -Math.PI / 2, 170);
-  await hold(p, ['left', 'gas'], 700);
+  await hold(p, ['gas'], 700, -1);
   const turned = await p.evaluate(() => S.truck.angle);
   ck('it turns when it is moving', Math.abs(turned + Math.PI / 2) > 0.35,
      'turned ' + r1((turned + Math.PI / 2) * 57) + '°');
 
   // and the nose swings the other way in reverse, as a real one does
   await place(p, straight.x, straight.y, -Math.PI / 2, -70);
-  await hold(p, ['left'], 700);
+  await hold(p, [], 700, -1);
   const back = await p.evaluate(() => S.truck.angle);
   ck('reversing swings the nose the other way',
      Math.sign(back + Math.PI / 2) !== Math.sign(turned + Math.PI / 2),
@@ -135,10 +147,23 @@ console.log('\n── the world pushes back ──');
 
   // grass costs speed, but never stops the run
   const grass = await p.evaluate(() => {
-    const n = ROAD[1];
-    return { x: n.x + n.w / 2 + 90, y: n.y };
+    // walk out from the kerb until the ground is grass and nothing is standing
+    // on it — the town is dealt fresh each run, so a fixed offset is a lottery
+    for (let along = 200; along < ROAD_M.total * 0.6; along += 120) {
+      const at = pointAt(along);
+      for (const side of [-1, 1]) {
+        const nx = Math.cos(at.angle + Math.PI / 2) * side;
+        const ny = Math.sin(at.angle + Math.PI / 2) * side;
+        const x = at.x + nx * (at.w / 2 + 110), y = at.y + ny * (at.w / 2 + 110);
+        if (surfaceAt(x, y) !== 'grass') continue;
+        if (SOLIDS.some((o) => Math.hypot(o.x - x, o.y - y) < 150)) continue;
+        return { x: x, y: y, a: at.angle };
+      }
+    }
+    return null;
   });
-  await place(p, grass.x, grass.y, -Math.PI / 2);
+  ck('there is open grass to test on', !!grass);
+  await place(p, grass.x, grass.y, grass.a);
   const surf = await p.evaluate(() => surfaceAt(S.truck.x, S.truck.y));
   await hold(p, ['gas'], 2600);
   const offRoadTop = await p.evaluate(() => ({ v: S.truck.speed, cap: CONFIG.maxSpeed * CONFIG.surface.grass.top }));
@@ -249,19 +274,26 @@ const BOT = (skill, slop) => `(() => {
   function tick() {
     if (!window.__bot.on) return;
     requestAnimationFrame(tick);
-    if (!S || S.phase !== 'driving') { input.gas=input.brake=input.left=input.right=false; return; }
+    if (!S || S.phase !== 'driving') { input.gas=input.brake=false; input.steer=0; return; }
     const t = S.truck, z = S.stops[S.at];
     const n = nearestOnRoad(t.x, t.y);
-    let tx, ty, stopping = false, dz = 1e9;
+    const here = ROAD_M.cum[n.i];
+    const la = lookAhead(Math.max(60, Math.abs(t.speed) * 0.75));
+    let tx = la.x, ty = la.y, stopping = false, dz = 1e9;
     if (z) {
       const ax = z.x + Math.cos(z.angle) * (z.w/2) * SLOP;
       const ay = z.y + Math.sin(z.angle) * (z.w/2) * SLOP;
       dz = Math.hypot(ax - t.x, ay - t.y);
-      if (dz < 210 && n.i >= z.node - 2) { tx = ax; ty = ay; stopping = true; }
+      // arc distance, not node index: nodes are 26 units apart
+      if (ROAD_M.cum[z.node] - here > -90 && dz < 430) {
+        const k = Math.max(0, Math.min(1, 1 - (dz - 70) / 340));
+        tx = la.x * (1 - k) + ax * k;
+        ty = la.y * (1 - k) + ay * k;
+        stopping = dz < 230;
+      }
     }
-    if (!stopping) { const la = lookAhead(Math.max(60, Math.abs(t.speed) * 0.75)); tx = la.x; ty = la.y; }
     const err = angleDiff(t.angle, Math.atan2(ty - t.y, tx - t.x));
-    input.left = err < -0.045; input.right = err > 0.045;
+    input.steer = Math.max(-1, Math.min(1, err * 3.2));    // analog, like the stick
     let want = CONFIG.maxSpeed * SKILL * (1 - Math.min(0.8, Math.abs(err) * 1.5));
     if (stopping) want = Math.max(0, (dz - 4) * 1.8);
     const parked = z && inZone(z, t.x, t.y, 1) && Math.abs(t.speed) < CONFIG.stopSpeed;
@@ -289,6 +321,195 @@ async function runBot(skill, slop) {
   return r;
 }
 
+console.log('\n── the steering stick ──');
+{
+  const p = await open();
+  await play(p);
+  const box = await p.locator('#stick').boundingBox();
+  const cx = box.x + box.width / 2, cy = box.y + box.height / 2;
+  const travel = await p.evaluate(() => stickTravel());
+  ck('the stick has room for a thumb', travel >= 60, Math.round(travel) + 'px of travel each way');
+
+  await p.mouse.move(cx, cy);
+  await p.mouse.down();
+  const read = async (frac) => {
+    await p.mouse.move(cx + travel * frac, cy);
+    return p.evaluate(() => input.steer);
+  };
+  const centre = await read(0);
+  const nudge = await read(0.06);
+  const part = await read(0.5);
+  const lockR = await read(1.2);        // past the end still means full lock
+  const lockL = await read(-1.2);
+  const partL = await read(-0.5);
+  ck('centred reads as straight', centre === 0);
+  ck('inside the dead zone still reads straight', nudge === 0, 'at 6% of travel');
+  ck('part way is part steering', part > 0.1 && part < 0.95, part.toFixed(3));
+  ck('full travel is full lock', Math.abs(lockR - 1) < 1e-6 && Math.abs(lockL + 1) < 1e-6);
+  ck('left and right are mirrors', Math.abs(part + partL) < 1e-6, `${part.toFixed(3)} / ${partL.toFixed(3)}`);
+  ck('small moves steer less than large ones', part < 0.5 * 1.0, 'half travel gives ' + part.toFixed(2));
+
+  // and it actually turns the truck, proportionally
+  const turnBy = async (steer) => {
+    await place(p, ROAD0.x, ROAD0.y, -Math.PI / 2, 170);
+    await hold(p, ['gas'], 600, steer);
+    return Math.abs((await p.evaluate(() => S.truck.angle)) + Math.PI / 2);
+  };
+  const ROAD0 = await p.evaluate(() => ({ x: ROAD[0].x, y: ROAD[0].y }));
+  await p.mouse.up();
+  const gentle = await turnBy(0.35), hard = await turnBy(1);
+  ck('a small input is a gentle turn', gentle > 0.02 && gentle < hard * 0.65,
+     `${r1(gentle * 57)}° vs ${r1(hard * 57)}° at full lock`);
+
+  // release returns it to neutral, knob and axis alike
+  await p.mouse.move(cx, cy); await p.mouse.down(); await p.mouse.move(cx + travel, cy);
+  const held = await p.evaluate(() => input.steer);
+  await p.mouse.up();
+  await p.waitForTimeout(320);
+  const let_go = await p.evaluate(() => ({
+    steer: input.steer,
+    knob: document.getElementById('stickKnob').style.transform,
+    held: document.getElementById('stick').classList.contains('held'),
+  }));
+  ck('releasing returns the stick to centre',
+     held === 1 && let_go.steer === 0 && !let_go.held && /translateX\(0px\)/.test(let_go.knob),
+     let_go.knob);
+
+  // the keys still drive the same axis
+  await p.keyboard.down('ArrowLeft');
+  const keyed = await p.evaluate(() => input.steer);
+  await p.keyboard.up('ArrowLeft');
+  const released = await p.evaluate(() => input.steer);
+  ck('the keyboard still steers', keyed === -1 && released === 0);
+  ck('no errors from the stick', p.errors.length === 0, p.errors[0] || '');
+  await p.close();
+}
+
+console.log('\n── the routes ──');
+{
+  const p = await open();
+  const routes = await p.evaluate(() => {
+    const out = [];
+    for (const route of ROUTES) {
+      loadRound(route.id, 991);
+      const m = ROAD_M;
+      // the corridor must never run back alongside itself
+      let overlaps = 0;
+      for (let i = 0; i < ROAD.length - 1; i++) {
+        for (let j = i + 2; j < ROAD.length - 1; j++) {
+          if (m.cum[j] - m.cum[i] < 420) continue;
+          const a = ROAD[i], c = ROAD[j];
+          if (Math.hypot(a.x - c.x, a.y - c.y) <
+              a.w / 2 + c.w / 2 + WALK_WIDTH * 2 + 10) overlaps++;
+        }
+      }
+      // and ten different deals must all be legal
+      let bad = 0, sameSide = 0, tooClose = 0, unreachable = 0, blocked = 0;
+      for (let k = 0; k < 10; k++) {
+        const dealt = loadRound(route.id, 700 + k * 613);
+        if (!dealt.bays || dealt.bays.length !== 5) { bad++; continue; }
+        if (new Set(dealt.bays.map((b) => b.side)).size < 2) sameSide++;
+        for (const z of dealt.bays) {
+          const n = nearestOnRoad(z.x, z.y);
+          if (Math.sqrt(n.d2) > n.w / 2) unreachable++;
+          const reach = Math.hypot(z.w, z.h) / 2;
+          for (const o of SOLIDS) {
+            const size = o.kind === 'circle' ? o.r : Math.hypot(o.w, o.h) / 2;
+            if (Math.hypot(o.x - z.x, o.y - z.y) < reach + size) blocked++;
+          }
+        }
+        for (let a = 0; a < 5; a++) for (let c = a + 1; c < 5; c++) {
+          if (Math.hypot(dealt.bays[a].x - dealt.bays[c].x,
+                         dealt.bays[a].y - dealt.bays[c].y) < 200) tooClose++;
+        }
+      }
+      out.push({ id: route.id, len: Math.round(m.total), overlaps, bad,
+                 sameSide, tooClose, unreachable, blocked });
+    }
+    return out;
+  });
+  for (const r of routes) {
+    ck(`${r.id}: the road never runs into itself`, r.overlaps === 0, r.len + ' units');
+    ck(`${r.id}: every deal produces five bays`, r.bad === 0);
+    ck(`${r.id}: every bay is on the tarmac`, r.unreachable === 0);
+    ck(`${r.id}: no bay has something standing in it`, r.blocked === 0);
+    ck(`${r.id}: bays are spaced and not all one side`, r.tooClose === 0 && r.sameSide === 0);
+  }
+
+  // the same route, dealt twice, should not be the same round
+  const varies = await p.evaluate(() => {
+    const key = (s) => s.bays.map((b) => b.node + ':' + b.side).join('|');
+    const seen = new Set();
+    for (let k = 0; k < 8; k++) seen.add(key(loadRound('rookie', 4000 + k * 331)));
+    return seen.size;
+  });
+  ck('the same route deals different rounds', varies >= 6, varies + ' of 8 deals were distinct');
+  await p.close();
+}
+
+console.log('\n── progression ──');
+{
+  const p = await open();
+  await p.evaluate(() => { localStorage.clear(); });
+  await p.reload();
+  let r = await p.evaluate(() => ({ unlocked: best.unlocked, chips: document.querySelectorAll('.chip').length,
+    locked: document.querySelectorAll('.chip.locked').length,
+    random: !!document.querySelector('.chip.wild') }));
+  ck('a new player has one round open', r.unlocked === 1 && r.locked === ROUTE_COUNT - 1);
+  ck('Random Run is hidden until a second round opens', !r.random);
+
+  // a C does not open anything; an A does
+  r = await p.evaluate(() => {
+    const before = best.unlocked;
+    creditUnlock('rookie', 'C');
+    const afterC = best.unlocked;
+    const opened = creditUnlock('rookie', 'A');
+    return { before, afterC, after: best.unlocked, opened: opened && opened.id };
+  });
+  ck('a C opens nothing', r.afterC === 1);
+  ck('an A opens the next round', r.after === 2 && r.opened === 'winding');
+
+  r = await p.evaluate(() => {
+    // finishing an already-passed round does not skip ahead
+    creditUnlock('rookie', 'S');
+    return best.unlocked;
+  });
+  ck('re-running an old round does not skip ahead', r === 2);
+
+  await p.evaluate(() => {
+    creditRecords('rookie', { time: 44.2, score: 1180, perfects: 5, grade: 'A' });
+    creditRecords('rookie', { time: 51.0, score: 1500, perfects: 3, grade: 'S' });
+    saveBest();
+  });
+  await p.reload();
+  r = await p.evaluate(() => ({ unlocked: best.unlocked, rec: best.records.rookie,
+    random: !!document.querySelector('.chip.wild') }));
+  ck('unlocks survive a reload', r.unlocked === 2);
+  ck('each record is kept on its own merit',
+     r.rec.time === 44.2 && r.rec.score === 1500 && r.rec.perfects === 5 && r.rec.grade === 'S',
+     JSON.stringify(r.rec));
+  ck('Random Run appears once two rounds are open', r.random);
+
+  // Random Run may only ever deal an open round
+  const dealt = await p.evaluate(() => {
+    chosenRoute = 'random';
+    const seen = new Set();
+    for (let k = 0; k < 30; k++) { startRun(); seen.add(S.route.id); }
+    return [...seen];
+  });
+  ck('Random Run only deals open rounds',
+     dealt.every((id) => ['rookie', 'winding'].includes(id)) && dealt.length === 2,
+     dealt.join(', '));
+
+  // a corrupted save must not take the game down with it
+  await p.evaluate(() => localStorage.setItem('mailrun.best.v1', '{"unlocked":"lots","records":7}'));
+  await p.reload();
+  r = await p.evaluate(() => ({ unlocked: best.unlocked, ok: !!document.querySelector('#goBtn') }));
+  ck('a broken save falls back cleanly', r.unlocked === 1 && r.ok);
+  ck('no errors from progression', p.errors.length === 0, p.errors[0] || '');
+  await p.close();
+}
+
 console.log('\n── a whole round ──');
 {
   const tidy = await runBot(1.0, 0);
@@ -297,19 +518,21 @@ console.log('\n── a whole round ──');
   ck('and lands in the 45-90s window', tidy.t >= 45 && tidy.t <= 90, r1(tidy.t) + 's');
   ck('driving the middle keeps it off the verge', tidy.off < 2 && tidy.bumps === 0,
      `${r1(tidy.off)}s off-road, ${tidy.bumps} bumps`);
-  ck('a clean driver earns Perfects', tidy.ratings.filter((x) => x === 'perfect').length >= 4,
-     tidy.ratings.join(','));
   ck('no errors over a whole round', tidy.errors.length === 0, tidy.errors[0] || '');
 
   const careful = await runBot(0.72, 0);
   ck('a careful round still finishes inside the window',
      careful.finished && careful.t >= 45 && careful.t <= 90, r1(careful.t) + 's');
 
-  // the same driver, parking badly: the rating has to notice
+  // the same driver, parking badly: the rating has to notice. The bays are
+  // dealt fresh every run, so what matters is the gap between the two, not a
+  // fixed count — an absolute would just be measuring the deal.
   const sloppy = await runBot(1.0, 0.82);
-  ck('sloppy parking is not rewarded',
-     sloppy.finished && sloppy.ratings.filter((x) => x === 'perfect').length <= 1,
-     sloppy.ratings.join(','));
+  const clean = tidy.ratings.filter((x) => x === 'perfect').length;
+  const scruffy = sloppy.ratings.filter((x) => x === 'perfect').length;
+  ck('a clean driver earns Perfects', clean >= 3, tidy.ratings.join(','));
+  ck('sloppy parking is not rewarded', sloppy.finished && scruffy <= 1, sloppy.ratings.join(','));
+  ck('the rating tells the two apart', clean > scruffy, `${clean} perfect vs ${scruffy}`);
   ck('but a sloppy round still finishes', sloppy.at === 5);
 }
 
@@ -332,9 +555,12 @@ console.log('\n── the card at the end ──');
   ck('restart is immediate', true, (Date.now() - t0) + 'ms');
 
   await p.reload();
-  const remembered = await p.evaluate(() => document.querySelector('#card').textContent);
-  ck('a best round is remembered', /Best round/.test(remembered),
-     (remembered.match(/Best round[^]{0,30}/) || [''])[0]);
+  const remembered = await p.evaluate(() => {
+    chosenRoute = 'rookie'; showTitle();
+    return document.querySelector('.route-note').textContent;
+  });
+  ck('the depot remembers the round you just drove', /Best\s+\d+\.\d+s/.test(remembered),
+     (remembered.match(/Best[^]{0,34}/) || [''])[0]);
   await p.close();
 }
 

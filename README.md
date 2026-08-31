@@ -34,15 +34,23 @@ customer repeats the order, and it costs you a strike either way.
 
 ## Mail Run
 
-One authored route and five kerbside bays. Drive up, pull in, and hold the
+Five kerbside bays on one of five rounds. Drive up, pull in, and hold the
 truck still for a moment to post the mail — centred and square at a crawl is
 a Perfect. Nothing here can be failed: overshoot and the brake becomes
 reverse, grass slows you rather than stopping you, and sloppy driving costs
 time and rating instead of a life.
 
-Handling is arcade but behaves like a vehicle — steering authority comes
-from actually moving, so the truck will not pivot on the spot, and the nose
-swings the other way in reverse. Every constant is in `CONFIG`.
+Steering is one horizontal stick: where your thumb sits is how hard the
+truck turns. Handling is arcade but behaves like a vehicle — authority comes
+from actually moving, so it will not pivot on the spot, and the nose swings
+the other way in reverse. Every constant is in `CONFIG`.
+
+A round is authored as a start pose and a list of pieces — a straight, or an
+arc with a radius — which expand into the road, so a new route is a dozen
+lines and is smooth by construction. The bays are dealt fresh each run from
+every valid kerb on the route, spaced along it and weighted so the demanding
+ones fall late, which means the same round is worth driving twice. An A
+opens the next round; once two are open, Random Run deals one of them.
 
 ## Layout
 

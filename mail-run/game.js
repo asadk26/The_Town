@@ -39,6 +39,16 @@ const CONFIG = {
   fullSteerAt:   60,    // speed at which steering reaches full authority
   highSpeedEase: 0.34,  // fraction of turn rate traded away at top speed
 
+  /* ── the steering stick ──────────────────────────────────────────────
+     Travel is read from the element, so the stick can be sized in CSS; the
+     feel of it lives here. */
+  stick: {
+    deadZone:   0.10,   // share of travel around centre that reads as straight
+    curve:      1.45,   // >1 puts finer control near the middle
+    returnMs:   130,    // how long the knob takes to ease home on release
+    grabPad:    1.6,    // how far outside the base a thumb can land and still grab
+  },
+
   /* ── surfaces ─────────────────────────────────────────────────────────
      Off-road is a slowdown, never a wall. */
   surface: {
@@ -84,43 +94,222 @@ const SAVE_KEY = 'mailrun.best.v1';
    beside a node, on the kerb, angled to the road.
    ========================================================================== */
 
-const ROAD = [
-  { x:  300, y: 3400, w: 132 },   // the depot end: wide, straight, forgiving
-  { x:  300, y: 2900, w: 132 },
-  { x:  300, y: 2400, w: 130 },   // ① straight approach, generous bay
-  { x:  300, y: 1900, w: 128 },
-  { x:  320, y: 1520, w: 126 },
-  { x:  430, y: 1230, w: 124 },   // a gentle bend right
-  { x:  660, y: 1030, w: 122 },
-  { x:  980,  y: 950, w: 120 },   // ② just past the bend
-  { x: 1420,  y: 940, w: 118 },
-  { x: 1780,  y: 980, w: 114 },
-  { x: 2000, y: 1130, w: 110 },   // a sharper corner
-  { x: 2090, y: 1400, w: 106 },   // ③ tight in behind it
-  { x: 2100, y: 1780, w: 102 },
-  { x: 2060, y: 2140, w:  96 },
-  { x: 1920, y: 2420, w:  92 },
-  { x: 1660, y: 2600, w:  88 },   // the lanes narrow from here on
-  { x: 1330, y: 2660, w:  86 },   // ④ shortly after the turn
-  { x:  980, y: 2640, w:  84 },
-  { x:  740, y: 2520, w:  82 },
-  { x:  600, y: 2280, w:  80 },   // the last approach, tightest of the round
-  { x:  590, y: 1950, w:  78 },   // ⑤
-  { x:  610, y: 1800, w:  78 },   // a little run-out past the last box
+/* ── The segment vocabulary ───────────────────────────────────────────────
+   A route is authored as a start pose and a list of pieces, not as a list of
+   coordinates. Each piece is one of:
+
+     { go: 420 }              a straight run
+     { turn: -55, r: 210 }    an arc: degrees to swing, and the radius of it
+     { w: 92 }                on either, the width to have reached by the end
+
+   Expanding a route walks the pieces and samples nodes along them, so the
+   road is smooth by construction: no kinks, no guessing at coordinates, and
+   a sharper corner is just a smaller radius. Adding a route is a dozen lines.  */
+
+const NODE_STEP = 26;               // world units between sampled nodes on a straight
+const ARC_STEP  = 5 * Math.PI / 180; // and radians between them on an arc
+
+function expandRoute(def) {
+  const nodes = [];
+  let x = def.start.x, y = def.start.y, h = def.start.a * Math.PI / 180, w = def.start.w;
+  nodes.push({ x: x, y: y, w: w });
+
+  for (const piece of def.pieces) {
+    const wEnd = piece.w != null ? piece.w : w;
+    const wStart = w;
+
+    if (piece.go) {
+      const steps = Math.max(1, Math.round(piece.go / NODE_STEP));
+      for (let i = 1; i <= steps; i++) {
+        const t = i / steps;
+        nodes.push({ x: x + Math.cos(h) * piece.go * t,
+                     y: y + Math.sin(h) * piece.go * t,
+                     w: lerp(wStart, wEnd, t) });
+      }
+      x += Math.cos(h) * piece.go;
+      y += Math.sin(h) * piece.go;
+
+    } else if (piece.turn) {
+      const sweep = piece.turn * Math.PI / 180;
+      const r = piece.r;
+      const dir = Math.sign(sweep);
+      // centre of the arc, one radius off to the side we are turning towards
+      const cx = x + Math.cos(h + dir * Math.PI / 2) * r;
+      const cy = y + Math.sin(h + dir * Math.PI / 2) * r;
+      let a0 = Math.atan2(y - cy, x - cx);
+      const steps = Math.max(2, Math.round(Math.abs(sweep) / ARC_STEP));
+      for (let i = 1; i <= steps; i++) {
+        const t = i / steps;
+        const a = a0 + sweep * t;
+        nodes.push({ x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r,
+                     w: lerp(wStart, wEnd, t) });
+      }
+      const aEnd = a0 + sweep;
+      x = cx + Math.cos(aEnd) * r;
+      y = cy + Math.sin(aEnd) * r;
+      h += sweep;
+    }
+    w = wEnd;
+  }
+  return nodes;
+}
+
+/* Total length, and the cumulative length at each node — the currency the
+   bay pool and the guidance both work in. */
+function measure(nodes) {
+  const cum = [0];
+  for (let i = 1; i < nodes.length; i++) {
+    cum.push(cum[i - 1] + Math.hypot(nodes[i].x - nodes[i - 1].x, nodes[i].y - nodes[i - 1].y));
+  }
+  return { cum: cum, total: cum[cum.length - 1] };
+}
+
+/* The point a given distance along the route, with the road's width and
+   heading there. Nodes are dense, so walking by arc length is the only sane
+   way to place anything along the road. */
+function pointAt(dist) {
+  const { cum } = ROAD_M;
+  let i = 1;
+  while (i < cum.length - 1 && cum[i] < dist) i++;
+  const a = ROAD[i - 1], b = ROAD[i];
+  const seg = cum[i] - cum[i - 1] || 1;
+  const t = clamp((dist - cum[i - 1]) / seg, 0, 1);
+  return {
+    x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, t), w: lerp(a.w, b.w, t),
+    angle: Math.atan2(b.y - a.y, b.x - a.x), i: i,
+  };
+}
+
+/* How much the road bends over the `span` before a node: the number that
+   makes an approach demanding rather than merely narrow. */
+function curvatureBefore(nodes, cum, i, span) {
+  const target = cum[i] - span;
+  let j = i;
+  while (j > 0 && cum[j] > target) j--;
+  if (j >= i - 1) return 0;
+  const a0 = Math.atan2(nodes[j + 1].y - nodes[j].y, nodes[j + 1].x - nodes[j].x);
+  const a1 = Math.atan2(nodes[i].y - nodes[i - 1].y, nodes[i].x - nodes[i - 1].x);
+  return Math.abs(angleDiff(a0, a1));
+}
+
+
+/* ── The routes ──────────────────────────────────────────────────────────
+   Five rounds, in the order they unlock. Each is a different kind of driving
+   rather than the same driving with different scenery: what changes is the
+   width of the street, the radius of the corners, and how much room the bays
+   give you. `bay` scales every kerbside bay on that route.  */
+
+const ROUTES = [
+  {
+    id: 'rookie',
+    name: 'Rookie Round',
+    where: 'The suburbs',
+    blurb: 'Wide streets, easy bends, and bays you could park a bus in.',
+    bay: { w: 1.00, h: 1.00 },
+    // An open loop: three square-ish corners and out again, so the return
+    // leg never runs alongside the one it started on.
+    start: { x: 300, y: 3400, a: -90, w: 132 },
+    pieces: [
+      { go: 1400 },
+      { turn: 90, r: 300, w: 128 },
+      { go: 1150 },
+      { turn: 90, r: 280, w: 122 },
+      { go: 1500, w: 116 },
+      { turn: 90, r: 260, w: 110 },
+      { go: 1050, w: 102 },
+      { turn: -46, r: 260, w: 96 },
+      { go: 600, w: 92 },
+    ],
+  },
+  {
+    id: 'winding',
+    name: 'Winding Neighbourhood',
+    where: 'Off the main road',
+    blurb: 'Bend after bend. The straights are short and the kerbs come quickly.',
+    bay: { w: 0.90, h: 0.94 },
+    start: { x: 420, y: 3200, a: -90, w: 116 },
+    pieces: [
+      { go: 660 },
+      { turn: -46, r: 205 }, { go: 340 }, { turn: 52, r: 195, w: 110 },
+      { go: 420 },
+      { turn: 58, r: 190 }, { go: 300 }, { turn: -54, r: 180, w: 104 },
+      { go: 460 },
+      { turn: -50, r: 200 }, { go: 340 }, { turn: 56, r: 180, w: 100 },
+      { go: 400 },
+      { turn: 62, r: 175 }, { go: 320 }, { turn: -58, r: 170, w: 96 },
+      { go: 440 },
+      { turn: -52, r: 190 }, { go: 360 }, { turn: 48, r: 180, w: 92 },
+      { go: 420 },
+      { turn: 54, r: 175 }, { go: 320 }, { turn: -50, r: 185, w: 88 },
+      { go: 480 },
+    ],
+  },
+  {
+    id: 'downtown',
+    name: 'Town Centre',
+    where: 'Narrow streets',
+    blurb: 'Tight lanes, square corners, and a kerb waiting just past each one.',
+    bay: { w: 0.80, h: 0.88 },
+    // Square corners, but never so tight that a clean line has to leave the
+    // tarmac: the radii sit just above what the truck can hold at pace.
+    start: { x: 500, y: 2900, a: -90, w: 100 },
+    pieces: [
+      { go: 560 },
+      { turn: 84, r: 150, w: 96 }, { go: 500 },
+      { turn: -86, r: 142 }, { go: 420, w: 92 },
+      { turn: -88, r: 140 }, { go: 560 },
+      { turn: 90, r: 134, w: 88 }, { go: 460 },
+      { turn: 86, r: 138 }, { go: 500, w: 86 },
+      { turn: -84, r: 132 }, { go: 440 },
+      { turn: -90, r: 130, w: 84 }, { go: 520 },
+      { turn: 88, r: 134 }, { go: 460, w: 82 },
+      { turn: 84, r: 130 }, { go: 420 },
+      { turn: -86, r: 132, w: 80 }, { go: 440 },
+    ],
+  },
+  {
+    id: 'longhaul',
+    name: 'Long Haul',
+    where: 'The edge of town',
+    blurb: 'Open road and real speed, so every bay is a braking decision.',
+    bay: { w: 0.92, h: 0.92 },
+    start: { x: 400, y: 3800, a: -90, w: 124 },
+    pieces: [
+      { go: 1500 },
+      { turn: 36, r: 420 },
+      { go: 1400, w: 118 },
+      { turn: 54, r: 380 },
+      { go: 1200, w: 110 },
+      { turn: 62, r: 320 },
+      { go: 1300, w: 102 },
+      { turn: 48, r: 300 },
+      { go: 900, w: 94 },
+      { turn: -40, r: 280 },
+      { go: 700 },
+    ],
+  },
+  {
+    id: 'technical',
+    name: 'The Technical',
+    where: 'The old quarter',
+    blurb: 'Short streets, constant direction changes, and the tightest bays on the round.',
+    bay: { w: 0.74, h: 0.84 },
+    start: { x: 520, y: 2600, a: -90, w: 92 },
+    pieces: [
+      { go: 380 },
+      { turn: -74, r: 126 }, { go: 280 }, { turn: 80, r: 120, w: 88 },
+      { go: 260 }, { turn: 76, r: 122 }, { go: 300 }, { turn: -82, r: 118, w: 86 },
+      { go: 280 }, { turn: -78, r: 124 }, { go: 340 }, { turn: 84, r: 116, w: 84 },
+      { go: 300 }, { turn: 80, r: 120 }, { go: 280 }, { turn: -76, r: 122, w: 82 },
+      { go: 340 }, { turn: -84, r: 118 }, { go: 300 }, { turn: 78, r: 124, w: 80 },
+      { go: 360 }, { turn: 74, r: 128 }, { go: 300 }, { turn: -80, r: 120, w: 78 },
+      { go: 320 }, { turn: -76, r: 124 }, { go: 420, w: 76 },
+    ],
+  },
 ];
 
-/* Each stop names the node it sits at, which side of the road the kerb is
-   on, and how much room the apron gives. They get tighter as the round
-   goes on — that, and the road narrowing, is the whole difficulty curve. */
-const STOPS = [
-  // `w` is the bay's length along the kerb, `h` its depth across the road.
-  // Both tighten as the round goes on; so does the road they sit in.
-  { at:  2, side: -1, w: 150, h: 62, house: 'coral',   name: '2 Larch Way' },
-  { at:  7, side: -1, w: 130, h: 58, house: 'mustard', name: '14 Elm Row' },
-  { at: 11, side:  1, w: 114, h: 54, house: 'teal',    name: '31 Kiln Hill' },
-  { at: 16, side:  1, w: 102, h: 50, house: 'cream',   name: '5 Poplar Close' },
-  { at: 20, side: -1, w:  94, h: 46, house: 'plum',    name: '40 Sorrel Lane' },
-];
+const ROUTE_BY_ID = {};
+ROUTES.forEach((r) => { ROUTE_BY_ID[r.id] = r; });
 
 const HOUSE_COLORS = {
   coral:   { wall: '#e8735e', roof: '#b8482f' },
@@ -187,22 +376,17 @@ function surfaceAt(px, py) {
   return 'grass';
 }
 
-/* Where a stop's apron sits: beside its node, squared to the road. */
-function zoneFor(stop) {
-  const i = stop.at;
+/* Where a bay sits: beside its node, squared to the road, tucked against the
+   kerb from the inside. */
+function bayAt(i, side, w, h) {
   const a = ROAD[Math.max(0, i - 1)], b = ROAD[Math.min(ROAD.length - 1, i + 1)];
   const angle = Math.atan2(b.y - a.y, b.x - a.x);
   const node = ROAD[i];
-  const off = node.w / 2 - stop.h / 2 + 5;      // tucked against the kerb, inside the road
+  const off = node.w / 2 - h / 2 + 5;
   return {
-    x: node.x + Math.cos(angle + Math.PI / 2) * off * stop.side,
-    y: node.y + Math.sin(angle + Math.PI / 2) * off * stop.side,
-    angle: angle,
-    w: stop.w, h: stop.h,
-    side: stop.side,
-    house: stop.house,
-    name: stop.name,
-    node: i,
+    x: node.x + Math.cos(angle + Math.PI / 2) * off * side,
+    y: node.y + Math.sin(angle + Math.PI / 2) * off * side,
+    angle: angle, w: w, h: h, side: side, node: i,
   };
 }
 
@@ -218,15 +402,136 @@ function inZone(zone, px, py, slack) {
   return Math.abs(l.u) <= k && Math.abs(l.v) <= k;
 }
 
+/* ── Dealing a round ─────────────────────────────────────────────────────
+   Every candidate kerb on the route is checked before it can be used, and
+   five are drawn from the survivors: one per fifth of the route, so they are
+   spaced; never all on the same side; and weighted so the demanding ones
+   fall late. That is what makes replaying the same route worth doing.  */
+
+const STOPS_PER_ROUND = 5;
+const BAY_RULES = {
+  firstAt: 0.10,     // no bay before this much of the route is behind you
+  lastAt:  0.94,
+  everyAt: 0.035,    // how finely the route is sampled for candidates
+  minGap:  0.11,     // of route length, between chosen bays
+};
+
+/* A bay is only offered if the truck can actually get into it and there is
+   nothing solid in the way. */
+function bayIsValid(bay) {
+  const n = nearestOnRoad(bay.x, bay.y);
+  if (Math.sqrt(n.d2) > n.w / 2) return false;           // its middle is off the tarmac
+  const reach = Math.hypot(bay.w, bay.h) / 2;
+  for (const o of SOLIDS) {
+    const d = Math.hypot(o.x - bay.x, o.y - bay.y);
+    const size = o.kind === 'circle' ? o.r : Math.hypot(o.w, o.h) / 2;
+    if (d < reach + size) return false;                  // something is standing in it
+  }
+  return true;
+}
+
+/* Every kerb on the route worth considering, with how demanding it is. */
+function bayPool(route) {
+  const { cum, total } = ROAD_M;
+  const out = [];
+  for (let f = BAY_RULES.firstAt; f <= BAY_RULES.lastAt; f += BAY_RULES.everyAt) {
+    const target = f * total;
+    let i = 1;
+    while (i < cum.length - 1 && cum[i] < target) i++;
+    const node = ROAD[i];
+    const bend = curvatureBefore(ROAD, cum, i, 230);
+    for (const side of [-1, 1]) {
+      // the bay scales with the street it is on, and with the route's own factor
+      const w = clamp(node.w * 1.16, 84, 156) * route.bay.w;
+      const h = clamp(node.w * 0.50, 42, 64) * route.bay.h;
+      const bay = bayAt(i, side, w, h);
+      bay.at = f;
+      // narrow street, tight bay, and a bend just before it all make it harder
+      bay.demand = (1 - clamp(node.w / 140, 0.3, 1)) * 1.2 +
+                   Math.min(1, bend / 1.1) * 1.6 +
+                   (1 - clamp(h / 60, 0.4, 1)) * 0.8;
+      out.push(bay);
+    }
+  }
+  return out;
+}
+
+/* Draw five, spaced along the route, with the demanding ones late. */
+function chooseBays(route) {
+  const pool = bayPool(route).filter(bayIsValid);
+  if (pool.length < STOPS_PER_ROUND) return null;
+
+  for (let attempt = 0; attempt < 40; attempt++) {
+    const picked = [];
+    for (let k = 0; k < STOPS_PER_ROUND; k++) {
+      const lo = BAY_RULES.firstAt + (BAY_RULES.lastAt - BAY_RULES.firstAt) * (k / STOPS_PER_ROUND);
+      const hi = BAY_RULES.firstAt + (BAY_RULES.lastAt - BAY_RULES.firstAt) * ((k + 1) / STOPS_PER_ROUND);
+      let window = pool.filter((b) => b.at >= lo && b.at < hi &&
+        picked.every((q) => Math.abs(q.at - b.at) >= BAY_RULES.minGap));
+      if (!window.length) { window = pool.filter((b) => b.at >= lo && b.at < hi); }
+      if (!window.length) break;
+
+      // late windows lean towards the demanding end of what is available
+      const bias = k / (STOPS_PER_ROUND - 1);
+      window = window.slice().sort((a, b) => a.demand - b.demand);
+      const idx = Math.floor(Math.pow(rnd(), 1 + bias * 1.6) * window.length);
+      picked.push(window[Math.min(window.length - 1, bias > 0.5 ? window.length - 1 - idx : idx)]);
+    }
+    if (picked.length !== STOPS_PER_ROUND) continue;
+
+    // never a whole round down one kerb, and never two on top of each other
+    const sides = new Set(picked.map((b) => b.side));
+    if (sides.size < 2) continue;
+    let tooClose = false;
+    for (let a = 0; a < picked.length && !tooClose; a++) {
+      for (let b = a + 1; b < picked.length; b++) {
+        if (Math.hypot(picked[a].x - picked[b].x, picked[a].y - picked[b].y) < 200) tooClose = true;
+      }
+    }
+    if (tooClose) continue;
+
+    picked.sort((a, b) => a.at - b.at);
+    picked.forEach((b, i) => { b.index = i; });
+    return picked;
+  }
+  return null;
+}
+
+/* Load a route and deal a round on it. */
+function loadRound(routeId, runSeed) {
+  const route = ROUTE_BY_ID[routeId] || ROUTES[0];
+  reseed(runSeed);
+  ROAD = expandRoute(route);
+  ROAD_M = measure(ROAD);
+  PROPS = [];
+  SOLIDS = [];
+
+  // dress the town first so bay validation can see what is standing where,
+  // then dress it again with the chosen bays kept clear
+  buildTown([]);
+  let bays = chooseBays(route);
+  if (!bays) { reseed(runSeed + 7); buildTown([]); bays = chooseBays(route); }
+  if (!bays) bays = bayPool(route).filter(bayIsValid).slice(0, STOPS_PER_ROUND);
+  buildTown(bays);
+
+  return { route: route, bays: bays };
+}
+
 /* ── the town ────────────────────────────────────────────────────────────
    Houses, trees, hedges and the odd park bench, scattered along the road
    once at boot. Deterministic, so the town is the same town every run. */
 
+/* One stream per run, seeded when the round is dealt, so a round is
+   reproducible and the town it draws is the same town all the way through. */
 let seed = 20260831;
+function reseed(n) { seed = (n >>> 0) % 2147483647 || 12345; }
 function rnd() { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; }
+const pickFrom = (list) => list[Math.floor(rnd() * list.length)];
 
-const PROPS = [];   // drawn behind the truck
-const SOLIDS = [];  // and these stop it
+let ROAD = [];      // the centreline of the round currently loaded
+let ROAD_M = { cum: [0], total: 0 };
+let PROPS = [];     // drawn behind the truck
+let SOLIDS = [];    // and these stop it
 
 function addHouse(x, y, angle, colorName, w, h) {
   const c = HOUSE_COLORS[colorName] || HOUSE_COLORS.cream;
@@ -238,54 +543,67 @@ function addTree(x, y, r) {
   SOLIDS.push({ kind: 'circle', x: x, y: y, r: r * 0.55 });
 }
 
-function buildTown() {
-  const stopNodes = STOPS.map((s) => s.at);
+/* Is this spot clear of every part of the road, not just the stretch it was
+   measured from? A route that doubles back would otherwise drop a house on a
+   street it passes later. */
+function clearOfRoad(x, y, margin) {
+  const n = nearestOnRoad(x, y);
+  return Math.sqrt(n.d2) > n.w / 2 + WALK_WIDTH + margin;
+}
 
-  for (let i = 0; i < ROAD.length - 1; i++) {
-    const a = ROAD[i], b = ROAD[i + 1];
-    const segLen = Math.hypot(b.x - a.x, b.y - a.y);
-    const angle = Math.atan2(b.y - a.y, b.x - a.x);
-    const nx = Math.cos(angle + Math.PI / 2), ny = Math.sin(angle + Math.PI / 2);
+/* Nothing may stand in a bay. Measured from where the prop actually ends up:
+   a tight corner can swing a kerbside prop right round it, so far along the
+   road from a bay and yet a few units from its middle. */
+function clearOfBays(bays, x, y, size) {
+  for (const b of bays) {
+    if (Math.hypot(b.x - x, b.y - y) < Math.hypot(b.w, b.h) / 2 + size + 14) return false;
+  }
+  return true;
+}
 
-    for (let side = -1; side <= 1; side += 2) {
-      let along = 40;
-      while (along < segLen - 40) {
-        const t = along / segLen;
-        const cx = lerp(a.x, b.x, t), cy = lerp(a.y, b.y, t);
-        const w = lerp(a.w, b.w, t);
-        const roll = rnd();
+function buildTown(bays) {
+  PROPS = [];
+  SOLIDS = [];
+  const total = ROAD_M.total;
+  const names = ['coral', 'mustard', 'teal', 'cream', 'plum', 'sage', 'sky'];
 
-        // keep the kerb clear where a stop's apron will be
-        const nearStop = stopNodes.some((n) => {
-          const d = Math.hypot(cx - ROAD[n].x, cy - ROAD[n].y);
-          return d < 150;
-        });
+  for (let side = -1; side <= 1; side += 2) {
+    let along = 70;
+    while (along < total - 70) {
+      const at = pointAt(along);
+      const nx = Math.cos(at.angle + Math.PI / 2), ny = Math.sin(at.angle + Math.PI / 2);
+      const roll = rnd();
 
-        if (nearStop) { along += 90; continue; }
+      // keep the kerb clear where a bay and its mailbox will be
+      const nearBay = bays.some((b) => Math.hypot(at.x - b.x, at.y - b.y) < b.w / 2 + 120);
+      if (nearBay) { along += 70; continue; }
 
-        if (roll < 0.42) {
-          const off = w / 2 + WALK_WIDTH + 78 + rnd() * 40;
-          const names = ['coral', 'mustard', 'teal', 'cream', 'plum', 'sage', 'sky'];
-          addHouse(cx + nx * off * side, cy + ny * off * side, angle,
-                   names[Math.floor(rnd() * names.length)],
-                   86 + rnd() * 46, 74 + rnd() * 30);
-          along += 150 + rnd() * 70;
-        } else if (roll < 0.78) {
-          const off = w / 2 + WALK_WIDTH + 24 + rnd() * 18;
-          addTree(cx + nx * off * side, cy + ny * off * side, 17 + rnd() * 9);
-          along += 78 + rnd() * 54;
-        } else {
-          // a patch of park: flowers, no collision
-          const off = w / 2 + WALK_WIDTH + 40 + rnd() * 90;
-          PROPS.push({ kind: 'park', x: cx + nx * off * side, y: cy + ny * off * side,
-                       r: 40 + rnd() * 46, tone: rnd() });
-          along += 120 + rnd() * 60;
+      if (roll < 0.42) {
+        const hw = 86 + rnd() * 46, hh = 74 + rnd() * 30;
+        const off = at.w / 2 + WALK_WIDTH + 26 + Math.max(hw, hh) / 2 + rnd() * 34;
+        const px = at.x + nx * off * side, py = at.y + ny * off * side;
+        if (clearOfRoad(px, py, Math.max(hw, hh) / 2 + 10) &&
+            clearOfBays(bays, px, py, Math.hypot(hw, hh) / 2)) {
+          addHouse(px, py, at.angle, names[Math.floor(rnd() * names.length)], hw, hh);
         }
+        along += 150 + rnd() * 80;
+      } else if (roll < 0.78) {
+        const r = 17 + rnd() * 9;
+        const off = at.w / 2 + WALK_WIDTH + 20 + r + rnd() * 18;
+        const px = at.x + nx * off * side, py = at.y + ny * off * side;
+        if (clearOfRoad(px, py, r + 5) && clearOfBays(bays, px, py, r)) addTree(px, py, r);
+        along += 80 + rnd() * 60;
+      } else {
+        // a patch of park: flowers, no collision
+        const r = 40 + rnd() * 46;
+        const off = at.w / 2 + WALK_WIDTH + 30 + r * 0.6 + rnd() * 70;
+        const px = at.x + nx * off * side, py = at.y + ny * off * side;
+        if (clearOfRoad(px, py, 6)) PROPS.push({ kind: 'park', x: px, y: py, r: r, tone: rnd() });
+        along += 120 + rnd() * 70;
       }
     }
   }
 }
-buildTown();
 
 
 /* ==========================================================================
@@ -295,10 +613,15 @@ buildTown();
 let S = null;
 let best = loadBest();
 
-function createRun() {
+let chosenRoute = null;     // route id the player has selected, or 'random'
+
+function createRun(routeId, runSeed) {
+  const dealt = loadRound(routeId, runSeed);
   const start = ROAD[0], next = ROAD[1];
   return {
     phase: 'title',                 // 'title' | 'driving' | 'over'
+    route: dealt.route,
+    seed: runSeed,
     t: 0,                           // seconds elapsed on the round
     truck: {
       x: start.x, y: start.y,
@@ -308,7 +631,7 @@ function createRun() {
       lean: 0, dip: 0, bob: 0,      // presentation only
     },
     cam: { x: start.x, y: start.y },
-    stops: STOPS.map(zoneFor),
+    stops: dealt.bays,
     at: 0,                          // which stop is live
     hold: 0,                        // seconds parked in the live zone
     ratings: [],                    // 'perfect' | 'good' | 'messy'
@@ -319,12 +642,36 @@ function createRun() {
   };
 }
 
+/* ── What carries between runs ────────────────────────────────────────────
+   Which routes are open, and the best round on each. Nothing else: no
+   currency, no levels, no connection to anything outside Mail Run. */
+
+function blankSave() {
+  return { unlocked: 1, records: {}, random: null };
+}
+
 function loadBest() {
-  const blank = { time: 0, score: 0 };
+  const blank = blankSave();
   try {
     const raw = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
     if (raw && typeof raw === 'object') {
-      return { time: Number(raw.time) || 0, score: Number(raw.score) || 0 };
+      const n = parseInt(raw.unlocked, 10);
+      blank.unlocked = clamp(Number.isFinite(n) ? n : 1, 1, ROUTES.length);
+      if (raw.records && typeof raw.records === 'object') {
+        for (const id of Object.keys(raw.records)) {
+          if (!ROUTE_BY_ID[id]) continue;                 // a route that no longer exists
+          const r = raw.records[id] || {};
+          blank.records[id] = {
+            time: Number(r.time) || 0,
+            score: Number(r.score) || 0,
+            perfects: Number(r.perfects) || 0,
+            grade: typeof r.grade === 'string' ? r.grade : '',
+          };
+        }
+      }
+      if (raw.random && typeof raw.random === 'object') {
+        blank.random = { score: Number(raw.random.score) || 0, time: Number(raw.random.time) || 0 };
+      }
     }
   } catch (e) { /* no memory is fine */ }
   return blank;
@@ -333,12 +680,53 @@ function saveBest() {
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(best)); } catch (e) { /* fine */ }
 }
 
+const unlockedRoutes = () => ROUTES.slice(0, best.unlocked);
+const isUnlocked = (id) => unlockedRoutes().some((r) => r.id === id);
+
+/* An A or an S opens the next round along. */
+function creditUnlock(routeId, grade) {
+  const i = ROUTES.findIndex((r) => r.id === routeId);
+  if (i < 0 || (grade !== 'A' && grade !== 'S')) return null;
+  if (i !== best.unlocked - 1 || best.unlocked >= ROUTES.length) return null;
+  best.unlocked++;
+  return ROUTES[best.unlocked - 1];
+}
+
+/* Records are per route, each metric on its own: a run can beat the clock
+   without beating the score. */
+function creditRecords(routeId, run) {
+  const r = best.records[routeId] || (best.records[routeId] = { time: 0, score: 0, perfects: 0, grade: '' });
+  const GRADES = ['', 'C', 'B', 'A', 'S'];
+  const won = {
+    time: !r.time || run.time < r.time,
+    score: run.score > r.score,
+    perfects: run.perfects > r.perfects,
+    grade: GRADES.indexOf(run.grade) > GRADES.indexOf(r.grade),
+  };
+  if (won.time) r.time = run.time;
+  if (won.score) r.score = run.score;
+  if (won.perfects) r.perfects = run.perfects;
+  if (won.grade) r.grade = run.grade;
+  return won;
+}
 
 /* ==========================================================================
    5. DRIVING
    ========================================================================== */
 
-const input = { left: false, right: false, gas: false, brake: false };
+/* `steer` is the analog axis, -1 (full left) to +1 (full right). The stick
+   writes it directly; the keys and the fallback buttons peg it to full lock.
+   Everything downstream only ever reads `steer`, so the vehicle model is the
+   same one whichever control is driving it. */
+const input = { steer: 0, left: false, right: false, gas: false, brake: false };
+
+/* Buttons and keys are digital, so they set their own axis and the stick
+   sets its. Whichever moved last wins, which is what a player expects when
+   they put a thumb down mid-keypress. */
+let keySteer = 0, stickSteer = 0;
+function pushSteer() {
+  input.steer = clamp(stickSteer !== 0 ? stickSteer : keySteer, -1, 1);
+}
 
 function driveStep(dt) {
   const t = S.truck;
@@ -362,7 +750,7 @@ function driveStep(dt) {
   /* ── steering ──
      Authority comes from actually moving, and eases off near the top end so
      the truck turns like a van rather than a spinning top. */
-  const want = (input.left ? -1 : 0) + (input.right ? 1 : 0);
+  const want = input.steer;
   t.steer += clamp(want - t.steer, -1, 1) * CONFIG.steerRate * dt;
   t.steer = clamp(t.steer, -1, 1);
 
@@ -921,22 +1309,91 @@ function hideOverlay() { elOverlay.classList.add('hidden'); }
 
 function showTitle() {
   elOverlay.classList.remove('hidden');
+  const open = unlockedRoutes();
+  if (!chosenRoute || (chosenRoute !== 'random' && !isUnlocked(chosenRoute))) {
+    chosenRoute = open[open.length - 1].id;
+  }
+  if (chosenRoute === 'random' && open.length < 2) chosenRoute = open[0].id;
+
+  const chips = ROUTES.map((r, i) => {
+    const isOpen = i < best.unlocked;
+    const rec = best.records[r.id];
+    return '<button class="chip' + (isOpen ? '' : ' locked') +
+           (chosenRoute === r.id ? ' on' : '') + '" type="button" data-route="' + r.id + '"' +
+           (isOpen ? '' : ' disabled') + '>' +
+           '<b>' + r.name + '</b><span>' + (isOpen ? r.where : 'Locked') + '</span>' +
+           (isOpen && rec && rec.grade ? '<em>' + rec.grade + '</em>' : '') +
+           '</button>';
+  }).join('') +
+  (open.length >= 2
+    ? '<button class="chip wild' + (chosenRoute === 'random' ? ' on' : '') +
+      '" type="button" data-route="random"><b>Random Run</b>' +
+      '<span>Any open round</span>' +
+      (best.random && best.random.score ? '<em>' + best.random.score + '</em>' : '') + '</button>'
+    : '');
+
+  /* Two columns on a landscape screen: the round to drive has to be reachable
+     without scrolling past the instructions every single time. */
+  elCard.className = 'card depot';
   elCard.innerHTML =
-    '<h1>Mail <b>Run</b></h1>' +
-    '<p class="sub">One round, five boxes</p>' +
-    '<ul class="how">' +
-      '<li><i>1</i><span>Drive the route. Gas on the right, steering on the left.</span></li>' +
-      '<li><i>2</i><span>The next kerb glows. An arrow points the way if it is off screen.</span></li>' +
-      '<li><i>3</i><span>Pull into the apron and hold still for a moment to post it.</span></li>' +
-      '<li><i>4</i><span>Stop square and centred for a <b>Perfect</b>. Overshoot? Reverse and try again.</span></li>' +
-    '</ul>' +
-    (best.time ? '<p class="best-note">Best round: ' + best.time.toFixed(1) + 's &middot; ' + best.score + ' pts</p>' : '') +
-    '<button class="btn" type="button" id="goBtn">Start the round</button>';
-  $('goBtn').addEventListener('click', startRun);
+    '<div class="depot-cols">' +
+      '<div>' +
+        '<h1>Mail <b>Run</b></h1>' +
+        '<p class="sub">One round, five boxes</p>' +
+        '<ul class="how">' +
+          '<li><i>1</i><span>Steer with the stick; gas and brake on the right.</span></li>' +
+          '<li><i>2</i><span>The next kerb glows, and an arrow points off screen.</span></li>' +
+          '<li><i>3</i><span>Pull in and hold still for a moment to post it.</span></li>' +
+          '<li><i>4</i><span>Square and centred is a <b>Perfect</b>. Overshoot? Reverse.</span></li>' +
+        '</ul>' +
+      '</div>' +
+      '<div class="depot-pick">' +
+        '<p class="sub">Choose a round</p>' +
+        '<div class="chips" id="routeChips">' + chips + '</div>' +
+        '<p class="route-note" id="routeNote"></p>' +
+        '<button class="btn" type="button" id="goBtn">Start the round</button>' +
+      '</div>' +
+    '</div>';
+
+  elCard.querySelectorAll('.chip').forEach((b) => b.addEventListener('click', () => {
+    chosenRoute = b.dataset.route;
+    showTitle();
+  }));
+  $('goBtn').addEventListener('click', () => startRun());
+  renderRouteNote();
+}
+
+function renderRouteNote() {
+  const el = $('routeNote');
+  if (!el) return;
+  if (chosenRoute === 'random') {
+    const r = best.random;
+    el.innerHTML = 'One of your open rounds, with the kerbs drawn fresh.' +
+      (r && r.score ? ' <b>Best ' + r.score + ' pts in ' + r.time.toFixed(1) + 's</b>' : '');
+    return;
+  }
+  const route = ROUTE_BY_ID[chosenRoute];
+  const rec = best.records[chosenRoute];
+  const next = ROUTES[best.unlocked];
+  el.innerHTML = route.blurb +
+    (rec && rec.time
+      ? ' <b>Best ' + rec.time.toFixed(1) + 's &middot; ' + rec.score + ' pts &middot; ' +
+        rec.perfects + ' perfect</b>'
+      : '') +
+    (next && ROUTES[best.unlocked - 1].id === chosenRoute
+      ? '<br><span class="unlock-hint">An A on this round opens ' + next.name + '.</span>'
+      : '');
 }
 
 function startRun() {
-  S = createRun();
+  const open = unlockedRoutes();
+  // Random Run only ever deals a round the player has actually opened.
+  const wasRandom = chosenRoute === 'random';
+  const id = wasRandom
+    ? open[Math.floor(Math.random() * open.length)].id
+    : (isUnlocked(chosenRoute) ? chosenRoute : open[0].id);
+  S = createRun(id, (Math.random() * 2147483647) | 0);
+  S.wasRandom = wasRandom;
   hideOverlay();
   renderStops();
   resize();
@@ -959,33 +1416,41 @@ function endRun() {
   const bonus = Math.max(0, Math.round((CONFIG.parTime - time) * CONFIG.timeBonus));
   const score = S.score + bonus;
   const grade = gradeOf(score, time);
+  const perfects = S.ratings.filter((x) => x === 'perfect').length;
 
-  const bestTime = !best.time || time < best.time;
-  const bestScore = score > best.score;
-  if (bestTime) best.time = time;
-  if (bestScore) best.score = score;
-  if (bestTime || bestScore) saveBest();
+  const won = creditRecords(S.route.id, { time: time, score: score, perfects: perfects, grade: grade });
+  const opened = creditUnlock(S.route.id, grade);
+  let randomWon = false;
+  if (S.wasRandom && (!best.random || score > best.random.score)) {
+    best.random = { score: score, time: time };
+    randomWon = true;
+  }
+  saveBest();
 
   const count = (r) => S.ratings.filter((x) => x === r).length;
   elOverlay.classList.remove('hidden');
+  elCard.className = 'card';
   elCard.innerHTML =
     '<h2>Round complete</h2>' +
-    '<p class="sub">Every box on the list</p>' +
+    '<p class="sub">' + S.route.name + (S.wasRandom ? ' &middot; Random Run' : '') + '</p>' +
     '<div class="result">' +
       '<div class="grade ' + grade.toLowerCase() + '">' + grade + '</div>' +
       '<div class="tally">' +
-        row('Time', time.toFixed(1) + 's', bestTime) +
-        row('Perfect', count('perfect')) +
+        row('Time', time.toFixed(1) + 's', won.time) +
+        row('Perfect', perfects, won.perfects) +
         row('Good', count('good')) +
         row('Messy', count('messy')) +
-        row('Score', score, bestScore) +
+        row('Score', score, won.score || randomWon) +
       '</div>' +
     '</div>' +
+    (opened
+      ? '<p class="opened"><b>' + opened.name + '</b> is open &mdash; ' + opened.blurb + '</p>'
+      : '') +
     '<button class="btn" type="button" id="againBtn">Run again</button>' +
     '<button class="btn ghost" type="button" id="menuBtn">Back to the depot</button>';
-  $('againBtn').addEventListener('click', startRun);
+  $('againBtn').addEventListener('click', () => startRun());
   $('menuBtn').addEventListener('click', showTitle);
-  playCue('finish');
+  playCue(opened ? 'unlock' : 'finish');
   renderStops();
 }
 
@@ -1009,6 +1474,10 @@ const CUES = {
             { f: 1047, at: 0.08, d: 0.09, g: 0.040, t: 'sine' },
             { f: 1319, at: 0.16, d: 0.30, g: 0.044, t: 'sine' }],
   bump:    [{ f: 96,  at: 0,    d: 0.13, g: 0.055, t: 'triangle' }],
+  unlock:  [{ f: 523, at: 0,    d: 0.11, g: 0.040, t: 'sine' },
+            { f: 659, at: 0.10, d: 0.11, g: 0.040, t: 'sine' },
+            { f: 784, at: 0.20, d: 0.11, g: 0.042, t: 'sine' },
+            { f: 1047, at: 0.30, d: 0.40, g: 0.046, t: 'sine' }],
   finish:  [{ f: 523, at: 0,    d: 0.12, g: 0.040, t: 'sine' },
             { f: 659, at: 0.11, d: 0.12, g: 0.040, t: 'sine' },
             { f: 784, at: 0.22, d: 0.34, g: 0.046, t: 'sine' }],
@@ -1078,6 +1547,7 @@ function bindKey(el, prop) {
     if (ev.cancelable) ev.preventDefault();
     input[prop] = on;
     el.classList.toggle('down', on);
+    if (prop === 'left' || prop === 'right') syncKeyLights();
   };
   el.addEventListener('pointerdown', (e) => { el.setPointerCapture(e.pointerId); set(true)(e); });
   el.addEventListener('pointerup', set(false));
@@ -1085,10 +1555,83 @@ function bindKey(el, prop) {
   el.addEventListener('lostpointercapture', set(false));
   el.addEventListener('contextmenu', (e) => e.preventDefault());
 }
-bindKey($('keyLeft'), 'left');
-bindKey($('keyRight'), 'right');
+/* The left/right buttons are kept as a fallback and for tests; the shipped
+   mobile UI uses the stick, and they are simply absent from the markup. */
+if ($('keyLeft')) bindKey($('keyLeft'), 'left');
+if ($('keyRight')) bindKey($('keyRight'), 'right');
 bindKey($('keyGas'), 'gas');
 bindKey($('keyBrake'), 'brake');
+
+/* ── the stick ────────────────────────────────────────────────────────
+   One axis. Where the thumb is, relative to the base's middle, becomes the
+   steering value; a dead zone keeps "roughly straight" actually straight, and
+   the curve gives finer control near the centre than at the lock. */
+
+const elStick = $('stick');
+const elKnob = $('stickKnob');
+const elZone = $('stickZone');
+let stickPointer = null;
+
+function stickTravel() {
+  if (!elStick || !elKnob) return 1;
+  return Math.max(1, (elStick.getBoundingClientRect().width -
+                      elKnob.getBoundingClientRect().width) / 2);
+}
+
+/* Move the knob and report the axis. `v` is -1..1 already shaped. */
+function setKnob(v) {
+  if (!elKnob) return;
+  elKnob.style.transform = 'translateX(' + (v * stickTravel()) + 'px)';
+  elKnob.setAttribute('aria-valuenow', v.toFixed(2));
+}
+
+function stickAxisFrom(clientX) {
+  const box = elStick.getBoundingClientRect();
+  const travel = stickTravel();
+  const raw = clamp((clientX - (box.left + box.width / 2)) / travel, -1, 1);
+  const dz = CONFIG.stick.deadZone;
+  const mag = Math.abs(raw);
+  if (mag <= dz) return 0;
+  const shaped = Math.pow((mag - dz) / (1 - dz), CONFIG.stick.curve);
+  return Math.sign(raw) * shaped;
+}
+
+function grabStick(e) {
+  if (!elStick || stickPointer !== null) return;
+  stickPointer = e.pointerId;
+  elStick.classList.add('held');
+  try { elZone.setPointerCapture(e.pointerId); } catch (err) { /* mouse is fine without */ }
+  moveStick(e);
+  if (e.cancelable) e.preventDefault();
+}
+function moveStick(e) {
+  if (stickPointer !== e.pointerId) return;
+  stickSteer = stickAxisFrom(e.clientX);
+  setKnob(stickSteer);
+  pushSteer();
+  if (e.cancelable) e.preventDefault();
+}
+function dropStick(e) {
+  if (e && stickPointer !== e.pointerId) return;
+  releaseStick();
+}
+function releaseStick() {
+  stickPointer = null;
+  stickSteer = 0;
+  pushSteer();
+  if (elStick) elStick.classList.remove('held');
+  setKnob(keySteer);          // if a key is held, the knob rests there instead
+}
+
+if (elZone) {
+  elZone.style.setProperty('--stick-return', CONFIG.stick.returnMs + 'ms');
+  elZone.addEventListener('pointerdown', grabStick);
+  elZone.addEventListener('pointermove', moveStick);
+  elZone.addEventListener('pointerup', dropStick);
+  elZone.addEventListener('pointercancel', dropStick);
+  elZone.addEventListener('lostpointercapture', dropStick);
+  elZone.addEventListener('contextmenu', (e) => e.preventDefault());
+}
 
 const KEYS = {
   ArrowLeft: 'left', a: 'left', A: 'left',
@@ -1110,14 +1653,22 @@ document.addEventListener('keyup', (e) => {
 });
 window.addEventListener('blur', () => {
   input.left = input.right = input.gas = input.brake = false;
+  keySteer = stickSteer = 0;
+  releaseStick();
+  pushSteer();
   syncKeyLights();
 });
 
 function syncKeyLights() {
-  $('keyLeft').classList.toggle('down', input.left);
-  $('keyRight').classList.toggle('down', input.right);
+  keySteer = (input.left ? -1 : 0) + (input.right ? 1 : 0);
+  pushSteer();
+  const l = $('keyLeft'), r = $('keyRight');
+  if (l) l.classList.toggle('down', input.left);
+  if (r) r.classList.toggle('down', input.right);
   $('keyGas').classList.toggle('down', input.gas);
   $('keyBrake').classList.toggle('down', input.brake);
+  // the knob mirrors the keys, so the desk and the thumb agree
+  if (stickSteer === 0) setKnob(keySteer);
 }
 
 
@@ -1146,8 +1697,9 @@ function frame(now) {
 
 /* ── boot ─────────────────────────────────────────────────────────────── */
 
-S = createRun();
+S = createRun(unlockedRoutes()[0].id, (Math.random() * 2147483647) | 0);
 resize();
 renderStops();
+setKnob(0);
 showTitle();
 requestAnimationFrame(frame);

@@ -581,6 +581,36 @@ console.log('\n── each round is somewhere ──');
   }
   ck('and so do the things beside the road', overlap.length === 0, overlap.join(', ') || 'all differ');
 
+  // the ones that were asked for by name
+  const locals = { winding: ['hill', 'lake'], longhaul: ['astronaut'], technical: ['dragon'] };
+  for (const id of Object.keys(locals)) {
+    const found = await p.evaluate(([rid, want]) => {
+      const seen = new Set();
+      for (let k = 0; k < 12; k++) {
+        loadRound(rid, 3000 + k * 719);
+        for (const q of PROPS) if (want.includes(q.kind)) seen.add(q.kind);
+      }
+      return [...seen];
+    }, [id, locals[id]]);
+    ck(`${id}: ${locals[id].join(' and ')} turn up`,
+       locals[id].every((k) => found.includes(k)), found.join(', ') || 'none');
+  }
+
+  // water and hillsides are things you stop at, not drive through
+  const solidGround = await p.evaluate(() => {
+    for (let k = 0; k < 12; k++) {
+      loadRound('winding', 3000 + k * 719);
+      const lake = PROPS.find((q) => q.kind === 'lake');
+      if (!lake) continue;
+      const hit = SOLIDS.find((o) => Math.hypot(o.x - lake.x, o.y - lake.y) < 2);
+      if (hit) return { r: Math.round(hit.r), draw: Math.round(lake.r) };
+    }
+    return null;
+  });
+  ck('a lake is something you bump, not something you drive into',
+     !!solidGround && solidGround.r > solidGround.draw * 0.6,
+     solidGround ? solidGround.r + ' unit collider inside a ' + solidGround.draw + ' unit lake' : 'no lake found');
+
   /* Readability is the one thing a theme may not cost: the road has to stand
      apart from the ground it is cut into, wherever you are. */
   const contrast = await p.evaluate(() => {
@@ -650,33 +680,113 @@ console.log('\n── endless ──');
   const stillReverses = await p.evaluate(() => S.truck.speed);
   ck('a standard round still reverses', stillReverses < -25, r1(stillReverses) + ' u/s');
 
-  // rotating through the set, and getting quicker as it goes
+  /* The road is one road. Each place is laid onto the end of the last, so
+     crossing into the next one is something you drive through rather than
+     something that happens to you. */
+  const seam = await p.evaluate(async () => {
+    best.unlocked = ROUTES.length; chosenRoute = 'endless'; startRun();
+    const first = S.route.id;
+    /* Sweep the truck down the road in short hops, parking on each bay on the
+       way so the shift is not lost to missed drops before the border arrives.
+       The crossing itself falls in open tarmac between the last bay of one
+       place and the first of the next, so it is always observed mid-sweep. */
+    let laid = null, before = null, after = null, gap = 0;
+    for (let step = 0; step < 600 && !after && S.phase === 'driving'; step++) {
+      const n = nearestOnRoad(S.truck.x, S.truck.y);
+      const cum = ROAD_M.cum[n.i];
+      const z = S.stops[S.at];
+      const ahead = z ? ROAD_M.cum[z.node] - cum : 1e9;
+      if (ahead < 200) {                                  // a drop within the next hop
+        S.truck.x = z.x; S.truck.y = z.y; S.truck.angle = z.angle; S.truck.speed = 0;
+        S.cam.x = z.x; S.cam.y = z.y;
+        await new Promise((r) => setTimeout(r, 850));     // long enough for the hold
+        continue;
+      }
+      // one hop, measured either side of it: whatever the crossing does, it
+      // has a single hop's worth of road to do it in
+      const pre = { x: S.truck.x, y: S.truck.y, border: S.border, route: S.route.id };
+      const at = pointAt(Math.min(ROAD_M.total - 4, cum + 120));
+      S.truck.x = at.x; S.truck.y = at.y; S.truck.angle = at.angle; S.truck.speed = 120;
+      S.cam.x = at.x; S.cam.y = at.y;
+      await new Promise((r) => setTimeout(r, 24));
+      if (S.border != null && !laid) {
+        laid = { next: S.nextRoute.id, border: Math.round(S.border), total: Math.round(ROAD_M.total) };
+      }
+      if (pre.border != null && S.border == null && S.route.id !== pre.route) {
+        before = { x: pre.x, y: pre.y, route: pre.route };
+        after = { x: S.truck.x, y: S.truck.y, route: S.route.id,
+                  jump: Math.round(Math.hypot(S.truck.x - pre.x, S.truck.y - pre.y)) };
+      }
+    }
+    // the biggest step between neighbouring nodes: a join that jumped would
+    // show up here as a gap far larger than the sampling distance
+    for (let i = 1; i < ROAD.length; i++) {
+      gap = Math.max(gap, Math.hypot(ROAD[i].x - ROAD[i - 1].x, ROAD[i].y - ROAD[i - 1].y));
+    }
+    return { first, laid, before, after, gap: +gap.toFixed(1),
+             nodes: ROAD.length, themes: [...new Set(ROAD.map((n) => n.theme))] };
+  });
+  ck('the next place is laid onto the end of the road',
+     !!seam.laid && seam.laid.next !== seam.first, seam.first + ' → ' + (seam.laid || {}).next);
+  ck('and the road runs into it with no join',
+     seam.gap < 40, 'largest step between nodes ' + seam.gap + ' units');
+  ck('you drive into the next place rather than being put there',
+     !!seam.after && seam.after.route !== seam.before.route && seam.after.jump < 160,
+     (seam.before || {}).route + ' → ' + (seam.after || {}).route +
+     ', truck carried on by ' + (seam.after || {}).jump + ' units');
+  ck('one road, two places on it', seam.themes.length >= 2, seam.themes.join(' + '));
+
+  // and it gets quicker as it goes, and stays bounded while it does
   const cycle = await p.evaluate(async () => {
     best.unlocked = ROUTES.length; chosenRoute = 'endless'; startRun();
-    const seen = [S.route.id];
     const boosts = [];
-    for (let leg = 0; leg < 3; leg++) {
-      for (let i = 0; i < CONFIG.endless.baysPerLeg; i++) {
-        const z = S.stops[S.at];
-        S.truck.x = z.x; S.truck.y = z.y; S.truck.angle = z.angle; S.truck.speed = 0;
-        await new Promise((res) => setTimeout(res, 850));
-      }
-      await new Promise((res) => setTimeout(res, 800));
-      seen.push(S.route.id);
-      boosts.push(+S.boost.toFixed(3));
+    let maxNodes = 0;
+    for (let k = 0; k < 12; k++) {
+      const z = S.stops[S.at];
+      if (!z) break;
+      S.truck.x = z.x; S.truck.y = z.y; S.truck.angle = z.angle; S.truck.speed = 0;
+      S.cam.x = z.x; S.cam.y = z.y;
+      await new Promise((r) => setTimeout(r, 850));
+      if ((k + 1) % 4 === 0) boosts.push(+S.boost.toFixed(3));
+      maxNodes = Math.max(maxNodes, ROAD.length);
     }
-    return { seen, boosts, delivered: S.delivered, payout: S.payout,
+    return { boosts, delivered: S.delivered, payout: S.payout, maxNodes,
              cap: CONFIG.endless.speedCap, top: CONFIG.maxSpeed * (1 + S.boost) };
   });
-  ck('Endless cycles through the rounds',
-     new Set(cycle.seen).size >= 3, cycle.seen.join(' → '));
   ck('every drop pays', cycle.payout > 0 && cycle.delivered === 12,
      cycle.delivered + ' drops, ' + cycle.payout + ' earned');
   ck('the truck gets quicker, smoothly and cumulatively',
      cycle.boosts[0] < cycle.boosts[1] && cycle.boosts[1] < cycle.boosts[2] &&
      cycle.boosts[2] <= cycle.cap,
      cycle.boosts.join(' → ') + ' of ' + cycle.cap);
-  ck('and it stays a truck, not a rocket', cycle.top < 340, Math.round(cycle.top) + ' u/s at this point');
+  ck('and it stays a truck, not a rocket', cycle.top < 350, Math.round(cycle.top) + ' u/s at this point');
+  ck('the road stays bounded however long the shift runs',
+     cycle.maxNodes < 900, 'peaked at ' + cycle.maxNodes + ' nodes');
+
+  /* Without reverse, nothing may be able to trap the truck. */
+  const wedge = await p.evaluate(async () => {
+    best.unlocked = ROUTES.length; chosenRoute = 'endless'; startRun();
+    const o = SOLIDS.find((x) => x.kind === 'rect') || SOLIDS[0];
+    const size = o.kind === 'rect' ? Math.max(o.w, o.h) / 2 : o.r;
+    S.truck.x = o.x; S.truck.y = o.y - (size + 26);
+    S.truck.angle = Math.PI / 2;                        // nose straight into it
+    S.truck.speed = 120;
+    input.gas = true;
+    const start = { x: S.truck.x, y: S.truck.y };
+    let freed = false, moved = 0;
+    for (let i = 0; i < 12; i++) {
+      await new Promise((r) => setTimeout(r, 250));
+      if (S.freeing > 0) freed = true;
+      moved = Math.max(moved, Math.hypot(S.truck.x - start.x, S.truck.y - start.y));
+    }
+    input.gas = false;
+    return { freed, moved: Math.round(moved), shunt: CONFIG.endless.freeSpeed * CONFIG.endless.freeFor };
+  });
+  ck('a truck nosed into something frees itself', wedge.freed && wedge.moved > 10,
+     'shunted clear by ' + wedge.moved + ' units');
+  ck('but the shunt is far too short to recover a missed bay',
+     wedge.shunt < 230,
+     Math.round(wedge.shunt) + ' units of shunt against a 230 unit miss');
 
   // three that got away ends the shift, and only three
   const misses = await p.evaluate(async () => {

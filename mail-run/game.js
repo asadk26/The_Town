@@ -96,11 +96,24 @@ const CONFIG = {
      so stopping distance quietly grows underneath you. */
   endless: {
     misses:       3,     // missed drops that end the run
-    baysPerLeg:   4,     // deliveries before the round rotates
+    baysPerLeg:   4,     // deliveries before the road crosses into the next place
     missBy:      230,    // world units past a bay before it counts as gone
-    speedStep:  0.024,   // top speed added per delivery, cumulative
-    speedCap:    0.52,   // and the most it ever adds
+    speedStep:  0.030,   // top speed added per delivery, cumulative
+    speedCap:    0.62,   // and the most it ever adds
     payout:     { perfect: 260, good: 170, messy: 90 },
+
+    /* Without reverse, a truck nosed into a parked car has no way out: it
+       cannot move, and steering needs movement. So when it has been against
+       something and going nowhere for a moment, the truck shunts itself
+       back a little. It is a way out of a wedge, not a way back down the
+       road — far too short and too slow to un-miss a bay. */
+    stuckAfter:  0.55,   // seconds of contact at a standstill before it frees itself
+    freeFor:     0.55,   // and how long the shunt lasts
+    freeSpeed:     58,   // at this crawl
+
+    handover:     620,   // world units of open road between the last drop and the border
+    blend:        520,   // and how far the ground takes to change over
+    aheadMin:    3200,   // keep at least this much road in front of the truck
   },
 };
 
@@ -363,7 +376,8 @@ const THEMES = {
     ground: '#a8bd63', groundAlt: 'rgba(120,96,30,.07)', pattern: 'furrow',
     road: '#7a7263', kerb: '#655e52', walk: '#cbbf9c', walkEdge: '#b3a77f',
     dash: 'rgba(255,250,222,.42)',
-    props: [['barn', 10], ['field', 16], ['corn', 30], ['fence', 24], ['cow', 10], ['tree', 10]],
+    props: [['barn', 9], ['field', 14], ['corn', 26], ['fence', 20], ['cow', 9],
+            ['tree', 8], ['hill', 8], ['lake', 6]],
   },
   town: {
     badge: 'Downtown',
@@ -377,14 +391,16 @@ const THEMES = {
     ground: '#c86a45', groundAlt: 'rgba(90,30,10,.065)', pattern: 'dust',
     road: '#5d5560', kerb: '#453f4c', walk: '#9b7a6a', walkEdge: '#82634f',
     dash: 'rgba(214,240,255,.5)',
-    props: [['crater', 26], ['rock', 30], ['dome', 18], ['alien', 14], ['antenna', 12]],
+    props: [['crater', 24], ['rock', 27], ['dome', 16], ['alien', 12],
+            ['antenna', 10], ['astronaut', 11]],
   },
   hell: {
     badge: 'The Forge',
     ground: '#241d22', groundAlt: 'rgba(255,120,40,.05)', pattern: 'crack',
     road: '#8a8087', kerb: '#5c545c', walk: '#4a4048', walkEdge: '#332c33',
     dash: 'rgba(255,226,180,.55)',
-    props: [['spire', 30], ['torch', 22], ['lavapool', 20], ['chain', 16], ['rock', 12]],
+    props: [['spire', 27], ['torch', 20], ['lavapool', 18], ['chain', 14],
+            ['rock', 11], ['dragon', 10]],
   },
 };
 
@@ -508,11 +524,14 @@ function bayIsValid(bay) {
 }
 
 /* Every kerb on the route worth considering, with how demanding it is. */
-function bayPool(route) {
+function bayPool(route, fromCum, toCum) {
   const { cum, total } = ROAD_M;
+  const lo = fromCum != null ? fromCum : 0;
+  const hi = toCum != null ? toCum : total;
+  const span = hi - lo;
   const out = [];
   for (let f = BAY_RULES.firstAt; f <= BAY_RULES.lastAt; f += BAY_RULES.everyAt) {
-    const target = f * total;
+    const target = lo + f * span;
     let i = 1;
     while (i < cum.length - 1 && cum[i] < target) i++;
     const node = ROAD[i];
@@ -534,27 +553,28 @@ function bayPool(route) {
 }
 
 /* Draw five, spaced along the route, with the demanding ones late. */
-function chooseBays(route) {
-  const pool = bayPool(route).filter(bayIsValid);
-  if (pool.length < STOPS_PER_ROUND) return null;
+function chooseBays(route, want, fromCum, toCum) {
+  const n = want || STOPS_PER_ROUND;
+  const pool = bayPool(route, fromCum, toCum).filter(bayIsValid);
+  if (pool.length < n) return null;
 
   for (let attempt = 0; attempt < 40; attempt++) {
     const picked = [];
-    for (let k = 0; k < STOPS_PER_ROUND; k++) {
-      const lo = BAY_RULES.firstAt + (BAY_RULES.lastAt - BAY_RULES.firstAt) * (k / STOPS_PER_ROUND);
-      const hi = BAY_RULES.firstAt + (BAY_RULES.lastAt - BAY_RULES.firstAt) * ((k + 1) / STOPS_PER_ROUND);
+    for (let k = 0; k < n; k++) {
+      const lo = BAY_RULES.firstAt + (BAY_RULES.lastAt - BAY_RULES.firstAt) * (k / n);
+      const hi = BAY_RULES.firstAt + (BAY_RULES.lastAt - BAY_RULES.firstAt) * ((k + 1) / n);
       let window = pool.filter((b) => b.at >= lo && b.at < hi &&
         picked.every((q) => Math.abs(q.at - b.at) >= BAY_RULES.minGap));
       if (!window.length) { window = pool.filter((b) => b.at >= lo && b.at < hi); }
       if (!window.length) break;
 
       // late windows lean towards the demanding end of what is available
-      const bias = k / (STOPS_PER_ROUND - 1);
+      const bias = k / Math.max(1, n - 1);
       window = window.slice().sort((a, b) => a.demand - b.demand);
       const idx = Math.floor(Math.pow(rnd(), 1 + bias * 1.6) * window.length);
       picked.push(window[Math.min(window.length - 1, bias > 0.5 ? window.length - 1 - idx : idx)]);
     }
-    if (picked.length !== STOPS_PER_ROUND) continue;
+    if (picked.length !== n) continue;
 
     // never a whole round down one kerb, and never two on top of each other
     const sides = new Set(picked.map((b) => b.side));
@@ -574,11 +594,101 @@ function chooseBays(route) {
   return null;
 }
 
+/* ── One long road ───────────────────────────────────────────────────────
+   Endless does not jump to the next round: it lays that round's shape onto
+   the end of the road already there, starting from wherever the last one
+   finished and pointing the same way. The truck simply keeps driving, and
+   the country changes around it.  */
+
+function appendRoute(routeId) {
+  const route = ROUTE_BY_ID[routeId] || ROUTES[0];
+  const tail = ROAD[ROAD.length - 1], prev = ROAD[ROAD.length - 2];
+  const heading = Math.atan2(tail.y - prev.y, tail.x - prev.x) * 180 / Math.PI;
+
+  // a short easing piece first, so the lanes widen or narrow into the new
+  // round rather than stepping to its width at the border
+  const nodes = expandRoute({
+    start: { x: tail.x, y: tail.y, a: heading, w: tail.w },
+    pieces: [{ go: 240, w: route.start.w }].concat(route.pieces),
+  });
+
+  const from = ROAD.length;
+  for (let i = 1; i < nodes.length; i++) {
+    nodes[i].theme = route.theme;
+    ROAD.push(nodes[i]);
+  }
+  ROAD_M = measure(ROAD);
+  return { route: route, from: from, fromCum: ROAD_M.cum[from] };
+}
+
+/* Props for one stretch of the road only, added to what is already there so
+   the place behind the truck stays where it was. */
+function dressStretch(fromCum, toCum, themeName, bays) {
+  const theme = THEMES[themeName] || THEMES.suburb;
+  const names = ['coral', 'mustard', 'teal', 'cream', 'plum', 'sage', 'sky'];
+  for (let side = -1; side <= 1; side += 2) {
+    let along = fromCum + 40;
+    while (along < toCum - 60) {
+      const at = pointAt(along);
+      const nx = Math.cos(at.angle + Math.PI / 2), ny = Math.sin(at.angle + Math.PI / 2);
+      const kind = rollProp(theme.props);
+      const spec = PROP_SPEC[kind];
+      if (bays.some((b) => Math.hypot(at.x - b.x, at.y - b.y) < b.w / 2 + 120)) {
+        along += 70; continue;
+      }
+      const size = spec.size();
+      const half = spec.thick != null ? spec.thick : size / 2;
+      const off = at.w / 2 + (spec.hug ? 0 : WALK_WIDTH) + spec.off + half +
+                  (spec.hug ? 0 : rnd() * 22);
+      const px = at.x + nx * off * side, py = at.y + ny * off * side;
+      const clear = spec.hug
+        ? Math.sqrt(nearestOnRoad(px, py).d2) > at.w / 2 - 2
+        : clearOfRoad(px, py, half + (spec.solid ? 8 : 0));
+      if (clear && clearOfBays(bays, px, py, Math.hypot(size, half * 2) / 2)) {
+        addProp(kind, px, py, at.angle, size, side, spec.solid, names, along);
+      }
+      along += spec.gap();
+    }
+  }
+}
+
+/* Drop the road, the props and the solids far enough behind that they will
+   never be seen again — an Endless shift would otherwise grow without end. */
+const KEEP_BEHIND = 1400;
+function trimBehind() {
+  const n = nearestOnRoad(S.truck.x, S.truck.y);
+  const cut = ROAD_M.cum[n.i] - KEEP_BEHIND;
+  if (cut <= 0) return;
+  let drop = 0;
+  while (drop < ROAD.length - 4 && ROAD_M.cum[drop] < cut) drop++;
+  if (drop < 40) return;                       // not worth the reshuffle yet
+
+  const shed = ROAD_M.cum[drop];          // every distance rebases by this much
+  ROAD = ROAD.slice(drop);
+  ROAD_M = measure(ROAD);
+  // node indices move with it; the miss test compares differences, so a
+  // uniform shift is all that is needed
+  S.stops.forEach((z) => { z.node -= drop; });
+  // the border is an absolute distance, so it has to rebase too, or the
+  // crossing fires early, late, or never
+  if (S.border != null) S.border -= shed;
+
+  /* Cull by where a thing stands along the road, not by how far it happens to
+     be from the truck: an appended stretch is thousands of units long, and a
+     radius test throws away everything at the far end of it. */
+  const keep = (o) => o.cum >= cut;
+  PROPS = PROPS.filter(keep);
+  SOLIDS = SOLIDS.filter(keep);
+  PROPS.forEach((o) => { o.cum -= shed; });
+  SOLIDS.forEach((o) => { o.cum -= shed; });
+}
+
 /* Load a route and deal a round on it. */
 function loadRound(routeId, runSeed) {
   const route = ROUTE_BY_ID[routeId] || ROUTES[0];
   reseed(runSeed);
   ROAD = expandRoute(route);
+  ROAD.forEach((n) => { n.theme = route.theme; });
   ROAD_M = measure(ROAD);
   PROPS = [];
   SOLIDS = [];
@@ -660,61 +770,35 @@ const PROP_SPEC = {
   park:     { size: () => 80 + rnd() * 92,  gap: () => 120 + rnd() * 70, off: 30, solid: false },
   lavapool: { size: () => 76 + rnd() * 70,  gap: () => 150 + rnd() * 90, off: 22, solid: false },
   crater:   { size: () => 90 + rnd() * 90,  gap: () => 170 + rnd() * 100, off: 22, solid: false },
+  // a hill you drive around, and water you stop at the edge of
+  hill:     { size: () => 130 + rnd() * 90, gap: () => 250 + rnd() * 140, off: 40, solid: true },
+  lake:     { size: () => 150 + rnd() * 110, gap: () => 280 + rnd() * 150, off: 46, solid: true },
+  astronaut:{ size: () => 26, thick: 16, gap: () => 240 + rnd() * 150, off: 58, solid: false },
+  dragon:   { size: () => 34, thick: 22, gap: () => 230 + rnd() * 150, off: 52, solid: false },
 };
 
 
-/* `themeName` is passed in rather than read off the run: the town is built
-   during createRun, before S points at the round being dealt. */
+/* Dress the whole road at once. `themeName` is passed in rather than read
+   off the run, because the town is built during createRun, before S points
+   at the round being dealt. */
 function buildTown(bays, themeName) {
   PROPS = [];
   SOLIDS = [];
-  const theme = THEMES[themeName] || THEMES.suburb;
-  const total = ROAD_M.total;
-
-  for (let side = -1; side <= 1; side += 2) {
-    let along = 70;
-    while (along < total - 70) {
-      const at = pointAt(along);
-      const nx = Math.cos(at.angle + Math.PI / 2), ny = Math.sin(at.angle + Math.PI / 2);
-      const kind = rollProp(theme.props);
-      const spec = PROP_SPEC[kind];
-
-      // the kerb stays clear where a bay and its mailbox will be
-      if (bays.some((b) => Math.hypot(at.x - b.x, at.y - b.y) < b.w / 2 + 120)) {
-        along += 70;
-        continue;
-      }
-
-      const size = spec.size();
-      const half = spec.thick != null ? spec.thick : size / 2;   // across the road
-      // `hug` props stand at the kerb rather than back across the pavement
-      const off = at.w / 2 + (spec.hug ? 0 : WALK_WIDTH) + spec.off + half +
-                  (spec.hug ? 0 : rnd() * 22);
-      const px = at.x + nx * off * side, py = at.y + ny * off * side;
-
-      const clear = spec.hug
-        ? Math.sqrt(nearestOnRoad(px, py).d2) > pointAt(along).w / 2 - 2
-        : clearOfRoad(px, py, half + (spec.solid ? 8 : 0));
-      // the true half-diagonal, or a parked car can clip the corner of a bay
-      if (clear && clearOfBays(bays, px, py, Math.hypot(size, half * 2) / 2)) {
-        addProp(kind, px, py, at.angle, size, side, spec.solid);
-      }
-      along += spec.gap();
-    }
-  }
+  dressStretch(0, ROAD_M.total, themeName, bays);
 }
 
 /* One prop, with whatever that kind needs to draw itself, and a matching
    solid where the kind is something you would bump into. */
-function addProp(kind, x, y, angle, size, side, solid) {
+function addProp(kind, x, y, angle, size, side, solid, names, cum) {
   const tone = rnd();
-  const p = { kind: kind, x: x, y: y, a: angle, r: size / 2, size: size, tone: tone, side: side };
+  const p = { kind: kind, x: x, y: y, a: angle, r: size / 2, size: size,
+              tone: tone, side: side, cum: cum || 0 };
 
   if (kind === 'house' || kind === 'store' || kind === 'barn' || kind === 'dome') {
     p.w = size;
     p.h = kind === 'store' ? size * (0.62 + tone * 0.2) : size * (0.78 + tone * 0.2);
-    const names = ['coral', 'mustard', 'teal', 'cream', 'plum', 'sage', 'sky'];
-    const c = HOUSE_COLORS[names[Math.floor(rnd() * names.length)]];
+    const pal = names || ['coral', 'mustard', 'teal', 'cream', 'plum', 'sage', 'sky'];
+    const c = HOUSE_COLORS[pal[Math.floor(rnd() * pal.length)]];
     p.wall = c.wall; p.roof = c.roof;
     if (kind === 'barn') { p.wall = '#c04a3a'; p.roof = '#8c3226'; }
     if (kind === 'dome') { p.wall = '#cfd8e0'; p.roof = '#9fb0bd'; }
@@ -726,8 +810,11 @@ function addProp(kind, x, y, angle, size, side, solid) {
 
   PROPS.push(p);
   if (solid) {
-    if (p.w) SOLIDS.push({ kind: 'rect', x: x, y: y, a: angle, w: p.w, h: p.h });
-    else SOLIDS.push({ kind: 'circle', x: x, y: y, r: size * 0.34 });
+    if (p.w) SOLIDS.push({ kind: 'rect', x: x, y: y, a: angle, w: p.w, h: p.h, cum: p.cum });
+    // you stop at the shore of a lake and at the foot of a hill, not in them
+    else if (kind === 'lake') SOLIDS.push({ kind: 'circle', x: x, y: y, r: size * 0.42, cum: p.cum });
+    else if (kind === 'hill') SOLIDS.push({ kind: 'circle', x: x, y: y, r: size * 0.40, cum: p.cum });
+    else SOLIDS.push({ kind: 'circle', x: x, y: y, r: size * 0.34, cum: p.cum });
   }
 }
 
@@ -752,6 +839,9 @@ function createRun(routeId, runSeed, endless) {
     payout: 0,
     boost: 0,                       // how much faster than standard, 0..speedCap
     topSpeed: 0,
+    touching: false, stuck: 0, freeing: 0,
+    border: null, nextRoute: null,
+    ending: false,                  // the last life is gone; the shift is winding up
     phase: 'title',                 // 'title' | 'driving' | 'over'
     route: dealt.route,
     seed: runSeed,
@@ -885,7 +975,7 @@ function driveStep(dt) {
   t.speed -= t.speed * (CONFIG.rollingDrag + surf.drag) * dt;
 
   const top = CONFIG.maxSpeed * (1 + S.boost) * surf.top;
-  const floor = S.endless ? 0 : -CONFIG.maxReverse * surf.top;
+  const floor = (S.endless && !S.freeing) ? 0 : -CONFIG.maxReverse * surf.top;
   t.speed = clamp(t.speed, floor, top);
   if (t.speed > S.topSpeed) S.topSpeed = t.speed;
   if (!input.gas && !input.brake && Math.abs(t.speed) < 2) t.speed = 0;
@@ -907,6 +997,7 @@ function driveStep(dt) {
   t.y += Math.sin(t.angle) * t.speed * dt;
 
   resolveCollisions();
+  freeStep(dt);
 
   /* ── body ──
      Lean into the turn, dip under the brakes, and bounce once on settling. */
@@ -917,6 +1008,27 @@ function driveStep(dt) {
   t.bob *= Math.max(0, 1 - dt * 6);
 
   if (surfaceAt(t.x, t.y) !== 'road') S.offRoad += dt;
+}
+
+/* Endless has no reverse, so nothing may be able to trap the truck. Contact
+   plus a standstill for half a second earns a short shunt backwards — enough
+   to get the nose off a parked car and drive around it. */
+function freeStep(dt) {
+  const t = S.truck;
+  if (!S.endless) { S.stuck = 0; S.freeing = 0; return; }
+
+  if (S.freeing > 0) {
+    S.freeing -= dt;
+    t.speed = -CONFIG.endless.freeSpeed;
+    if (S.freeing <= 0) { S.freeing = 0; S.stuck = 0; t.speed = 0; }
+    return;
+  }
+  S.stuck = (S.touching && Math.abs(t.speed) < 10) ? S.stuck + dt : 0;
+  if (S.stuck >= CONFIG.endless.stuckAfter) {
+    S.freeing = CONFIG.endless.freeFor;
+    S.stuck = 0;
+    playCue('untap');
+  }
 }
 
 /* Two circles, front and rear, pushed out of anything solid. */
@@ -930,6 +1042,7 @@ function resolveCollisions() {
   const t = S.truck;
   const r = CONFIG.bodyRadius;
   let hit = false;
+  S.touching = false;
 
   for (const circle of bodyCircles()) {
     for (const o of SOLIDS) {
@@ -965,6 +1078,7 @@ function resolveCollisions() {
 
       t.x += nx * depth;
       t.y += ny * depth;
+      S.touching = true;
 
       // only the part of the motion going into the obstacle is lost
       const into = Math.cos(t.angle) * nx + Math.sin(t.angle) * ny;
@@ -1033,6 +1147,7 @@ function rate(zone) {
 
 /* A drop that got away. Costs one of three, and the round moves on. */
 function missDelivery(zone) {
+  if (S.ending) return;             // the shift is already over; it cannot cost a fourth
   S.missed++;
   S.hold = 0;
   S.streak = 0;
@@ -1041,28 +1156,76 @@ function missDelivery(zone) {
   playCue('miss');
   renderStops();
   S.at++;
-  if (S.missed >= CONFIG.endless.misses) { setTimeout(() => endRun(), 520); return; }
-  if (S.at >= S.stops.length) rotateLeg();
+  if (S.endless && S.missed >= CONFIG.endless.misses) {
+    S.ending = true;
+    setTimeout(() => endRun(), 520);
+  }
 }
 
-/* Endless rolls on to the next round in the set, and the truck starts it at
-   the depot end — a beat of transition, then straight back to driving. */
-function rotateLeg() {
+/* The last drop of a stretch does not teleport anyone. It lays the next
+   round onto the end of the road and leaves a run of open tarmac before the
+   border, so the change arrives while you are driving rather than instead
+   of it. */
+function extendRoad() {
   const order = ROUTES.map((r) => r.id);
   S.leg++;
   const next = order[S.leg % order.length];
-  const dealt = loadRound(next, (Math.random() * 2147483647) | 0);
-  S.route = dealt.route;
-  S.stops = dealt.bays.slice(0, CONFIG.endless.baysPerLeg);
-  S.at = 0;
-  S.hold = 0;
-  const start = ROAD[0], nx = ROAD[1];
-  S.truck.x = start.x; S.truck.y = start.y;
-  S.truck.angle = Math.atan2(nx.y - start.y, nx.x - start.x);
-  S.truck.speed = 0; S.truck.steer = 0;
-  S.cam.x = start.x; S.cam.y = start.y;
-  showLegCard(dealt.route);
+  const added = appendRoute(next);
+  const endCum = ROAD_M.total;
+
+  // the drops of the new stretch start beyond the handover run
+  const bays = chooseBays(added.route, CONFIG.endless.baysPerLeg,
+                          added.fromCum + CONFIG.endless.handover, endCum) || [];
+  dressStretch(added.fromCum, endCum, added.route.theme, bays);
+
+  S.border = added.fromCum;            // where the ground starts changing over
+  S.nextRoute = added.route;
+  S.stops = S.stops.concat(bays);
   renderStops();
+}
+
+/* The theme under the camera, blended across the border so the ground
+   changes over a couple of truck-lengths rather than in one frame. */
+function themeHere() {
+  const n = nearestOnRoad(S.cam.x, S.cam.y);
+  const here = THEMES[ROAD[n.i].theme] || THEMES.suburb;
+  if (!S.endless || S.border == null || !S.nextRoute) return here;
+  const d = ROAD_M.cum[n.i] - S.border;
+  const half = CONFIG.endless.blend / 2;
+  if (d < -half) return here;
+  if (d > half) { return THEMES[S.nextRoute.theme] || here; }
+  const from = THEMES[S.route.theme] || here;
+  const to = THEMES[S.nextRoute.theme] || here;
+  return mixTheme(from, to, clamp((d + half) / CONFIG.endless.blend, 0, 1));
+}
+
+function mixHex(a, b, t) {
+  const pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16);
+  const r = Math.round(lerp((pa >> 16) & 255, (pb >> 16) & 255, t));
+  const g = Math.round(lerp((pa >> 8) & 255, (pb >> 8) & 255, t));
+  const bl = Math.round(lerp(pa & 255, pb & 255, t));
+  return 'rgb(' + r + ',' + g + ',' + bl + ')';
+}
+function mixTheme(a, b, t) {
+  return {
+    badge: t > 0.5 ? b.badge : a.badge,
+    ground: mixHex(a.ground, b.ground, t),
+    groundAlt: t > 0.5 ? b.groundAlt : a.groundAlt,
+    pattern: t > 0.5 ? b.pattern : a.pattern,
+    road: mixHex(a.road, b.road, t), kerb: mixHex(a.kerb, b.kerb, t),
+    walk: mixHex(a.walk, b.walk, t), walkEdge: mixHex(a.walkEdge, b.walkEdge, t),
+    dash: t > 0.5 ? b.dash : a.dash,
+    props: a.props,
+  };
+}
+
+/* Crossing the border: the round you are now in becomes the round you are
+   driving, and a sign goes by. */
+function crossBorder() {
+  S.route = S.nextRoute;
+  S.nextRoute = null;
+  S.border = null;
+  showLegCard(S.route);
   playCue('leg');
 }
 
@@ -1089,7 +1252,6 @@ function deliver(zone) {
     S.delivered++;
     S.payout += Math.round(CONFIG.endless.payout[grade] * (1 + S.boost));
     S.boost = Math.min(CONFIG.endless.speedCap, S.boost + CONFIG.endless.speedStep);
-    if (S.at >= S.stops.length) setTimeout(() => rotateLeg(), 620);
     return;
   }
   if (S.at >= S.stops.length) setTimeout(() => endRun(), 620);
@@ -1169,7 +1331,8 @@ function draw() {
   ctx.save();
   ctx.clearRect(0, 0, VIEW.w, VIEW.h);
 
-  const theme = THEMES[(S.route && S.route.theme) || 'suburb'] || THEMES.suburb;
+  const theme = S.endless ? themeHere()
+                          : (THEMES[(S.route && S.route.theme) || 'suburb'] || THEMES.suburb);
   drawGround(theme);
 
   ctx.translate(VIEW.w / 2, VIEW.h / 2);
@@ -1260,7 +1423,26 @@ function drawParks() {
   for (const p of PROPS) {
     if (!onScreen(p.x, p.y, p.r + 60)) continue;
 
-    if (p.kind === 'park') {
+    if (p.kind === 'lake') {
+      ctx.fillStyle = '#8fae5a';                      // a muddy shore
+      ctx.beginPath(); ctx.ellipse(p.x, p.y, p.r * 0.98, p.r * 0.76, p.tone * 3, 0, TAU); ctx.fill();
+      ctx.fillStyle = '#4f86a8';
+      ctx.beginPath(); ctx.ellipse(p.x, p.y, p.r * 0.86, p.r * 0.64, p.tone * 3, 0, TAU); ctx.fill();
+      ctx.fillStyle = '#6ba3c2';
+      ctx.beginPath(); ctx.ellipse(p.x, p.y, p.r * 0.68, p.r * 0.48, p.tone * 3, 0, TAU); ctx.fill();
+      // a couple of ripples, drifting
+      ctx.strokeStyle = 'rgba(255,255,255,.34)';
+      ctx.lineWidth = 2.5;
+      for (let i = 0; i < 2; i++) {
+        const w = (S.t * 0.35 + i * 0.5 + p.tone) % 1;
+        ctx.globalAlpha = 1 - w;
+        ctx.beginPath();
+        ctx.ellipse(p.x, p.y, p.r * (0.2 + w * 0.45), p.r * (0.14 + w * 0.32), p.tone * 3, 0, TAU);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+
+    } else if (p.kind === 'park') {
       ctx.fillStyle = p.tone > 0.5 ? '#93cc78' : '#7ab362';
       ctx.beginPath(); ctx.ellipse(p.x, p.y, p.r, p.r * 0.78, p.tone * 3, 0, TAU); ctx.fill();
       ctx.fillStyle = p.tone > 0.66 ? '#ffd98a' : (p.tone > 0.33 ? '#f6a8bd' : '#fdf3d0');
@@ -1307,38 +1489,43 @@ function drawParks() {
 
 /* The road is one stroked centreline, laid down three times: pavement,
    tarmac, then the dashes. Round caps make the joins for free. */
-function strokeRoad(pad, style, dash) {
+/* The road is one stroked centreline, laid down three times: pavement,
+   tarmac, then the dashes. Round caps make the joins for free. Each segment
+   takes its colours from the place it runs through, so one road can cross
+   from the suburbs into the fields without a seam anywhere but the border. */
+function strokeRoad(pad, pick, fallback) {
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
-  ctx.strokeStyle = style;
-  ctx.setLineDash(dash || []);
   for (let i = 0; i < ROAD.length - 1; i++) {
     const a = ROAD[i], b = ROAD[i + 1];
     if (!segOnScreen(a, b, a.w)) continue;
+    ctx.strokeStyle = pick(THEMES[a.theme] || fallback);
     ctx.lineWidth = (a.w + b.w) / 2 + pad;
     ctx.beginPath();
     ctx.moveTo(a.x, a.y);
     ctx.lineTo(b.x, b.y);
     ctx.stroke();
   }
-  ctx.setLineDash([]);
 }
 
 function drawRoad(theme) {
-  strokeRoad(WALK_WIDTH * 2 + 6, theme.walkEdge);  // kerbstone edge
-  strokeRoad(WALK_WIDTH * 2, theme.walk);          // pavement
-  strokeRoad(6, theme.kerb);                       // the kerb's dark lip
-  strokeRoad(0, theme.road);                       // the road surface
+  strokeRoad(WALK_WIDTH * 2 + 6, (t) => t.walkEdge, theme);  // kerbstone edge
+  strokeRoad(WALK_WIDTH * 2, (t) => t.walk, theme);          // pavement
+  strokeRoad(6, (t) => t.kerb, theme);                       // the kerb's dark lip
+  strokeRoad(0, (t) => t.road, theme);                       // the road surface
 
-  ctx.lineWidth = 4;
-  strokeRoad(-1000, 'rgba(0,0,0,0)');             // reset widths harmlessly
   ctx.lineJoin = 'round'; ctx.lineCap = 'butt';
   ctx.strokeStyle = theme.dash;
   ctx.lineWidth = 4;
   ctx.setLineDash([26, 30]);
   ctx.beginPath();
-  ctx.moveTo(ROAD[0].x, ROAD[0].y);
-  for (let i = 1; i < ROAD.length; i++) ctx.lineTo(ROAD[i].x, ROAD[i].y);
+  let drawing = false;
+  for (let i = 0; i < ROAD.length; i++) {
+    // only the stretch on screen, so a long Endless road stays cheap
+    if (!onScreen(ROAD[i].x, ROAD[i].y, 240)) { drawing = false; continue; }
+    if (!drawing) { ctx.moveTo(ROAD[i].x, ROAD[i].y); drawing = true; }
+    else ctx.lineTo(ROAD[i].x, ROAD[i].y);
+  }
   ctx.stroke();
   ctx.setLineDash([]);
 }
@@ -1442,7 +1629,8 @@ function drawMailbox(z, live, done) {
 
 function drawProps() {
   for (const p of PROPS) {
-    if (p.kind === 'park' || p.kind === 'field' || p.kind === 'crater' || p.kind === 'lavapool') continue;
+    if (p.kind === 'park' || p.kind === 'field' || p.kind === 'crater' ||
+        p.kind === 'lavapool' || p.kind === 'lake') continue;
     if (!onScreen(p.x, p.y, 140)) continue;
     const fn = PROP_ART[p.kind];
     if (fn) fn(p);
@@ -1628,6 +1816,91 @@ const PROP_ART = {
     ctx.fillStyle = '#ffe08a';
     ctx.beginPath(); ctx.ellipse(p.x, p.y - 11, 3, 6 * flicker, 0, 0, TAU); ctx.fill();
   },
+  /* A hill: a couple of stacked lobes with the sun on the near side. */
+  hill: (p) => {
+    shade(p.x, p.y, p.r * 0.95, p.r * 0.6);
+    ctx.fillStyle = p.tone > 0.5 ? '#7f9c55' : '#728f4c';
+    ctx.beginPath();
+    ctx.ellipse(p.x, p.y, p.r * 0.92, p.r * 0.68, p.a, 0, TAU); ctx.fill();
+    ctx.fillStyle = p.tone > 0.5 ? '#93b063' : '#86a35a';
+    ctx.beginPath();
+    ctx.ellipse(p.x - p.r * 0.16, p.y - p.r * 0.2, p.r * 0.6, p.r * 0.42, p.a, 0, TAU); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,.18)';
+    ctx.beginPath();
+    ctx.ellipse(p.x - p.r * 0.28, p.y - p.r * 0.3, p.r * 0.3, p.r * 0.2, p.a, 0, TAU); ctx.fill();
+  },
+
+  /* An astronaut, out for a walk on the colony road. */
+  astronaut: (p) => {
+    const bob = Math.sin(S.t * 1.4 + p.tone * 9) * 3;
+    shade(p.x, p.y + 7, 11, 5);
+    ctx.fillStyle = '#c9ccd4';                                  // pack
+    roundRect(p.x - 11, p.y - 7 + bob, 22, 21, 8); ctx.fill();
+    ctx.fillStyle = '#f4f5f8';                                  // suit
+    roundRect(p.x - 9, p.y - 6 + bob, 18, 19, 7); ctx.fill();
+    ctx.fillStyle = '#e6e8ee';                                  // helmet
+    ctx.beginPath(); ctx.arc(p.x, p.y - 10 + bob, 9.5, 0, TAU); ctx.fill();
+    ctx.fillStyle = '#3f6f96';                                  // visor
+    ctx.beginPath(); ctx.ellipse(p.x, p.y - 10 + bob, 6.5, 5, 0, 0, TAU); ctx.fill();
+    ctx.fillStyle = 'rgba(255,214,120,.85)';
+    ctx.beginPath(); ctx.ellipse(p.x - 2, p.y - 11.5 + bob, 2.6, 2, -0.4, 0, TAU); ctx.fill();
+    ctx.fillStyle = '#d9584a';                                  // a flash of colour on the arm
+    roundRect(p.x - 11, p.y - 1 + bob, 4, 7, 2); ctx.fill();
+  },
+
+  /* Something small and unbothered, down in the forge: a long body, a tail
+     behind it, and wings that sweep rather than flap like a moth's. */
+  dragon: (p) => {
+    const beat = Math.sin(S.t * 4.2 + p.tone * 7);
+    const bob = beat * 2;
+    ctx.save();
+    ctx.translate(p.x, p.y + bob);
+    ctx.rotate(p.a + Math.PI / 2 + p.tone * 0.6);
+
+    ctx.fillStyle = 'rgba(0,0,0,.2)';
+    ctx.beginPath(); ctx.ellipse(2, 8 - bob, 11, 6, 0, 0, TAU); ctx.fill();
+
+    // tail, tapering to a point behind
+    ctx.fillStyle = '#8a3340';
+    ctx.beginPath();
+    ctx.moveTo(-4, 6); ctx.lineTo(4, 6);
+    ctx.quadraticCurveTo(3, 22, 0 + beat * 4, 27);
+    ctx.quadraticCurveTo(-3, 22, -4, 6);
+    ctx.fill();
+
+    // wings, swept back and angled
+    ctx.fillStyle = 'rgba(94,38,62,.95)';
+    for (const dir of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(dir * 4, -1);
+      ctx.lineTo(dir * (17 + beat * 3), -9 - beat * 3);
+      ctx.lineTo(dir * (15 + beat * 2), 3);
+      ctx.lineTo(dir * (8 + beat), 8);
+      ctx.closePath(); ctx.fill();
+    }
+
+    ctx.fillStyle = '#a83c3c';                       // body
+    roundRect(-6.5, -8, 13, 16, 6); ctx.fill();
+    ctx.fillStyle = '#c04a46';                       // head
+    ctx.beginPath(); ctx.arc(0, -11, 6.5, 0, TAU); ctx.fill();
+    ctx.fillStyle = '#c04a46';                       // snout
+    roundRect(-3, -18, 6, 7, 3); ctx.fill();
+
+    ctx.fillStyle = '#2a1418';                       // horns
+    ctx.beginPath(); ctx.moveTo(-5, -14); ctx.lineTo(-8, -20); ctx.lineTo(-2, -16); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(5, -14); ctx.lineTo(8, -20); ctx.lineTo(2, -16); ctx.fill();
+    ctx.fillStyle = '#ffd76b';                       // eyes
+    ctx.beginPath(); ctx.arc(-2.6, -11.5, 1.7, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(2.6, -11.5, 1.7, 0, TAU); ctx.fill();
+
+    const puff = Math.sin(S.t * 0.8 + p.tone * 11);
+    if (puff > 0.86) {
+      ctx.fillStyle = 'rgba(255,150,50,' + ((puff - 0.86) * 6) + ')';
+      ctx.beginPath(); ctx.ellipse(0, -26, 4.5, 8, 0, 0, TAU); ctx.fill();
+    }
+    ctx.restore();
+  },
+
   chain: (p) => {
     ctx.strokeStyle = '#4a444c'; ctx.lineWidth = 5;
     const dx = Math.cos(p.a) * p.r, dy = Math.sin(p.a) * p.r;
@@ -2057,6 +2330,7 @@ const CUES = {
             { f: 1047, at: 0.08, d: 0.09, g: 0.040, t: 'sine' },
             { f: 1319, at: 0.16, d: 0.30, g: 0.044, t: 'sine' }],
   bump:    [{ f: 96,  at: 0,    d: 0.13, g: 0.055, t: 'triangle' }],
+  untap:   [{ f: 210, at: 0,    d: 0.10, g: 0.03,  t: 'triangle' }],
   miss:    [{ f: 262, at: 0,    d: 0.16, g: 0.05,  t: 'triangle' },
             { f: 175, at: 0.11, d: 0.28, g: 0.048, t: 'triangle' }],
   leg:     [{ f: 440, at: 0,    d: 0.10, g: 0.036, t: 'sine' },
@@ -2273,6 +2547,20 @@ function frame(now) {
     S.t += dt;
     driveStep(dt);
     deliveryStep(dt);
+    if (S.endless) {
+      // always keep road in front of the truck, whatever it has been doing
+      const n = nearestOnRoad(S.truck.x, S.truck.y);
+      // never lay a second stretch while a border is still ahead, or the
+      // crossing gets overwritten and the country changes without a sign
+      if (S.border == null && ROAD_M.total - ROAD_M.cum[n.i] < CONFIG.endless.aheadMin) {
+        extendRoad();
+      }
+      if (S.border != null) {
+        const n = nearestOnRoad(S.truck.x, S.truck.y);
+        if (ROAD_M.cum[n.i] > S.border + CONFIG.endless.blend / 2) crossBorder();
+      }
+      trimBehind();
+    }
     $('clockValue').textContent = S.t.toFixed(1);
   }
   if (S) {

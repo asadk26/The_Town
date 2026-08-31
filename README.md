@@ -51,10 +51,18 @@ lit from underneath. The delivery bay keeps its amber-to-green everywhere and
 every theme's road is held to a contrast ratio against its own ground, so the
 things you steer by never get subtle.
 
-Finish the ladder and **Endless** opens: the whole route set, four drops at a
-time, no reverse. A bay you drive past is gone, three gone ends the shift,
-and the truck picks up speed with every drop while the brake stays exactly as
-strong as it was.
+Finish the ladder and **Endless** opens: the whole route set on one road, four
+drops at a time, no reverse. A bay you drive past is gone, three gone ends the
+shift, and the truck picks up speed with every drop while the brake stays
+exactly as strong as it was.
+
+Endless does not cut between places. The next round's shape is laid onto the
+end of the road already there, from wherever the last one finished and
+pointing the same way, so the country changes around a truck that never stops
+driving — the ground cross-fades across the border and the new drops start
+well past it. With no reverse, a truck nosed into a parked car would have no
+way out, so after half a second of going nowhere against something it shunts
+itself back a little: enough to free a wedge, far too little to recover a bay.
 
 A round is authored as a start pose and a list of pieces — a straight, or an
 arc with a radius — which expand into the road, so a new route is a dozen

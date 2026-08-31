@@ -453,7 +453,7 @@ console.log('\n── progression ──');
   await p.evaluate(() => { localStorage.clear(); });
   await p.reload();
   let r = await p.evaluate(() => ({ unlocked: best.unlocked, chips: document.querySelectorAll('.chip').length,
-    locked: document.querySelectorAll('.chip.locked').length,
+    locked: document.querySelectorAll('.chip.locked[data-route]:not(.endless)').length,
     random: !!document.querySelector('.chip.wild') }));
   ck('a new player has one round open', r.unlocked === 1 && r.locked === ROUTE_COUNT - 1);
   ck('Random Run is hidden until a second round opens', !r.random);
@@ -539,6 +539,182 @@ console.log('\n── progression ──');
   r = await p.evaluate(() => ({ unlocked: best.unlocked, ok: !!document.querySelector('#goBtn') }));
   ck('a broken save falls back cleanly', r.unlocked === 1 && r.ok);
   ck('no errors from progression', p.errors.length === 0, p.errors[0] || '');
+  await p.close();
+}
+
+console.log('\n── each round is somewhere ──');
+{
+  const p = await open();
+  const themed = await p.evaluate(() => {
+    const out = [];
+    for (const route of ROUTES) {
+      loadRound(route.id, 555);
+      const theme = THEMES[route.theme];
+      const kinds = {};
+      for (const q of PROPS) kinds[q.kind] = (kinds[q.kind] || 0) + 1;
+      out.push({
+        id: route.id, theme: route.theme, badge: theme.badge,
+        ground: theme.ground, road: theme.road, pattern: theme.pattern,
+        kinds: Object.keys(kinds).sort(), props: PROPS.length,
+      });
+    }
+    return out;
+  });
+
+  const seen = new Set();
+  for (const t of themed) {
+    ck(`${t.id}: dressed as ${t.badge}`, t.props > 25 && t.kinds.length >= 3,
+       t.props + ' props: ' + t.kinds.join(', '));
+    seen.add(t.ground + t.road + t.pattern);
+  }
+  ck('no two rounds share a look', seen.size === themed.length,
+     seen.size + ' distinct palettes for ' + themed.length + ' rounds');
+
+  // the props themselves have to differ, not just the paint
+  const overlap = [];
+  for (let i = 0; i < themed.length; i++) {
+    for (let j = i + 1; j < themed.length; j++) {
+      const shared = themed[i].kinds.filter((k) => themed[j].kinds.includes(k));
+      const most = Math.max(themed[i].kinds.length, themed[j].kinds.length);
+      if (shared.length >= most) overlap.push(themed[i].id + '/' + themed[j].id);
+    }
+  }
+  ck('and so do the things beside the road', overlap.length === 0, overlap.join(', ') || 'all differ');
+
+  /* Readability is the one thing a theme may not cost: the road has to stand
+     apart from the ground it is cut into, wherever you are. */
+  const contrast = await p.evaluate(() => {
+    const lum = (hex) => {
+      const n = parseInt(hex.slice(1), 16);
+      const c = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => {
+        const x = v / 255;
+        return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4);
+      });
+      return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+    };
+    return ROUTES.map((r) => {
+      const t = THEMES[r.theme];
+      const a = lum(t.ground), b = lum(t.road);
+      return { id: r.id, ratio: +(((Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05))).toFixed(2) };
+    });
+  });
+  for (const c of contrast) {
+    ck(`${c.id}: the road reads against the ground`, c.ratio >= 1.6, c.ratio + ':1');
+  }
+  ck('no errors dressing any round', p.errors.length === 0, p.errors[0] || '');
+  await p.close();
+}
+
+console.log('\n── endless ──');
+{
+  const p = await open();
+  await p.evaluate(() => { localStorage.clear(); });
+  await p.reload();
+  let r = await p.evaluate(() => ({ open: endlessOpen(),
+    chip: !!document.querySelector('.chip.endless'),
+    locked: document.querySelector('.chip.endless').disabled }));
+  ck('Endless is shown but shut until the ladder is done', r.chip && r.locked && !r.open);
+
+  r = await p.evaluate(() => {
+    best.unlocked = ROUTES.length - 1; saveBest(); showTitle();
+    return document.querySelector('.chip.endless').disabled;
+  });
+  ck('one round short is still shut', r === true);
+
+  r = await p.evaluate(() => {
+    best.unlocked = ROUTES.length; saveBest(); showTitle();
+    return { locked: document.querySelector('.chip.endless').disabled, open: endlessOpen() };
+  });
+  ck('finishing the ladder opens it', r.open && r.locked === false);
+
+  // it will not start an Endless run it has not earned
+  r = await p.evaluate(() => {
+    best.unlocked = 1; saveBest();
+    chosenRoute = 'endless'; startRun();
+    const sneaked = S.endless;
+    best.unlocked = ROUTES.length; saveBest();
+    chosenRoute = 'endless'; startRun();
+    return { sneaked, proper: S.endless, bays: S.stops.length, per: CONFIG.endless.baysPerLeg };
+  });
+  ck('Endless cannot be started before it is earned', r.sneaked === false);
+  ck('an Endless leg is a handful of drops', r.proper && r.bays === r.per, r.bays + ' bays a leg');
+
+  // reverse, gone here and only here
+  await hold(p, ['brake'], 1200);
+  const noReverse = await p.evaluate(() => S.truck.speed);
+  ck('Endless has no reverse', noReverse === 0, r1(noReverse) + ' u/s after holding brake');
+
+  await p.evaluate(() => { chosenRoute = ROUTES[0].id; startRun(); });
+  await p.waitForFunction(() => S.phase === 'driving');
+  await hold(p, ['brake'], 1200);
+  const stillReverses = await p.evaluate(() => S.truck.speed);
+  ck('a standard round still reverses', stillReverses < -25, r1(stillReverses) + ' u/s');
+
+  // rotating through the set, and getting quicker as it goes
+  const cycle = await p.evaluate(async () => {
+    best.unlocked = ROUTES.length; chosenRoute = 'endless'; startRun();
+    const seen = [S.route.id];
+    const boosts = [];
+    for (let leg = 0; leg < 3; leg++) {
+      for (let i = 0; i < CONFIG.endless.baysPerLeg; i++) {
+        const z = S.stops[S.at];
+        S.truck.x = z.x; S.truck.y = z.y; S.truck.angle = z.angle; S.truck.speed = 0;
+        await new Promise((res) => setTimeout(res, 850));
+      }
+      await new Promise((res) => setTimeout(res, 800));
+      seen.push(S.route.id);
+      boosts.push(+S.boost.toFixed(3));
+    }
+    return { seen, boosts, delivered: S.delivered, payout: S.payout,
+             cap: CONFIG.endless.speedCap, top: CONFIG.maxSpeed * (1 + S.boost) };
+  });
+  ck('Endless cycles through the rounds',
+     new Set(cycle.seen).size >= 3, cycle.seen.join(' → '));
+  ck('every drop pays', cycle.payout > 0 && cycle.delivered === 12,
+     cycle.delivered + ' drops, ' + cycle.payout + ' earned');
+  ck('the truck gets quicker, smoothly and cumulatively',
+     cycle.boosts[0] < cycle.boosts[1] && cycle.boosts[1] < cycle.boosts[2] &&
+     cycle.boosts[2] <= cycle.cap,
+     cycle.boosts.join(' → ') + ' of ' + cycle.cap);
+  ck('and it stays a truck, not a rocket', cycle.top < 340, Math.round(cycle.top) + ' u/s at this point');
+
+  // three that got away ends the shift, and only three
+  const misses = await p.evaluate(async () => {
+    best.unlocked = ROUTES.length; chosenRoute = 'endless'; startRun();
+    const steps = [];
+    for (let i = 0; i < CONFIG.endless.misses; i++) {
+      const z = S.stops[S.at];
+      const past = pointAt(Math.min(ROAD_M.total - 2,
+        ROAD_M.cum[z.node] + CONFIG.endless.missBy + 90));
+      S.truck.x = past.x; S.truck.y = past.y; S.truck.angle = past.angle; S.truck.speed = 40;
+      await new Promise((res) => setTimeout(res, 320));
+      steps.push({ missed: S.missed, phase: S.phase });
+    }
+    await new Promise((res) => setTimeout(res, 900));
+    return { steps, phase: S.phase, card: document.querySelector('#card').textContent,
+             again: !!document.getElementById('againBtn') };
+  });
+  ck('driving past a bay loses it', misses.steps[0].missed === 1);
+  ck('one and two do not end the shift',
+     misses.steps[0].phase === 'driving' && misses.steps[1].phase === 'driving');
+  ck('the third one does', misses.phase === 'over' && misses.again,
+     misses.steps.map((s) => s.missed).join(','));
+  ck('and the card totals the shift',
+     /Shift over/.test(misses.card) && /Missed/.test(misses.card) && /Top speed/.test(misses.card));
+
+  const kept = await p.evaluate(async () => {
+    best.endless = null;
+    chosenRoute = 'endless'; startRun();
+    S.payout = 4321; S.delivered = 17; S.topSpeed = 268; S.missed = 3;
+    S.ratings = ['perfect', 'good', 'messy'];
+    S.phase = 'over'; endEndless();
+    const card = document.querySelector('#card').textContent;
+    return { card, saved: JSON.parse(localStorage.getItem('mailrun.best.v1')).endless };
+  });
+  ck('a best Endless shift is kept', kept.saved.payout === 4321 && kept.saved.delivered === 17 &&
+     kept.saved.top === 268, JSON.stringify(kept.saved));
+  ck('and a new best says so', /New best payout/.test(kept.card));
+  ck('no errors in Endless', p.errors.length === 0, p.errors[0] || '');
   await p.close();
 }
 

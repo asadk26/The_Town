@@ -45,6 +45,17 @@ truck turns. Handling is arcade but behaves like a vehicle — authority comes
 from actually moving, so it will not pivot on the spot, and the nose swings
 the other way in reverse. Every constant is in `CONFIG`.
 
+Each round is a place, not just a shape: the suburbs, country fields, a
+downtown of storefronts and parked cars, a red colony road, and black rock
+lit from underneath. The delivery bay keeps its amber-to-green everywhere and
+every theme's road is held to a contrast ratio against its own ground, so the
+things you steer by never get subtle.
+
+Finish the ladder and **Endless** opens: the whole route set, four drops at a
+time, no reverse. A bay you drive past is gone, three gone ends the shift,
+and the truck picks up speed with every drop while the brake stays exactly as
+strong as it was.
+
 A round is authored as a start pose and a list of pieces — a straight, or an
 arc with a radius — which expand into the road, so a new route is a dozen
 lines and is smooth by construction. The bays are dealt fresh each run from

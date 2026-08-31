@@ -88,6 +88,20 @@ const CONFIG = {
   timeBonus:      8,    // points per second under the round's par
   gradeAt:       { A: 950, B: 600 },
   unlockAt:      'B',   // the grade that opens the next round along
+
+  /* ── Endless ──────────────────────────────────────────────────────────
+     Opens once every round is. No reverse, so an overshoot is gone; three
+     of those and the shift is over. The truck creeps faster the longer you
+     last, which is the whole pressure — the brake never gets any stronger,
+     so stopping distance quietly grows underneath you. */
+  endless: {
+    misses:       3,     // missed drops that end the run
+    baysPerLeg:   4,     // deliveries before the round rotates
+    missBy:      230,    // world units past a bay before it counts as gone
+    speedStep:  0.024,   // top speed added per delivery, cumulative
+    speedCap:    0.52,   // and the most it ever adds
+    payout:     { perfect: 260, good: 170, messy: 90 },
+  },
 };
 
 const SAVE_KEY = 'mailrun.best.v1';
@@ -212,6 +226,7 @@ const ROUTES = [
     name: 'Rookie Round',
     where: 'The suburbs',
     blurb: 'Wide streets, easy bends, and bays you could park a bus in.',
+    theme: 'suburb',
     par: 70,          // seconds a competent round takes; under it earns bonus
     bay: { w: 1.00, h: 1.00 },
     // An open loop: three square-ish corners and out again, so the return
@@ -231,9 +246,10 @@ const ROUTES = [
   },
   {
     id: 'winding',
-    name: 'Winding Neighbourhood',
-    where: 'Off the main road',
-    blurb: 'Bend after bend. The straights are short and the kerbs come quickly.',
+    name: 'Winding Country',
+    where: 'Out past the fields',
+    blurb: 'Bend after bend between the crops. Short straights, kerbs that come quickly.',
+    theme: 'country',
     par: 70,          // seconds a competent round takes; under it earns bonus
     bay: { w: 0.90, h: 0.94 },
     start: { x: 420, y: 3200, a: -90, w: 116 },
@@ -258,6 +274,7 @@ const ROUTES = [
     name: 'Town Centre',
     where: 'Narrow streets',
     blurb: 'Tight lanes, square corners, and a kerb waiting just past each one.',
+    theme: 'town',
     par: 72,          // seconds a competent round takes; under it earns bonus
     bay: { w: 0.80, h: 0.88 },
     // Square corners, but never so tight that a clean line has to leave the
@@ -280,8 +297,9 @@ const ROUTES = [
   {
     id: 'longhaul',
     name: 'Long Haul',
-    where: 'The edge of town',
-    blurb: 'Open road and real speed, so every bay is a braking decision.',
+    where: 'The colony road',
+    blurb: 'Open dust and real speed, so every bay is a braking decision.',
+    theme: 'mars',
     par: 80,          // seconds a competent round takes; under it earns bonus
     bay: { w: 0.92, h: 0.92 },
     start: { x: 400, y: 3800, a: -90, w: 124 },
@@ -302,8 +320,9 @@ const ROUTES = [
   {
     id: 'technical',
     name: 'The Technical',
-    where: 'The old quarter',
-    blurb: 'Short streets, constant direction changes, and the tightest bays on the round.',
+    where: 'Down in the forge',
+    blurb: 'Short black-rock streets, constant direction changes, the tightest bays anywhere.',
+    theme: 'hell',
     par: 68,          // seconds a competent round takes; under it earns bonus
     bay: { w: 0.74, h: 0.84 },
     start: { x: 520, y: 2600, a: -90, w: 92 },
@@ -322,6 +341,52 @@ const ROUTES = [
 
 const ROUTE_BY_ID = {};
 ROUTES.forEach((r) => { ROUTE_BY_ID[r.id] = r; });
+
+/* ── Themes ──────────────────────────────────────────────────────────────
+   Each round is somewhere, not just some shape. A theme carries the ground,
+   the road, and the table of things scattered along the kerb.
+
+   One rule governs every palette: the road has to read against the ground at
+   a glance, and the delivery bay keeps its amber-to-green wherever it is, so
+   the two things you steer by never change colour on you. */
+
+const THEMES = {
+  suburb: {
+    badge: 'Suburbs',
+    ground: '#86c06c', groundAlt: 'rgba(255,255,255,.05)', pattern: 'mown',
+    road: '#6b6b78', kerb: '#5c5c68', walk: '#e3dccb', walkEdge: '#cfc7b2',
+    dash: 'rgba(253,247,224,.5)',
+    props: [['house', 42], ['tree', 36], ['park', 22]],
+  },
+  country: {
+    badge: 'Country',
+    ground: '#a8bd63', groundAlt: 'rgba(120,96,30,.07)', pattern: 'furrow',
+    road: '#7a7263', kerb: '#655e52', walk: '#cbbf9c', walkEdge: '#b3a77f',
+    dash: 'rgba(255,250,222,.42)',
+    props: [['barn', 10], ['field', 16], ['corn', 30], ['fence', 24], ['cow', 10], ['tree', 10]],
+  },
+  town: {
+    badge: 'Downtown',
+    ground: '#b4ada2', groundAlt: 'rgba(255,255,255,.06)', pattern: 'paving',
+    road: '#4f4f5a', kerb: '#3d3d46', walk: '#d7d1c6', walkEdge: '#bdb6aa',
+    dash: 'rgba(253,247,224,.55)',
+    props: [['store', 40], ['car', 22], ['lamp', 20], ['tree', 12], ['park', 6]],
+  },
+  mars: {
+    badge: 'Off-world',
+    ground: '#c86a45', groundAlt: 'rgba(90,30,10,.065)', pattern: 'dust',
+    road: '#5d5560', kerb: '#453f4c', walk: '#9b7a6a', walkEdge: '#82634f',
+    dash: 'rgba(214,240,255,.5)',
+    props: [['crater', 26], ['rock', 30], ['dome', 18], ['alien', 14], ['antenna', 12]],
+  },
+  hell: {
+    badge: 'The Forge',
+    ground: '#241d22', groundAlt: 'rgba(255,120,40,.05)', pattern: 'crack',
+    road: '#8a8087', kerb: '#5c545c', walk: '#4a4048', walkEdge: '#332c33',
+    dash: 'rgba(255,226,180,.55)',
+    props: [['spire', 30], ['torch', 22], ['lavapool', 20], ['chain', 16], ['rock', 12]],
+  },
+};
 
 const HOUSE_COLORS = {
   coral:   { wall: '#e8735e', roof: '#b8482f' },
@@ -520,11 +585,11 @@ function loadRound(routeId, runSeed) {
 
   // dress the town first so bay validation can see what is standing where,
   // then dress it again with the chosen bays kept clear
-  buildTown([]);
+  buildTown([], route.theme);
   let bays = chooseBays(route);
-  if (!bays) { reseed(runSeed + 7); buildTown([]); bays = chooseBays(route); }
+  if (!bays) { reseed(runSeed + 7); buildTown([], route.theme); bays = chooseBays(route); }
   if (!bays) bays = bayPool(route).filter(bayIsValid).slice(0, STOPS_PER_ROUND);
-  buildTown(bays);
+  buildTown(bays, route.theme);
 
   return { route: route, bays: bays };
 }
@@ -545,16 +610,6 @@ let ROAD_M = { cum: [0], total: 0 };
 let PROPS = [];     // drawn behind the truck
 let SOLIDS = [];    // and these stop it
 
-function addHouse(x, y, angle, colorName, w, h) {
-  const c = HOUSE_COLORS[colorName] || HOUSE_COLORS.cream;
-  PROPS.push({ kind: 'house', x: x, y: y, a: angle, w: w, h: h, wall: c.wall, roof: c.roof });
-  SOLIDS.push({ kind: 'rect', x: x, y: y, a: angle, w: w, h: h });
-}
-function addTree(x, y, r) {
-  PROPS.push({ kind: 'tree', x: x, y: y, r: r, tone: rnd() });
-  SOLIDS.push({ kind: 'circle', x: x, y: y, r: r * 0.55 });
-}
-
 /* Is this spot clear of every part of the road, not just the stretch it was
    measured from? A route that doubles back would otherwise drop a house on a
    street it passes later. */
@@ -573,47 +628,106 @@ function clearOfBays(bays, x, y, size) {
   return true;
 }
 
-function buildTown(bays) {
+/* Pick a prop kind from the theme's weighted table. */
+function rollProp(table) {
+  let total = 0;
+  for (const row of table) total += row[1];
+  let n = rnd() * total;
+  for (const row of table) { n -= row[1]; if (n <= 0) return row[0]; }
+  return table[0][0];
+}
+
+/* How far off the kerb a thing of this size stands, and how much room the
+   next one needs. Kept in one table so a theme is data, not code. */
+const PROP_SPEC = {
+  house:    { size: () => 86 + rnd() * 46,  gap: () => 150 + rnd() * 80,  off: 26, solid: true },
+  barn:     { size: () => 132 + rnd() * 44, gap: () => 230 + rnd() * 110, off: 30, solid: true },
+  store:    { size: () => 96 + rnd() * 54,  gap: () => 120 + rnd() * 50,  off: 14, solid: true },
+  dome:     { size: () => 74 + rnd() * 38,  gap: () => 190 + rnd() * 110, off: 28, solid: true },
+  tree:     { size: () => 34 + rnd() * 18,  gap: () => 90 + rnd() * 60,   off: 16, solid: true },
+  spire:    { size: () => 40 + rnd() * 34,  gap: () => 100 + rnd() * 70,  off: 14, solid: true },
+  rock:     { size: () => 32 + rnd() * 30,  gap: () => 104 + rnd() * 70,  off: 16, solid: true },
+  car:      { size: () => 46,  thick: 15, hug: true, gap: () => 116 + rnd() * 90, off: 3, solid: true },
+  lamp:     { size: () => 16,  thick: 8,  hug: true, gap: () => 132 + rnd() * 40, off: 9, solid: false },
+  torch:    { size: () => 18,  thick: 10, gap: () => 118 + rnd() * 50, off: 6,  solid: false },
+  antenna:  { size: () => 20,  thick: 14, gap: () => 190 + rnd() * 90, off: 12, solid: false },
+  fence:    { size: () => 96,  thick: 10, gap: () => 108,              off: 8,  solid: false },
+  chain:    { size: () => 86,  thick: 12, gap: () => 128 + rnd() * 60, off: 8,  solid: false },
+  cow:      { size: () => 30,  thick: 17, gap: () => 200 + rnd() * 140, off: 56, solid: false },
+  alien:    { size: () => 24,  thick: 15, gap: () => 220 + rnd() * 150, off: 60, solid: false },
+  corn:     { size: () => 70 + rnd() * 40, thick: 24, gap: () => 96 + rnd() * 50, off: 12, solid: false },
+  field:    { size: () => 150 + rnd() * 90, thick: 96, gap: () => 240 + rnd() * 130, off: 30, solid: false },
+  park:     { size: () => 80 + rnd() * 92,  gap: () => 120 + rnd() * 70, off: 30, solid: false },
+  lavapool: { size: () => 76 + rnd() * 70,  gap: () => 150 + rnd() * 90, off: 22, solid: false },
+  crater:   { size: () => 90 + rnd() * 90,  gap: () => 170 + rnd() * 100, off: 22, solid: false },
+};
+
+
+/* `themeName` is passed in rather than read off the run: the town is built
+   during createRun, before S points at the round being dealt. */
+function buildTown(bays, themeName) {
   PROPS = [];
   SOLIDS = [];
+  const theme = THEMES[themeName] || THEMES.suburb;
   const total = ROAD_M.total;
-  const names = ['coral', 'mustard', 'teal', 'cream', 'plum', 'sage', 'sky'];
 
   for (let side = -1; side <= 1; side += 2) {
     let along = 70;
     while (along < total - 70) {
       const at = pointAt(along);
       const nx = Math.cos(at.angle + Math.PI / 2), ny = Math.sin(at.angle + Math.PI / 2);
-      const roll = rnd();
+      const kind = rollProp(theme.props);
+      const spec = PROP_SPEC[kind];
 
-      // keep the kerb clear where a bay and its mailbox will be
-      const nearBay = bays.some((b) => Math.hypot(at.x - b.x, at.y - b.y) < b.w / 2 + 120);
-      if (nearBay) { along += 70; continue; }
-
-      if (roll < 0.42) {
-        const hw = 86 + rnd() * 46, hh = 74 + rnd() * 30;
-        const off = at.w / 2 + WALK_WIDTH + 26 + Math.max(hw, hh) / 2 + rnd() * 34;
-        const px = at.x + nx * off * side, py = at.y + ny * off * side;
-        if (clearOfRoad(px, py, Math.max(hw, hh) / 2 + 10) &&
-            clearOfBays(bays, px, py, Math.hypot(hw, hh) / 2)) {
-          addHouse(px, py, at.angle, names[Math.floor(rnd() * names.length)], hw, hh);
-        }
-        along += 150 + rnd() * 80;
-      } else if (roll < 0.78) {
-        const r = 17 + rnd() * 9;
-        const off = at.w / 2 + WALK_WIDTH + 20 + r + rnd() * 18;
-        const px = at.x + nx * off * side, py = at.y + ny * off * side;
-        if (clearOfRoad(px, py, r + 5) && clearOfBays(bays, px, py, r)) addTree(px, py, r);
-        along += 80 + rnd() * 60;
-      } else {
-        // a patch of park: flowers, no collision
-        const r = 40 + rnd() * 46;
-        const off = at.w / 2 + WALK_WIDTH + 30 + r * 0.6 + rnd() * 70;
-        const px = at.x + nx * off * side, py = at.y + ny * off * side;
-        if (clearOfRoad(px, py, 6)) PROPS.push({ kind: 'park', x: px, y: py, r: r, tone: rnd() });
-        along += 120 + rnd() * 70;
+      // the kerb stays clear where a bay and its mailbox will be
+      if (bays.some((b) => Math.hypot(at.x - b.x, at.y - b.y) < b.w / 2 + 120)) {
+        along += 70;
+        continue;
       }
+
+      const size = spec.size();
+      const half = spec.thick != null ? spec.thick : size / 2;   // across the road
+      // `hug` props stand at the kerb rather than back across the pavement
+      const off = at.w / 2 + (spec.hug ? 0 : WALK_WIDTH) + spec.off + half +
+                  (spec.hug ? 0 : rnd() * 22);
+      const px = at.x + nx * off * side, py = at.y + ny * off * side;
+
+      const clear = spec.hug
+        ? Math.sqrt(nearestOnRoad(px, py).d2) > pointAt(along).w / 2 - 2
+        : clearOfRoad(px, py, half + (spec.solid ? 8 : 0));
+      // the true half-diagonal, or a parked car can clip the corner of a bay
+      if (clear && clearOfBays(bays, px, py, Math.hypot(size, half * 2) / 2)) {
+        addProp(kind, px, py, at.angle, size, side, spec.solid);
+      }
+      along += spec.gap();
     }
+  }
+}
+
+/* One prop, with whatever that kind needs to draw itself, and a matching
+   solid where the kind is something you would bump into. */
+function addProp(kind, x, y, angle, size, side, solid) {
+  const tone = rnd();
+  const p = { kind: kind, x: x, y: y, a: angle, r: size / 2, size: size, tone: tone, side: side };
+
+  if (kind === 'house' || kind === 'store' || kind === 'barn' || kind === 'dome') {
+    p.w = size;
+    p.h = kind === 'store' ? size * (0.62 + tone * 0.2) : size * (0.78 + tone * 0.2);
+    const names = ['coral', 'mustard', 'teal', 'cream', 'plum', 'sage', 'sky'];
+    const c = HOUSE_COLORS[names[Math.floor(rnd() * names.length)]];
+    p.wall = c.wall; p.roof = c.roof;
+    if (kind === 'barn') { p.wall = '#c04a3a'; p.roof = '#8c3226'; }
+    if (kind === 'dome') { p.wall = '#cfd8e0'; p.roof = '#9fb0bd'; }
+  }
+  if (kind === 'car') {
+    p.w = 46; p.h = 24;
+    p.wall = ['#d9584a', '#4f8fd0', '#e8b23c', '#5fae7a', '#8a7fb5', '#e6e0d2'][Math.floor(rnd() * 6)];
+  }
+
+  PROPS.push(p);
+  if (solid) {
+    if (p.w) SOLIDS.push({ kind: 'rect', x: x, y: y, a: angle, w: p.w, h: p.h });
+    else SOLIDS.push({ kind: 'circle', x: x, y: y, r: size * 0.34 });
   }
 }
 
@@ -627,10 +741,17 @@ let best = loadBest();
 
 let chosenRoute = null;     // route id the player has selected, or 'random'
 
-function createRun(routeId, runSeed) {
+function createRun(routeId, runSeed, endless) {
   const dealt = loadRound(routeId, runSeed);
   const start = ROAD[0], next = ROAD[1];
   return {
+    endless: !!endless,
+    leg: 0,                         // which round of the cycle we are on
+    delivered: 0,
+    missed: 0,
+    payout: 0,
+    boost: 0,                       // how much faster than standard, 0..speedCap
+    topSpeed: 0,
     phase: 'title',                 // 'title' | 'driving' | 'over'
     route: dealt.route,
     seed: runSeed,
@@ -659,7 +780,7 @@ function createRun(routeId, runSeed) {
    currency, no levels, no connection to anything outside Mail Run. */
 
 function blankSave() {
-  return { unlocked: 1, records: {}, random: null };
+  return { unlocked: 1, records: {}, random: null, endless: null };
 }
 
 function loadBest() {
@@ -683,6 +804,13 @@ function loadBest() {
       }
       if (raw.random && typeof raw.random === 'object') {
         blank.random = { score: Number(raw.random.score) || 0, time: Number(raw.random.time) || 0 };
+      }
+      if (raw.endless && typeof raw.endless === 'object') {
+        blank.endless = {
+          payout: Number(raw.endless.payout) || 0,
+          delivered: Number(raw.endless.delivered) || 0,
+          top: Number(raw.endless.top) || 0,
+        };
       }
     }
   } catch (e) { /* no memory is fine */ }
@@ -746,17 +874,20 @@ function driveStep(dt) {
 
   /* ── along the truck ── */
   if (input.gas) {
-    t.speed += CONFIG.accel * dt;
+    t.speed += CONFIG.accel * (1 + S.boost * 0.6) * dt;
   } else if (input.brake) {
     if (t.speed > 6) t.speed -= CONFIG.brakeDecel * dt;          // brake…
-    else t.speed -= CONFIG.reverseAccel * dt;                    // …then reverse
+    else if (!S.endless) t.speed -= CONFIG.reverseAccel * dt;    // …then reverse
+    else t.speed = Math.max(0, t.speed - CONFIG.brakeDecel * dt);  // …but never in Endless
   } else {
     t.speed -= t.speed * CONFIG.coast * dt;                      // coasting
   }
   t.speed -= t.speed * (CONFIG.rollingDrag + surf.drag) * dt;
 
-  const top = CONFIG.maxSpeed * surf.top;
-  t.speed = clamp(t.speed, -CONFIG.maxReverse * surf.top, top);
+  const top = CONFIG.maxSpeed * (1 + S.boost) * surf.top;
+  const floor = S.endless ? 0 : -CONFIG.maxReverse * surf.top;
+  t.speed = clamp(t.speed, floor, top);
+  if (t.speed > S.topSpeed) S.topSpeed = t.speed;
   if (!input.gas && !input.brake && Math.abs(t.speed) < 2) t.speed = 0;
 
   /* ── steering ──
@@ -866,6 +997,14 @@ function deliveryStep(dt) {
   if (!zone) return;
   const t = S.truck;
 
+  /* With no reverse, a bay behind you is a bay you have lost. Measured along
+     the road so a wide corner does not count as having passed it. */
+  if (S.endless) {
+    const n = nearestOnRoad(t.x, t.y);
+    const past = ROAD_M.cum[n.i] - ROAD_M.cum[zone.node];
+    if (past > CONFIG.endless.missBy && !inZone(zone, t.x, t.y, 1)) { missDelivery(zone); return; }
+  }
+
   const inside = inZone(zone, t.x, t.y, 1);
   const slow = Math.abs(t.speed) < CONFIG.stopSpeed;
 
@@ -892,6 +1031,41 @@ function rate(zone) {
   return 'good';
 }
 
+/* A drop that got away. Costs one of three, and the round moves on. */
+function missDelivery(zone) {
+  S.missed++;
+  S.hold = 0;
+  S.streak = 0;
+  zone.done = 'missed';
+  popRating('missed', zone);
+  playCue('miss');
+  renderStops();
+  S.at++;
+  if (S.missed >= CONFIG.endless.misses) { setTimeout(() => endRun(), 520); return; }
+  if (S.at >= S.stops.length) rotateLeg();
+}
+
+/* Endless rolls on to the next round in the set, and the truck starts it at
+   the depot end — a beat of transition, then straight back to driving. */
+function rotateLeg() {
+  const order = ROUTES.map((r) => r.id);
+  S.leg++;
+  const next = order[S.leg % order.length];
+  const dealt = loadRound(next, (Math.random() * 2147483647) | 0);
+  S.route = dealt.route;
+  S.stops = dealt.bays.slice(0, CONFIG.endless.baysPerLeg);
+  S.at = 0;
+  S.hold = 0;
+  const start = ROAD[0], nx = ROAD[1];
+  S.truck.x = start.x; S.truck.y = start.y;
+  S.truck.angle = Math.atan2(nx.y - start.y, nx.x - start.x);
+  S.truck.speed = 0; S.truck.steer = 0;
+  S.cam.x = start.x; S.cam.y = start.y;
+  showLegCard(dealt.route);
+  renderStops();
+  playCue('leg');
+}
+
 function deliver(zone) {
   const grade = rate(zone);
   S.ratings.push(grade);
@@ -910,14 +1084,33 @@ function deliver(zone) {
   renderStops();
 
   S.at++;
+
+  if (S.endless) {
+    S.delivered++;
+    S.payout += Math.round(CONFIG.endless.payout[grade] * (1 + S.boost));
+    S.boost = Math.min(CONFIG.endless.speedCap, S.boost + CONFIG.endless.speedStep);
+    if (S.at >= S.stops.length) setTimeout(() => rotateLeg(), 620);
+    return;
+  }
   if (S.at >= S.stops.length) setTimeout(() => endRun(), 620);
+}
+
+/* The round you have just rolled onto, named for a beat. */
+function showLegCard(route) {
+  const el = document.createElement('div');
+  el.className = 'leg';
+  el.innerHTML = '<span>' + (THEMES[route.theme] || {}).badge + '</span><b>' + route.name + '</b>';
+  elFx.appendChild(el);
+  setTimeout(() => el.remove(), 1700);
 }
 
 function popRating(grade, zone) {
   const p = worldToScreen(zone.x, zone.y);
   const el = document.createElement('div');
   el.className = 'pop ' + grade;
-  el.innerHTML = grade.toUpperCase() + '<small>+' + CONFIG.points[grade] + '</small>';
+  const paid = S.endless ? CONFIG.endless.payout[grade] : CONFIG.points[grade];
+  el.innerHTML = grade.toUpperCase() +
+    (grade === 'missed' ? '' : '<small>+' + Math.round(paid * (1 + (S.endless ? S.boost : 0))) + '</small>');
   el.style.left = p.x + 'px';
   el.style.top = p.y + 'px';
   elFx.appendChild(el);
@@ -976,17 +1169,15 @@ function draw() {
   ctx.save();
   ctx.clearRect(0, 0, VIEW.w, VIEW.h);
 
-  // grass, with a soft mown pattern so the ground is not a flat field
-  ctx.fillStyle = '#86c06c';
-  ctx.fillRect(0, 0, VIEW.w, VIEW.h);
-  drawMowing();
+  const theme = THEMES[(S.route && S.route.theme) || 'suburb'] || THEMES.suburb;
+  drawGround(theme);
 
   ctx.translate(VIEW.w / 2, VIEW.h / 2);
   ctx.scale(s, s);
   ctx.translate(-S.cam.x, -S.cam.y);
 
   drawParks();
-  drawRoad();
+  drawRoad(theme);
   drawZones();
   drawProps();
   drawTruck();
@@ -997,31 +1188,119 @@ function draw() {
 
 /* Stripes of slightly lighter grass, drawn in screen space and offset by the
    camera so they scroll with the world without costing a path per blade. */
-function drawMowing() {
-  const s = VIEW.scale, band = 54 * s, period = band * 2;
-  let off = (VIEW.h / 2 - S.cam.y * s) % period;
-  if (off < 0) off += period;
-  ctx.fillStyle = 'rgba(255,255,255,.05)';
-  for (let y = off - period; y < VIEW.h + period; y += period) {
-    ctx.fillRect(0, y, VIEW.w, band);
+/* The ground, in whatever the round is made of. All four patterns are drawn
+   in screen space and offset by the camera, so they scroll with the world
+   without costing a path per blade of grass. */
+function drawGround(theme) {
+  const s = VIEW.scale;
+  ctx.fillStyle = theme.ground;
+  ctx.fillRect(0, 0, VIEW.w, VIEW.h);
+  ctx.fillStyle = theme.groundAlt;
+
+  if (theme.pattern === 'mown' || theme.pattern === 'furrow') {
+    const band = (theme.pattern === 'furrow' ? 26 : 54) * s, period = band * 2;
+    let off = (VIEW.h / 2 - S.cam.y * s) % period;
+    if (off < 0) off += period;
+    for (let y = off - period; y < VIEW.h + period; y += period) ctx.fillRect(0, y, VIEW.w, band);
+
+  } else if (theme.pattern === 'paving') {
+    const cell = 92 * s;
+    let ox = (VIEW.w / 2 - S.cam.x * s) % cell; if (ox < 0) ox += cell;
+    let oy = (VIEW.h / 2 - S.cam.y * s) % cell; if (oy < 0) oy += cell;
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = theme.groundAlt;
+    ctx.beginPath();
+    for (let x = ox - cell; x < VIEW.w + cell; x += cell) { ctx.moveTo(x, 0); ctx.lineTo(x, VIEW.h); }
+    for (let y = oy - cell; y < VIEW.h + cell; y += cell) { ctx.moveTo(0, y); ctx.lineTo(VIEW.w, y); }
+    ctx.stroke();
+
+  } else if (theme.pattern === 'dust') {
+    // Drifts of dust. Rows are staggered and the size varies with position,
+    // so it reads as weather rather than as wallpaper.
+    const cell = 168 * s;
+    let ox = (VIEW.w / 2 - S.cam.x * s) % (cell * 2); if (ox < 0) ox += cell * 2;
+    let oy = (VIEW.h / 2 - S.cam.y * s) % cell; if (oy < 0) oy += cell;
+    let row = 0;
+    for (let y = oy - cell; y < VIEW.h + cell; y += cell, row++) {
+      const shift = (row % 2) * cell;
+      for (let x = ox - cell * 2 + shift; x < VIEW.w + cell * 2; x += cell * 2) {
+        const k = 0.72 + ((row * 7 + Math.round(x / cell) * 13) % 9) / 22;
+        ctx.beginPath();
+        ctx.ellipse(x, y, cell * 0.34 * k, cell * 0.19 * k, 0.4 + k, 0, TAU);
+        ctx.fill();
+      }
+    }
+
+  } else if (theme.pattern === 'crack') {
+    // a slow glow under the black rock, breathing
+    const pulse = 0.5 + 0.5 * Math.sin(S.t * 0.9);
+    const cell = 190 * s;
+    let ox = (VIEW.w / 2 - S.cam.x * s) % cell; if (ox < 0) ox += cell;
+    let oy = (VIEW.h / 2 - S.cam.y * s) % cell; if (oy < 0) oy += cell;
+    ctx.strokeStyle = 'rgba(255,116,36,' + (0.16 + 0.09 * pulse) + ')';
+    ctx.lineWidth = 3 * s;
+    ctx.lineCap = 'round';
+    for (let x = ox - cell; x < VIEW.w + cell; x += cell) {
+      for (let y = oy - cell; y < VIEW.h + cell; y += cell) {
+        ctx.beginPath();
+        ctx.moveTo(x - cell * 0.3, y - cell * 0.16);
+        ctx.lineTo(x - cell * 0.05, y + cell * 0.05);
+        ctx.lineTo(x + cell * 0.22, y - cell * 0.1);
+        ctx.lineTo(x + cell * 0.4, y + cell * 0.18);
+        ctx.stroke();
+      }
+    }
+    ctx.lineCap = 'butt';
   }
 }
 
+/* Ground cover: things painted flat on the floor, under the road and every
+   upright prop, so they never compete with the route for attention. */
 function drawParks() {
   for (const p of PROPS) {
-    if (p.kind !== 'park') continue;
-    if (!onScreen(p.x, p.y, p.r + 40)) continue;
-    ctx.fillStyle = p.tone > 0.5 ? '#93cc78' : '#7ab362';
-    ctx.beginPath();
-    ctx.ellipse(p.x, p.y, p.r, p.r * 0.78, p.tone * 3, 0, TAU);
-    ctx.fill();
-    // a few flowers
-    ctx.fillStyle = p.tone > 0.66 ? '#ffd98a' : (p.tone > 0.33 ? '#f6a8bd' : '#fdf3d0');
-    for (let i = 0; i < 5; i++) {
-      const a = p.tone * 9 + i * 1.7, rr = p.r * (0.25 + (i % 3) * 0.2);
-      ctx.beginPath();
-      ctx.arc(p.x + Math.cos(a) * rr, p.y + Math.sin(a) * rr * 0.78, 3.4, 0, TAU);
-      ctx.fill();
+    if (!onScreen(p.x, p.y, p.r + 60)) continue;
+
+    if (p.kind === 'park') {
+      ctx.fillStyle = p.tone > 0.5 ? '#93cc78' : '#7ab362';
+      ctx.beginPath(); ctx.ellipse(p.x, p.y, p.r, p.r * 0.78, p.tone * 3, 0, TAU); ctx.fill();
+      ctx.fillStyle = p.tone > 0.66 ? '#ffd98a' : (p.tone > 0.33 ? '#f6a8bd' : '#fdf3d0');
+      for (let i = 0; i < 5; i++) {
+        const a = p.tone * 9 + i * 1.7, rr = p.r * (0.25 + (i % 3) * 0.2);
+        ctx.beginPath();
+        ctx.arc(p.x + Math.cos(a) * rr, p.y + Math.sin(a) * rr * 0.78, 3.4, 0, TAU);
+        ctx.fill();
+      }
+
+    } else if (p.kind === 'field') {
+      // a ploughed strip, ruled along the road so it reads as farmland
+      ctx.save();
+      ctx.translate(p.x, p.y); ctx.rotate(p.a);
+      ctx.fillStyle = p.tone > 0.5 ? '#c9b95c' : '#9fae54';
+      roundRect(-p.r, -p.r * 0.62, p.r * 2, p.r * 1.24, 10); ctx.fill();
+      ctx.strokeStyle = 'rgba(90,72,24,.16)';
+      ctx.lineWidth = 3;
+      for (let y = -p.r * 0.62 + 8; y < p.r * 0.62; y += 13) {
+        ctx.beginPath(); ctx.moveTo(-p.r + 8, y); ctx.lineTo(p.r - 8, y); ctx.stroke();
+      }
+      ctx.restore();
+
+    } else if (p.kind === 'crater') {
+      ctx.fillStyle = 'rgba(90,38,20,.3)';
+      ctx.beginPath(); ctx.ellipse(p.x, p.y, p.r, p.r * 0.76, p.tone * 3, 0, TAU); ctx.fill();
+      ctx.fillStyle = 'rgba(160,88,58,.5)';
+      ctx.beginPath(); ctx.ellipse(p.x, p.y, p.r * 0.7, p.r * 0.52, p.tone * 3, 0, TAU); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,220,190,.18)';
+      ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.ellipse(p.x, p.y, p.r, p.r * 0.76, p.tone * 3, 0, TAU); ctx.stroke();
+
+    } else if (p.kind === 'lavapool') {
+      const glow = 0.72 + 0.28 * Math.sin(S.t * 1.3 + p.tone * 8);
+      ctx.fillStyle = 'rgba(120,32,10,.85)';
+      ctx.beginPath(); ctx.ellipse(p.x, p.y, p.r, p.r * 0.7, p.tone * 3, 0, TAU); ctx.fill();
+      ctx.fillStyle = 'rgba(255,' + Math.round(90 + 60 * glow) + ',30,' + (0.5 + 0.3 * glow) + ')';
+      ctx.beginPath(); ctx.ellipse(p.x, p.y, p.r * 0.66, p.r * 0.44, p.tone * 3, 0, TAU); ctx.fill();
+      ctx.fillStyle = 'rgba(255,226,150,' + (0.4 + 0.3 * glow) + ')';
+      ctx.beginPath(); ctx.ellipse(p.x, p.y, p.r * 0.28, p.r * 0.17, p.tone * 3, 0, TAU); ctx.fill();
     }
   }
 }
@@ -1045,16 +1324,16 @@ function strokeRoad(pad, style, dash) {
   ctx.setLineDash([]);
 }
 
-function drawRoad() {
-  strokeRoad(WALK_WIDTH * 2 + 6, '#cfc7b2');      // kerbstone edge
-  strokeRoad(WALK_WIDTH * 2, '#e3dccb');          // pavement
-  strokeRoad(6, '#5c5c68');                       // the kerb's dark lip
-  strokeRoad(0, '#6b6b78');                       // tarmac
+function drawRoad(theme) {
+  strokeRoad(WALK_WIDTH * 2 + 6, theme.walkEdge);  // kerbstone edge
+  strokeRoad(WALK_WIDTH * 2, theme.walk);          // pavement
+  strokeRoad(6, theme.kerb);                       // the kerb's dark lip
+  strokeRoad(0, theme.road);                       // the road surface
 
   ctx.lineWidth = 4;
   strokeRoad(-1000, 'rgba(0,0,0,0)');             // reset widths harmlessly
   ctx.lineJoin = 'round'; ctx.lineCap = 'butt';
-  ctx.strokeStyle = 'rgba(253,247,224,.5)';
+  ctx.strokeStyle = theme.dash;
   ctx.lineWidth = 4;
   ctx.setLineDash([26, 30]);
   ctx.beginPath();
@@ -1163,45 +1442,230 @@ function drawMailbox(z, live, done) {
 
 function drawProps() {
   for (const p of PROPS) {
-    if (p.kind === 'park') continue;
-    if (!onScreen(p.x, p.y, 120)) continue;
-
-    if (p.kind === 'house') {
-      const w = p.w, h = p.h;
-      ctx.save();
-      ctx.translate(p.x, p.y);
-      ctx.rotate(p.a);
-      ctx.fillStyle = 'rgba(0,0,0,.16)';
-      roundRect(-w / 2 + 5, -h / 2 + 7, w, h, 7); ctx.fill();
-
-      // walls show as a rim; the roof is what you actually see from up here
-      ctx.fillStyle = p.wall;
-      roundRect(-w / 2, -h / 2, w, h, 7); ctx.fill();
-      ctx.fillStyle = p.roof;
-      roundRect(-w / 2 + 5, -h / 2 + 5, w - 10, h - 10, 5); ctx.fill();
-
-      // the near slope catches the light, and the ridge runs down the middle
-      ctx.fillStyle = 'rgba(255,255,255,.16)';
-      roundRect(-w / 2 + 5, -h / 2 + 5, w - 10, (h - 10) / 2, 5); ctx.fill();
-      ctx.fillStyle = 'rgba(0,0,0,.2)';
-      ctx.fillRect(-w / 2 + 7, -1.5, w - 14, 3);
-
-      // a chimney, which is most of the charm for three lines of code
-      ctx.fillStyle = p.roof;
-      ctx.beginPath(); ctx.arc(w / 2 - 17, -h / 2 + 15, 6.5, 0, TAU); ctx.fill();
-      ctx.fillStyle = 'rgba(0,0,0,.28)';
-      ctx.beginPath(); ctx.arc(w / 2 - 17, -h / 2 + 15, 3, 0, TAU); ctx.fill();
-      ctx.restore();
-    } else {
-      ctx.fillStyle = 'rgba(0,0,0,.17)';
-      ctx.beginPath(); ctx.ellipse(p.x + 4, p.y + 6, p.r, p.r * 0.8, 0, 0, TAU); ctx.fill();
-      ctx.fillStyle = p.tone > 0.5 ? '#4f9553' : '#5fa85c';
-      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, TAU); ctx.fill();
-      ctx.fillStyle = p.tone > 0.5 ? '#6cb46a' : '#7cc275';    // the lit side of the canopy
-      ctx.beginPath(); ctx.arc(p.x - p.r * 0.22, p.y - p.r * 0.24, p.r * 0.66, 0, TAU); ctx.fill();
-    }
+    if (p.kind === 'park' || p.kind === 'field' || p.kind === 'crater' || p.kind === 'lavapool') continue;
+    if (!onScreen(p.x, p.y, 140)) continue;
+    const fn = PROP_ART[p.kind];
+    if (fn) fn(p);
   }
 }
+
+/* Shadows are one line everywhere, so nothing floats. */
+function shade(x, y, w, h) {
+  ctx.fillStyle = 'rgba(0,0,0,.17)';
+  ctx.beginPath();
+  ctx.ellipse(x + 4, y + 6, w, h, 0, 0, TAU);
+  ctx.fill();
+}
+
+/* Every prop kind, drawn from above. Small vocabularies, reused: a building
+   is a rim and a roof, a plant is a couple of blobs. */
+const PROP_ART = {
+
+  house: (p) => building(p, 5, true),
+  store: (p) => {
+    building(p, 4, false);
+    // an awning down the street side, and a lit window
+    ctx.save();
+    ctx.translate(p.x, p.y); ctx.rotate(p.a);
+    ctx.fillStyle = p.tone > 0.5 ? '#e0584a' : '#3f7fbe';
+    for (let i = -2; i <= 2; i++) {
+      ctx.fillStyle = (i + 5) % 2 ? '#f2ece0' : (p.tone > 0.5 ? '#e0584a' : '#3f7fbe');
+      ctx.fillRect(i * (p.w / 5.4) - p.w / 10.8, (p.h / 2 - 9) * -p.side, p.w / 5.4, 9);
+    }
+    ctx.fillStyle = 'rgba(255,232,170,.85)';
+    roundRect(-p.w / 2 + 9, -p.h / 2 + 9, 14, 10, 2); ctx.fill();
+    ctx.restore();
+  },
+  barn: (p) => {
+    building(p, 6, true);
+    ctx.save();
+    ctx.translate(p.x, p.y); ctx.rotate(p.a);
+    ctx.fillStyle = 'rgba(255,255,255,.75)';          // the white cross on the doors
+    ctx.fillRect(-3, -p.h / 2 + 8, 6, p.h - 16);
+    ctx.fillRect(-p.w / 2 + 10, -3, p.w - 20, 6);
+    ctx.restore();
+  },
+  dome: (p) => {
+    shade(p.x, p.y, p.w / 2, p.h / 2);
+    ctx.fillStyle = p.roof;
+    ctx.beginPath(); ctx.ellipse(p.x, p.y, p.w / 2, p.h / 2, p.a, 0, TAU); ctx.fill();
+    ctx.fillStyle = p.wall;
+    ctx.beginPath(); ctx.ellipse(p.x, p.y, p.w / 2.6, p.h / 2.6, p.a, 0, TAU); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,.45)';
+    ctx.beginPath(); ctx.ellipse(p.x - p.w * 0.12, p.y - p.h * 0.13, p.w / 6, p.h / 7, p.a, 0, TAU); ctx.fill();
+  },
+
+  tree: (p) => {
+    shade(p.x, p.y, p.r, p.r * 0.8);
+    ctx.fillStyle = p.tone > 0.5 ? '#4f9553' : '#5fa85c';
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, TAU); ctx.fill();
+    ctx.fillStyle = p.tone > 0.5 ? '#6cb46a' : '#7cc275';
+    ctx.beginPath(); ctx.arc(p.x - p.r * 0.22, p.y - p.r * 0.24, p.r * 0.66, 0, TAU); ctx.fill();
+  },
+
+  corn: (p) => {
+    // a clump of stalks: a few strokes, no shadow, reads as crop not obstacle
+    ctx.strokeStyle = p.tone > 0.5 ? '#c8b64a' : '#b7a63f';
+    ctx.lineWidth = 4;
+    ctx.lineCap = 'round';
+    const n = 7;
+    for (let i = 0; i < n; i++) {
+      const a = p.a + Math.PI / 2 + (i - n / 2) * 0.5;
+      const rr = p.r * (0.4 + ((i * 37) % 10) / 16);
+      const bx = p.x + Math.cos(a) * rr, by = p.y + Math.sin(a) * rr;
+      ctx.beginPath();
+      ctx.moveTo(bx, by + 7);
+      ctx.lineTo(bx + Math.sin(S.t * 0.7 + i) * 2, by - 9);
+      ctx.stroke();
+    }
+    ctx.lineCap = 'butt';
+  },
+  fence: (p) => {
+    ctx.strokeStyle = '#c9b38c';
+    ctx.lineWidth = 4;
+    const dx = Math.cos(p.a) * p.r, dy = Math.sin(p.a) * p.r;
+    ctx.beginPath(); ctx.moveTo(p.x - dx, p.y - dy - 4); ctx.lineTo(p.x + dx, p.y + dy - 4); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(p.x - dx, p.y - dy + 4); ctx.lineTo(p.x + dx, p.y + dy + 4); ctx.stroke();
+    ctx.fillStyle = '#a68f68';
+    for (let i = -1; i <= 1; i++) {
+      ctx.fillRect(p.x + Math.cos(p.a) * p.r * i - 2.5, p.y + Math.sin(p.a) * p.r * i - 9, 5, 18);
+    }
+  },
+  cow: (p) => {
+    shade(p.x, p.y, 15, 10);
+    ctx.fillStyle = '#f4f0e6';
+    roundRect(p.x - 15, p.y - 9, 30, 18, 8); ctx.fill();
+    ctx.fillStyle = '#3a332e';
+    ctx.beginPath(); ctx.ellipse(p.x - 5, p.y - 2, 6, 5, p.tone * 3, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(p.x + 7, p.y + 3, 4, 3.5, p.tone, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(p.x + 14, p.y - 4, 5, 0, TAU); ctx.fill();   // head
+  },
+
+  car: (p) => {
+    ctx.save();
+    ctx.translate(p.x, p.y); ctx.rotate(p.a);
+    ctx.fillStyle = 'rgba(0,0,0,.2)';
+    roundRect(-21, -10, 46, 24, 7); ctx.fill();
+    ctx.fillStyle = p.wall;
+    roundRect(-23, -12, 46, 24, 7); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,.4)';
+    roundRect(-9, -9, 15, 18, 4); ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,.28)';
+    roundRect(-19, -13, 8, 3, 1.5); ctx.fill();
+    roundRect(-19, 10, 8, 3, 1.5); ctx.fill();
+    ctx.restore();
+  },
+  lamp: (p) => {
+    shade(p.x, p.y, 9, 6);
+    ctx.fillStyle = '#59606b';
+    ctx.beginPath(); ctx.arc(p.x, p.y, 5, 0, TAU); ctx.fill();
+    ctx.fillStyle = 'rgba(255,226,150,.28)';
+    ctx.beginPath(); ctx.arc(p.x, p.y, 26, 0, TAU); ctx.fill();
+    ctx.fillStyle = '#ffe89b';
+    ctx.beginPath(); ctx.arc(p.x, p.y, 7.5, 0, TAU); ctx.fill();
+  },
+
+  rock: (p) => {
+    shade(p.x, p.y, p.r * 0.9, p.r * 0.66);
+    ctx.fillStyle = p.tone > 0.5 ? '#7a6156' : '#6a5347';
+    ctx.beginPath();
+    for (let i = 0; i < 7; i++) {
+      const a = p.a + i * (TAU / 7);
+      const rr = p.r * (0.66 + ((i * 53) % 11) / 26);
+      const fn = i ? 'lineTo' : 'moveTo';
+      ctx[fn](p.x + Math.cos(a) * rr, p.y + Math.sin(a) * rr * 0.82);
+    }
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,.14)';
+    ctx.beginPath(); ctx.ellipse(p.x - p.r * 0.2, p.y - p.r * 0.24, p.r * 0.4, p.r * 0.24, p.a, 0, TAU); ctx.fill();
+  },
+  alien: (p) => {
+    const bob = Math.sin(S.t * 1.6 + p.tone * 9) * 3;
+    shade(p.x, p.y + 6, 10, 5);
+    ctx.fillStyle = '#7cd06a';
+    roundRect(p.x - 8, p.y - 8 + bob, 16, 20, 8); ctx.fill();
+    ctx.fillStyle = '#5fae52';
+    ctx.beginPath(); ctx.arc(p.x, p.y - 10 + bob, 9, 0, TAU); ctx.fill();
+    ctx.fillStyle = '#1d2b1a';
+    ctx.beginPath(); ctx.ellipse(p.x - 3.4, p.y - 11 + bob, 2.4, 3.2, -0.3, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(p.x + 3.4, p.y - 11 + bob, 2.4, 3.2, 0.3, 0, TAU); ctx.fill();
+  },
+  antenna: (p) => {
+    shade(p.x, p.y, 8, 5);
+    ctx.strokeStyle = '#b9c3cc'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x, p.y - 22); ctx.stroke();
+    ctx.fillStyle = '#dfe7ee';
+    ctx.beginPath(); ctx.ellipse(p.x, p.y - 26, 12, 7, p.tone * 2, 0, TAU); ctx.fill();
+    const blink = (Math.sin(S.t * 3 + p.tone * 6) > 0.6);
+    ctx.fillStyle = blink ? '#ff6b5a' : '#7d3b34';
+    ctx.beginPath(); ctx.arc(p.x, p.y - 30, 3, 0, TAU); ctx.fill();
+  },
+
+  spire: (p) => {
+    shade(p.x, p.y, p.r * 0.8, p.r * 0.5);
+    ctx.fillStyle = '#1d1a20';
+    ctx.beginPath();
+    for (let i = 0; i < 5; i++) {
+      const a = p.a + i * (TAU / 5);
+      const rr = p.r * (0.6 + ((i * 71) % 13) / 20);
+      const fn = i ? 'lineTo' : 'moveTo';
+      ctx[fn](p.x + Math.cos(a) * rr, p.y + Math.sin(a) * rr * 0.8);
+    }
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = 'rgba(255,110,40,.35)';        // heat catching one edge
+    ctx.beginPath();
+    ctx.ellipse(p.x + p.r * 0.16, p.y + p.r * 0.2, p.r * 0.3, p.r * 0.16, p.a, 0, TAU);
+    ctx.fill();
+  },
+  torch: (p) => {
+    const flicker = 0.8 + 0.2 * Math.sin(S.t * 9 + p.tone * 12);
+    ctx.fillStyle = '#2a2429';
+    ctx.fillRect(p.x - 3, p.y - 4, 6, 18);
+    ctx.fillStyle = 'rgba(255,132,40,' + (0.2 * flicker) + ')';
+    ctx.beginPath(); ctx.arc(p.x, p.y - 8, 30 * flicker, 0, TAU); ctx.fill();
+    ctx.fillStyle = '#ff9a3c';
+    ctx.beginPath(); ctx.ellipse(p.x, p.y - 10, 6, 11 * flicker, 0, 0, TAU); ctx.fill();
+    ctx.fillStyle = '#ffe08a';
+    ctx.beginPath(); ctx.ellipse(p.x, p.y - 11, 3, 6 * flicker, 0, 0, TAU); ctx.fill();
+  },
+  chain: (p) => {
+    ctx.strokeStyle = '#4a444c'; ctx.lineWidth = 5;
+    const dx = Math.cos(p.a) * p.r, dy = Math.sin(p.a) * p.r;
+    ctx.beginPath();
+    ctx.moveTo(p.x - dx, p.y - dy);
+    ctx.quadraticCurveTo(p.x, p.y + 8, p.x + dx, p.y + dy);
+    ctx.stroke();
+    ctx.fillStyle = '#332e35';
+    ctx.fillRect(p.x - dx - 3, p.y - dy - 10, 6, 20);
+    ctx.fillRect(p.x + dx - 3, p.y + dy - 10, 6, 20);
+  },
+};
+
+/* Walls show as a rim, the roof is what you see from up here. */
+function building(p, inset, ridge) {
+  const w = p.w, h = p.h;
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.rotate(p.a);
+  ctx.fillStyle = 'rgba(0,0,0,.16)';
+  roundRect(-w / 2 + 5, -h / 2 + 7, w, h, 7); ctx.fill();
+  ctx.fillStyle = p.wall;
+  roundRect(-w / 2, -h / 2, w, h, 7); ctx.fill();
+  ctx.fillStyle = p.roof;
+  roundRect(-w / 2 + inset, -h / 2 + inset, w - inset * 2, h - inset * 2, 5); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,.16)';
+  roundRect(-w / 2 + inset, -h / 2 + inset, w - inset * 2, (h - inset * 2) / 2, 5); ctx.fill();
+  if (ridge) {
+    ctx.fillStyle = 'rgba(0,0,0,.2)';
+    ctx.fillRect(-w / 2 + 7, -1.5, w - 14, 3);
+    ctx.fillStyle = p.roof;
+    ctx.beginPath(); ctx.arc(w / 2 - 17, -h / 2 + 15, 6.5, 0, TAU); ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,.28)';
+    ctx.beginPath(); ctx.arc(w / 2 - 17, -h / 2 + 15, 3, 0, TAU); ctx.fill();
+  }
+  ctx.restore();
+}
+
 
 /* The truck: a little cream van with a postal stripe, leaning into its turns
    and dipping on the brakes. */
@@ -1302,6 +1766,15 @@ function drawPointer() {
 
 /* ── the board ── */
 function renderStops() {
+  if (S.endless) {
+    // three lives and a running payout says more than five envelopes here
+    const dots = [];
+    for (let i = 0; i < CONFIG.endless.misses; i++) {
+      dots.push('<span class="life' + (i < S.missed ? ' gone' : '') + '"></span>');
+    }
+    $('stops').innerHTML = '<span class="paid">' + S.payout + '</span>' + dots.join('');
+    return;
+  }
   const out = [];
   for (let i = 0; i < S.stops.length; i++) {
     const z = S.stops[i];
@@ -1322,10 +1795,13 @@ function hideOverlay() { elOverlay.classList.add('hidden'); }
 function showTitle() {
   elOverlay.classList.remove('hidden');
   const open = unlockedRoutes();
-  if (!chosenRoute || (chosenRoute !== 'random' && !isUnlocked(chosenRoute))) {
+  // 'random' and 'endless' are modes, not routes, so they skip the route check
+  const isMode = chosenRoute === 'random' || chosenRoute === 'endless';
+  if (!chosenRoute || (!isMode && !isUnlocked(chosenRoute))) {
     chosenRoute = open[open.length - 1].id;
   }
   if (chosenRoute === 'random' && open.length < 2) chosenRoute = open[0].id;
+  if (chosenRoute === 'endless' && !endlessOpen()) chosenRoute = open[0].id;
 
   const chips = ROUTES.map((r, i) => {
     const isOpen = i < best.unlocked;
@@ -1334,6 +1810,8 @@ function showTitle() {
            (chosenRoute === r.id ? ' on' : '') + '" type="button" data-route="' + r.id + '"' +
            (isOpen ? '' : ' disabled') + '>' +
            '<b>' + r.name + '</b><span>' + (isOpen ? r.where : 'Locked') + '</span>' +
+           (isOpen ? '<u class="theme-tag t-' + r.theme + '">' +
+             (THEMES[r.theme] || {}).badge + '</u>' : '') +
            (isOpen && rec && rec.grade ? '<em>' + rec.grade + '</em>' : '') +
            '</button>';
   }).join('') +
@@ -1342,7 +1820,14 @@ function showTitle() {
       '" type="button" data-route="random"><b>Random Run</b>' +
       '<span>Any open round</span>' +
       (best.random && best.random.score ? '<em>' + best.random.score + '</em>' : '') + '</button>'
-    : '');
+    : '') +
+  // Endless is the reward for finishing the ladder, and looks like it
+  '<button class="chip endless' + (endlessOpen() ? '' : ' locked') +
+    (chosenRoute === 'endless' ? ' on' : '') + '" type="button" data-route="endless"' +
+    (endlessOpen() ? '' : ' disabled') + '><b>Endless</b>' +
+    '<span>' + (endlessOpen() ? 'No reverse. Three misses.' : 'Finish every round') + '</span>' +
+    (endlessOpen() && best.endless && best.endless.payout
+      ? '<em>' + best.endless.payout + '</em>' : '') + '</button>';
 
   /* Two columns on a landscape screen: the round to drive has to be reachable
      without scrolling past the instructions every single time. */
@@ -1378,6 +1863,14 @@ function showTitle() {
 function renderRouteNote() {
   const el = $('routeNote');
   if (!el) return;
+  if (chosenRoute === 'endless') {
+    const r = best.endless;
+    el.innerHTML = 'Every round in turn, four drops each, and the truck gets quicker with ' +
+      'every one you land. <b>No reverse</b> &mdash; a bay you drive past is gone, and three ' +
+      'gone ends the shift.' +
+      (r && r.payout ? ' <b>Best ' + r.payout + ' &middot; ' + r.delivered + ' drops</b>' : '');
+    return;
+  }
   if (chosenRoute === 'random') {
     const r = best.random;
     el.innerHTML = 'One of your open rounds, with the kerbs drawn fresh.' +
@@ -1398,15 +1891,23 @@ function renderRouteNote() {
       : '');
 }
 
+const endlessOpen = () => best.unlocked >= ROUTES.length;
+
 function startRun() {
   const open = unlockedRoutes();
+  const wantEndless = chosenRoute === 'endless' && endlessOpen();
   // Random Run only ever deals a round the player has actually opened.
   const wasRandom = chosenRoute === 'random';
-  const id = wasRandom
+  const id = (wantEndless || wasRandom)
     ? open[Math.floor(Math.random() * open.length)].id
     : (isUnlocked(chosenRoute) ? chosenRoute : open[0].id);
-  S = createRun(id, (Math.random() * 2147483647) | 0);
-  S.wasRandom = wasRandom;
+  S = createRun(id, (Math.random() * 2147483647) | 0, wantEndless);
+  S.wasRandom = wasRandom && !wantEndless;
+  if (wantEndless) {
+    S.leg = ROUTES.findIndex((r) => r.id === id);
+    S.stops = S.stops.slice(0, CONFIG.endless.baysPerLeg);
+    showLegCard(S.route);
+  }
   hideOverlay();
   renderStops();
   resize();
@@ -1430,6 +1931,7 @@ function gradeOf(score, time) {
 
 function endRun() {
   S.phase = 'over';
+  if (S.endless) return endEndless();
   const time = S.t;
   const bonus = Math.max(0, Math.round((parOf(S.route) - time) * CONFIG.timeBonus));
   const score = S.score + bonus;
@@ -1489,6 +1991,52 @@ function nextGoal(grade, score, time) {
     '</p>';
 }
 
+/* Endless has its own card: what you earned, how fast it got, and how far
+   you took it before the third one got away. */
+function endEndless() {
+  const count = (r) => S.ratings.filter((x) => x === r).length;
+  const top = Math.round(S.topSpeed);
+  const run = { payout: S.payout, delivered: S.delivered, top: top };
+  const prev = best.endless || { payout: 0, delivered: 0, top: 0 };
+  const won = {
+    payout: run.payout > prev.payout,
+    delivered: run.delivered > prev.delivered,
+    top: run.top > prev.top,
+  };
+  best.endless = {
+    payout: Math.max(prev.payout, run.payout),
+    delivered: Math.max(prev.delivered, run.delivered),
+    top: Math.max(prev.top, run.top),
+  };
+  saveBest();
+
+  elOverlay.classList.remove('hidden');
+  elCard.className = 'card';
+  elCard.innerHTML =
+    '<h2>Shift over</h2>' +
+    '<p class="sub">Endless &middot; ' + (S.leg + 1) +
+      (S.leg === 0 ? ' round driven' : ' rounds driven') + '</p>' +
+    '<div class="result">' +
+      '<div class="grade endless-grade"><b>' + S.payout + '</b><span>earned</span></div>' +
+      '<div class="tally">' +
+        row('Delivered', S.delivered, won.delivered) +
+        row('Perfect', count('perfect')) +
+        row('Good', count('good')) +
+        row('Messy', count('messy')) +
+        row('Missed', S.missed) +
+        row('Top speed', top, won.top) +
+      '</div>' +
+    '</div>' +
+    (won.payout ? '<p class="opened"><b>New best payout.</b> ' + S.payout +
+                  ' beats ' + prev.payout + '.</p>' : '') +
+    '<button class="btn" type="button" id="againBtn">Run again</button>' +
+    '<button class="btn ghost" type="button" id="menuBtn">Back to the depot</button>';
+  $('againBtn').addEventListener('click', () => startRun());
+  $('menuBtn').addEventListener('click', showTitle);
+  playCue(won.payout ? 'unlock' : 'closing');
+  renderStops();
+}
+
 function row(label, value, isBest) {
   return '<div><span>' + label + '</span>' +
          (isBest ? '<em class="best">Best</em>' : '') +
@@ -1509,10 +2057,16 @@ const CUES = {
             { f: 1047, at: 0.08, d: 0.09, g: 0.040, t: 'sine' },
             { f: 1319, at: 0.16, d: 0.30, g: 0.044, t: 'sine' }],
   bump:    [{ f: 96,  at: 0,    d: 0.13, g: 0.055, t: 'triangle' }],
+  miss:    [{ f: 262, at: 0,    d: 0.16, g: 0.05,  t: 'triangle' },
+            { f: 175, at: 0.11, d: 0.28, g: 0.048, t: 'triangle' }],
+  leg:     [{ f: 440, at: 0,    d: 0.10, g: 0.036, t: 'sine' },
+            { f: 660, at: 0.09, d: 0.22, g: 0.036, t: 'sine' }],
   unlock:  [{ f: 523, at: 0,    d: 0.11, g: 0.040, t: 'sine' },
             { f: 659, at: 0.10, d: 0.11, g: 0.040, t: 'sine' },
             { f: 784, at: 0.20, d: 0.11, g: 0.042, t: 'sine' },
             { f: 1047, at: 0.30, d: 0.40, g: 0.046, t: 'sine' }],
+  closing: [{ f: 392, at: 0,    d: 0.22, g: 0.042, t: 'triangle' },
+            { f: 262, at: 0.16, d: 0.42, g: 0.038, t: 'triangle' }],
   finish:  [{ f: 523, at: 0,    d: 0.12, g: 0.040, t: 'sine' },
             { f: 659, at: 0.11, d: 0.12, g: 0.040, t: 'sine' },
             { f: 784, at: 0.22, d: 0.34, g: 0.046, t: 'sine' }],

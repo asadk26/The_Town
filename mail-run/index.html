@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Mail Run</title>
+<meta name="description" content="A tiny postal round: drive the route, pull up at the curb, drop the mail.">
+<meta name="theme-color" content="#3f7d3a">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Portrait gets a nudge; the route needs the long edge. -->
+<div class="turn">
+  <i aria-hidden="true"></i>
+  <h2>Turn your phone</h2>
+  <p>Mail Run drives along the road, so it needs the long edge.</p>
+</div>
+
+<div class="game">
+
+  <!-- ── the route board ─────────────────────────────── -->
+  <header class="board">
+    <div class="badge"><span>Mail</span><b>Run</b></div>
+    <div class="stops" id="stops" aria-label="Deliveries"></div>
+    <div class="board-right">
+      <div class="clock"><span>Time</span><b id="clockValue">0.0</b></div>
+      <button class="icon" id="soundBtn" type="button" aria-pressed="true" title="Sound">♪</button>
+    </div>
+  </header>
+
+  <!-- ── the town ────────────────────────────────────── -->
+  <main class="road" id="road">
+    <canvas id="view"></canvas>
+
+    <!-- rating pops and the off-screen pointer live here -->
+    <div class="fx" id="fx" aria-hidden="true"></div>
+    <div class="pointer" id="pointer" aria-hidden="true"><i></i></div>
+
+    <!-- ── controls ──────────────────────────────────── -->
+    <div class="pad pad-steer">
+      <button class="key key-left"  id="keyLeft"  type="button" aria-label="Steer left"></button>
+      <button class="key key-right" id="keyRight" type="button" aria-label="Steer right"></button>
+    </div>
+    <div class="pad pad-drive">
+      <button class="key key-brake" id="keyBrake" type="button" aria-label="Brake and reverse"></button>
+      <button class="key key-gas"   id="keyGas"   type="button" aria-label="Accelerate"></button>
+    </div>
+  </main>
+
+  <div class="overlay" id="overlay"><div class="card" id="card"></div></div>
+</div>
+
+<script src="game.js"></script>
+</body>
+</html>

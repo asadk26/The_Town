@@ -10,6 +10,7 @@ collection is just a shelf the games sit on.
 |---|---|---|
 | **Quiet Stacks** | The library | [landscape](https://asadk26.github.io/The_Town/quiet-stacks/landscape/) · [portrait](https://asadk26.github.io/The_Town/quiet-stacks/) |
 | **Order Up** | The lunch counter | [landscape](https://asadk26.github.io/The_Town/order-up/) |
+| **Mail Run** | The postal round | [landscape](https://asadk26.github.io/The_Town/mail-run/) |
 
 Everything here is plain HTML, CSS and JavaScript. No frameworks, no build
 step, no backend, no dependencies. Open any `index.html` and it runs.
@@ -31,6 +32,18 @@ the pass from memory. Orders hold at one size for five tickets and then grow
 by an item, up to nine. Send a wrong ticket and you walk back to ask — the
 customer repeats the order, and it costs you a strike either way.
 
+## Mail Run
+
+One authored route and five kerbside bays. Drive up, pull in, and hold the
+truck still for a moment to post the mail — centred and square at a crawl is
+a Perfect. Nothing here can be failed: overshoot and the brake becomes
+reverse, grass slows you rather than stopping you, and sloppy driving costs
+time and rating instead of a life.
+
+Handling is arcade but behaves like a vehicle — steering authority comes
+from actually moving, so the truck will not pivot on the spot, and the nose
+swings the other way in reverse. Every constant is in `CONFIG`.
+
 ## Layout
 
 ```
@@ -45,20 +58,31 @@ quiet-stacks/
   test/quietstacks.mjs         regression suite (see below)
 order-up/
   index.html  style.css  game.js
+mail-run/
+  index.html  style.css  game.js
+  test/mailrun.mjs             regression suite (see below)
 .github/workflows/pages.yml    publishes the whole repo on every push to main
 ```
 
 ## Tests
 
-Quiet Stacks has a suite that drives the real page in a headless browser —
+Quiet Stacks and Mail Run each have a suite that drives the real page in a headless browser —
 the shift and its objectives, wrong-shelf handling, the patron loop, saved
 bests, and, at three portrait and four landscape sizes, that nothing scrolls
 or clips, that shelved titles are never cut off, and that type both clears a
 readable floor *and* actually grows with the screen.
 
+Mail Run's is driven by a scripted pure-pursuit driver that runs the whole
+route, which is how the handling and the route length were tuned: it checks
+that a competent round lands in the 45-90s window, that a clean line earns
+Perfects and a sloppy one does not, and that the truck behaves like a
+vehicle — no pivoting on the spot, and the nose swinging the other way in
+reverse.
+
 ```sh
 npm i playwright-core            # or use an existing install
 node quiet-stacks/test/quietstacks.mjs
+node mail-run/test/mailrun.mjs
 ```
 
 It uses Playwright's own Chromium by default; set `CHROME=/path/to/chrome`

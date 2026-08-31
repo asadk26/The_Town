@@ -23,10 +23,18 @@
 const SHELVES = [
   { id: 'fantasy',   name: 'Fantasy',         tag: 'wonder & wilds',   color: '#6f6cb0' },
   { id: 'mystery',   name: 'Mystery',         tag: 'clues & culprits', color: '#4e7f8c' },
+  { id: 'biography', name: 'Biography',       tag: 'real lives',       color: '#a9714a' },
+  // Unlocked in this order; a shift uses the first `shelfCount` of them.
   { id: 'scifi',     name: 'Science Fiction', tag: 'futures & ships',  color: '#4a6fa5', short: 'Sci-Fi' },
   { id: 'history',   name: 'History',         tag: 'what happened',    color: '#6f8659' },
-  { id: 'biography', name: 'Biography',       tag: 'real lives',       color: '#a9714a' },
 ];
+
+const MODES = [
+  { id: 'normal', name: 'Normal',       blurb: 'Returns as they come.' },
+  { id: 'coffee', name: 'Coffee Spill', blurb: 'Some returns come back stained.' },
+];
+
+const SHELF_TIERS = [3, 4, 5];
 
 /* Invented for this game — 30 titles, several deliberately slippery, so the
    description is sometimes the only tell. */
@@ -276,6 +284,10 @@ const OBJECTIVES = [
 const CONFIG = {
   shiftChoices: [2, 4, 6],       // minutes, offered on the title card
   defaultMinutes: 2,
+
+  // Coffee Spill: roughly this share of returns come back with a stain over
+  // part of their title or description. Easy to tune.
+  coffeeChance: 0.3,
   cartMax: 8,                    // the cart quietly stops accepting past this
   queueMax: 4,
 
@@ -342,11 +354,18 @@ let S = null;          // the whole game
 let lastFrame = 0;
 let rafId = 0;
 
-function createState(minutes) {
+function createState(minutes, mode, shelfCount) {
   const shiftSeconds = minutes * 60;
+  const shelves = SHELVES.slice(0, shelfCount);
+  const ids = shelves.map((sh) => sh.id);
   return {
     phase: 'title',          // 'title' | 'playing' | 'paused' | 'over'
     minutes: minutes,
+    mode: mode,
+    shelfCount: shelfCount,
+    shelves: shelves,                              // the sections in play
+    pool: BOOKS.filter((b) => ids.includes(b.genre)),   // locked sections never spawn
+    stains: new Map(),                             // book -> coffee damage, Coffee Spill only
     shiftSeconds: shiftSeconds,
     targets: targetsFor(minutes),
     elapsed: 0,
@@ -364,14 +383,15 @@ function createState(minutes) {
     nameCursor: Math.floor(Math.random() * PATRON_NAMES.length),
 
     seen: [],                // books the player has actually handled
-    shelfHistory: shelfHistoryStore(),   // every book put away, per shelf, in order
+    shelfHistory: shelfHistoryStore(shelves),  // every book put away, per shelf, in order
     score: 0,
     streak: 0,
     bestStreak: 0,
     satisfaction: CONFIG.satisfactionStart,
 
     shelved: 0,
-    shelvedCorrect: 0,
+    attempts: 0,             // every shelf tap
+    correct: 0,              // …and the ones that were right
     helped: 0,
     left: 0,
 
@@ -379,9 +399,9 @@ function createState(minutes) {
 }
 
 /* One bucket per shelf, so a new section needs no new code here. */
-function shelfHistoryStore() {
+function shelfHistoryStore(shelves) {
   const store = {};
-  SHELVES.forEach((sh) => { store[sh.id] = []; });
+  shelves.forEach((sh) => { store[sh.id] = []; });
   return store;
 }
 
@@ -412,7 +432,7 @@ function shelfById(id) {
 /* Books are drawn from a shuffled bag so the same title doesn't repeat quickly. */
 function drawBook() {
   if (S.bookBag.length === 0) {
-    S.bookBag = BOOKS.slice();
+    S.bookBag = S.pool.slice();
     for (let i = S.bookBag.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [S.bookBag[i], S.bookBag[j]] = [S.bookBag[j], S.bookBag[i]];
@@ -429,7 +449,9 @@ function drawBook() {
 
 function addBookToCart() {
   if (S.cart.length >= CONFIG.cartMax) return false;
-  S.cart.push(drawBook());
+  const book = drawBook();
+  maybeStain(book);
+  S.cart.push(book);
   return true;
 }
 
@@ -468,7 +490,7 @@ function makeRequest() {
     }
     return { kind: 'book', answer: book.genre, book: book, text: text };
   }
-  const ask = pick(TOPIC_ASKS);
+  const ask = pick(TOPIC_ASKS.filter((t) => S.shelfHistory.hasOwnProperty(t.genre)));
   return { kind: 'topic', answer: ask.genre, book: null, text: ask.text };
 }
 
@@ -503,8 +525,10 @@ function addPatron() {
   return true;
 }
 
-function startShift(minutes) {
-  S = createState(minutes || (S && S.minutes) || CONFIG.defaultMinutes);
+function startShift(minutes, mode, shelfCount) {
+  S = createState(minutes || (S && S.minutes) || CONFIG.defaultMinutes,
+                  mode || (S && S.mode) || 'normal',
+                  shelfCount || (S && S.shelfCount) || SHELF_TIERS[0]);
   S.phase = 'playing';
   for (let i = 0; i < CONFIG.startingBooks; i++) addBookToCart();
 
@@ -643,35 +667,38 @@ function chooseShelf(genreId) {
   else resolvePatron(genreId);
 }
 
+/* A wrong shelf costs the attempt and the streak, but the book stays in hand and
+   the right answer is never given away — working it out is the game. */
 function resolveBook(genreId) {
   const book = S.hand.book;
-  const right = book.genre === genreId;
+  S.attempts++;
+
+  if (book.genre !== genreId) {
+    S.satisfaction = clamp(S.satisfaction + CONFIG.satisfaction.wrongShelf, 0, 100);
+    breakStreak();
+    flashShelf(genreId, 'bad');
+    playCue('wrong');
+    renderHud();
+    return;                                // still in hand: try another shelf
+  }
 
   S.hand = null;
-  S.shelved++;
+  S.correct++;
+  S.shelved++;                             // only a correct placement is shelved
   if (!S.seen.includes(book)) S.seen.push(book);
+  clearStain(book);
 
   S.shelfHistory[book.genre].push(book);   // history is kept in full…
   flyBook(elCart, shelfEls[book.genre].root, book.genre);
   addSpine(book.genre, book);              // …the shelf only shows the recent few
 
-  if (right) {
-    S.shelvedCorrect++;
-    const gained = CONFIG.points.shelfCorrect + streakBonus();
-    S.score += gained;
-    bumpStreak();
-    flashShelf(genreId, 'good');
-    floatScore(shelfEls[genreId].root, '+' + gained, false);
-    say('Right where it belongs.', 'good');
-    playCue('right');
-  } else {
-    const home = shelfById(book.genre);
-    S.satisfaction = clamp(S.satisfaction + CONFIG.satisfaction.wrongShelf, 0, 100);
-    breakStreak();
-    flashShelf(genreId, 'bad');
-    say('Close — “' + book.title + '” lives in ' + home.name + '. Popped it over.', 'warn');
-    playCue('wrong');
-  }
+  const gained = CONFIG.points.shelfCorrect + streakBonus();
+  S.score += gained;
+  bumpStreak();
+  flashShelf(genreId, 'good');
+  floatScore(shelfEls[genreId].root, '+' + gained, false);
+  say('Right where it belongs.', 'good');
+  playCue('right');
 
   renderSlip();
   renderArmed();
@@ -682,7 +709,10 @@ function resolvePatron(genreId) {
   const p = S.patrons.find((x) => x.id === S.hand.id);
   if (!p) { S.hand = null; renderSlip(); renderArmed(); return; }
 
+  S.attempts++;
+
   if (genreId === p.request.answer) {
+    S.correct++;
     const speed = Math.round(CONFIG.points.patronSpeedBonus * (p.patience / p.maxPatience));
     const gained = CONFIG.points.patronBase + speed + streakBonus();
     S.score += gained;
@@ -699,20 +729,14 @@ function resolvePatron(genreId) {
     renderSlip();      // hand was already cleared above, so clear the desk too
     renderArmed();
   } else {
+    // Costs the attempt, the streak and some of their patience — but they stay
+    // at the desk and the answer is not given away.
     p.misses++;
     p.patience = Math.max(2, p.patience - CONFIG.wrongAnswerPatiencePenalty);
     S.satisfaction = clamp(S.satisfaction + CONFIG.satisfaction.wrongAnswer, 0, 100);
     breakStreak();
     flashShelf(genreId, 'bad');
     playCue('wrong');
-
-    // A gentle hand, not a scolding.
-    if (p.request.kind === 'book' && p.misses >= 1) {
-      say('Not there. Hint: ' + p.request.book.desc, 'warn');
-    } else {
-      say('Hmm, not that section. Have another think.', 'warn');
-    }
-    renderSlip();
   }
 
   renderHud();
@@ -737,28 +761,144 @@ function removePatron(p, how) {
   dismissPatronEl(p.id, how);
 }
 
+/* ── Coffee Spill ───────────────────────────────────────────────────────
+   A stain hides part of a returned book's title or description. It must leave
+   enough to classify by: the title never loses more than about a third of its
+   letters, the description never loses more than a quarter of its words, and
+   the two are never heavily damaged at once. Segments are worked out when the
+   book reaches the cart, so what the player sees never shifts under them. */
+
+const STAIN_LIMITS = { titleChars: 0.34, descWords: 0.26 };
+
+/* Splits text into [visible, hidden, visible, …] segments. */
+function segments(text, hide) {
+  const out = [];
+  let at = 0;
+  hide.sort((a, b) => a.from - b.from).forEach((h) => {
+    if (h.from > at) out.push({ t: text.slice(at, h.from), on: false });
+    out.push({ t: text.slice(h.from, h.to), on: true });
+    at = h.to;
+  });
+  if (at < text.length) out.push({ t: text.slice(at), on: false });
+  return out;
+}
+
+/* Word spans of a string, as {from, to}. */
+function wordSpans(text) {
+  const spans = [];
+  const re = /\S+/g;
+  let m;
+  while ((m = re.exec(text))) spans.push({ from: m.index, to: m.index + m[0].length });
+  return spans;
+}
+
+function stainTitle(title, heavy) {
+  const spans = wordSpans(title);
+  const budget = Math.floor(title.length * STAIN_LIMITS.titleChars);
+  // Prefer blotting the tail of one long word — recognisable, but not readable.
+  const longs = spans.filter((sp, i) => i > 0 && sp.to - sp.from >= 5);
+  if (longs.length) {
+    const sp = pick(longs);
+    const keep = Math.ceil((sp.to - sp.from) * (heavy ? 0.4 : 0.5));
+    const from = sp.from + keep;
+    if (sp.to - from <= budget) return [{ from: from, to: sp.to }];
+  }
+  const later = spans.filter((sp, i) => i > 0 && sp.to - sp.from <= budget);
+  return later.length ? [pick(later)] : [];
+}
+
+function stainDesc(desc, share) {
+  const spans = wordSpans(desc).slice(3);          // the opening always survives
+  if (spans.length < 4) return [];
+  const cap = Math.floor(wordSpans(desc).length * STAIN_LIMITS.descWords);
+  const want = Math.max(1, Math.min(cap, Math.round(spans.length * share)));
+  const chosen = [];
+  const bag = spans.slice();
+  while (chosen.length < want && bag.length) {
+    chosen.push(bag.splice(Math.floor(Math.random() * bag.length), 1)[0]);
+  }
+  return chosen;
+}
+
+function makeStain(book) {
+  const roll = Math.random();
+  let title = [], desc = [];
+  if (roll < 0.4)      { title = stainTitle(book.title, false); }
+  else if (roll < 0.8) { desc = stainDesc(book.desc, 0.2); }
+  else                 { title = stainTitle(book.title, true); desc = stainDesc(book.desc, 0.12); }
+  // A stain that hid nothing is not a stain, and one that hid the title alone
+  // still needs the description intact — which it is, by construction.
+  if (!title.length && !desc.length) desc = stainDesc(book.desc, 0.2);
+  if (!title.length && !desc.length) return null;
+  return { title: segments(book.title, title), desc: segments(book.desc, desc) };
+}
+
+function maybeStain(book) {
+  if (S.mode !== 'coffee' || S.stains.has(book)) return;
+  if (Math.random() >= CONFIG.coffeeChance) return;
+  const stain = makeStain(book);
+  if (stain) S.stains.set(book, stain);
+}
+
+function clearStain(book) { S.stains.delete(book); }
+
+/* ── Progression ────────────────────────────────────────────────────────
+   Each mode unlocks its own shelf tiers, and every unlocked tier stays
+   playable. Storage can be unavailable, in which case the game simply runs
+   without memory rather than breaking. */
+
+const SAVE_KEY = 'quietstacks.save.v2';
+
+function blankProgress() {
+  const p = {};
+  MODES.forEach((m) => { p[m.id] = { unlocked: SHELF_TIERS[0], best: {} }; });
+  return p;
+}
+
+function loadProgress() {
+  const fresh = blankProgress();
+  try {
+    const raw = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
+    if (!raw) return fresh;
+    MODES.forEach((m) => {
+      const got = raw[m.id];
+      if (!got) return;
+      const n = parseInt(got.unlocked, 10);
+      fresh[m.id].unlocked = clamp(Number.isFinite(n) ? n : 3, SHELF_TIERS[0], 5);
+      if (got.best && typeof got.best === 'object') fresh[m.id].best = got.best;
+    });
+  } catch (e) { /* no memory is fine */ }
+  return fresh;
+}
+
+function saveProgress() {
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(progress)); } catch (e) { /* fine */ }
+}
+
+function resetProgress() {
+  progress = blankProgress();
+  try { localStorage.removeItem(SAVE_KEY); } catch (e) { /* fine */ }
+}
+
+let progress = loadProgress();
+
+function bestFor(mode, shelfCount) {
+  const b = progress[mode].best[shelfCount];
+  return b && Number.isFinite(b.score) ? b : null;
+}
+
+function tierUnlocked(mode, shelfCount) { return shelfCount <= progress[mode].unlocked; }
+
 /* ── Personal best ──────────────────────────────────────────────────────
    Kept per shift length, so a 2-minute run is never measured against a
    6-minute one. Storage can be unavailable (private windows, blocked site
    data), and a missing best is simply no best. */
 
-function bestKey(minutes) { return 'quietstacks.best.' + minutes; }
-
-function readBest(minutes) {
-  try {
-    const v = parseInt(localStorage.getItem(bestKey(minutes)), 10);
-    return Number.isFinite(v) ? v : 0;
-  } catch (e) { return 0; }
-}
-
-function writeBest(minutes, score) {
-  try { localStorage.setItem(bestKey(minutes), String(score)); } catch (e) { /* fine */ }
-}
-
 /* ── End of shift ───────────────────────────────────────────────────────── */
 
+/* Every shelf tap counts, whether it was a return or a patron's question. */
 function accuracy() {
-  return S.shelved === 0 ? 1 : S.shelvedCorrect / S.shelved;
+  return S.attempts === 0 ? 1 : S.correct / S.attempts;
 }
 
 function objectivesMet() {
@@ -786,9 +926,20 @@ function endShift() {
   S.phase = 'over';
   S.hand = null;
   S.timeLeft = 0;
-  S.previousBest = readBest(S.minutes);
+  const grade = computeGrade();
+  const prev = bestFor(S.mode, S.shelfCount);
+  S.previousBest = prev ? prev.score : 0;
   S.newRecord = S.score > S.previousBest;
-  if (S.newRecord) writeBest(S.minutes, S.score);
+
+  // An A or S at the mode's current top tier opens the next one, once.
+  S.unlockedShelf = null;
+  if ((grade === 'A' || grade === 'S') &&
+      S.shelfCount === progress[S.mode].unlocked && S.shelfCount < 5) {
+    progress[S.mode].unlocked = S.shelfCount + 1;
+    S.unlockedShelf = SHELVES[S.shelfCount];      // the section just opened
+  }
+  if (S.newRecord) progress[S.mode].best[S.shelfCount] = { score: S.score, grade: grade };
+  if (S.newRecord || S.unlockedShelf) saveProgress();
   renderSlip();
   renderArmed();
   renderHud();
@@ -820,7 +971,9 @@ const patronEls = new Map(); // patron id -> { root, fill }
 
 function buildShelves() {
   elShelves.innerHTML = '';
-  SHELVES.forEach((sh) => {
+  Object.keys(shelfEls).forEach((id) => delete shelfEls[id]);  // no stale bays from a wider shift
+  elShelves.dataset.count = String(S.shelves.length);   // the layout adapts to it
+  S.shelves.forEach((sh) => {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'shelf';
@@ -1013,13 +1166,16 @@ function renderSlip() {
   }
 
   elSlip.classList.remove('idle');
+  if (h.kind !== 'book') elSlip.classList.remove('stained');
 
   if (h.kind === 'book') {
+    const stain = S.stains.get(h.book);
+    elSlip.classList.toggle('stained', !!stain);
     elSlip.innerHTML =
-      '<span class="slip-kicker">Returned book</span>' +
-      '<div class="slip-title">' + esc(h.book.title) + '</div>' +
+      '<span class="slip-kicker">' + (stain ? 'Returned book — coffee damage' : 'Returned book') + '</span>' +
+      '<div class="slip-title">' + (stain ? segsHTML(stain.title) : esc(h.book.title)) + '</div>' +
       (h.book.author ? '<div class="slip-author">' + esc(h.book.author) + '</div>' : '') +
-      '<div class="slip-desc">' + esc(h.book.desc) + '</div>' +
+      '<div class="slip-desc">' + (stain ? segsHTML(stain.desc) : esc(h.book.desc)) + '</div>' +
       '<div class="slip-foot"><span class="slip-nudge">Which shelf?</span>' +
       '<button class="slip-back" type="button" id="backBtn">Back on the cart</button></div>';
     $('backBtn').addEventListener('click', putBack);
@@ -1038,11 +1194,18 @@ function renderSlip() {
 
 function renderArmed() {
   const armed = !!S.hand;
-  SHELVES.forEach((sh) => shelfEls[sh.id].root.classList.toggle('armed', armed));
+  S.shelves.forEach((sh) => shelfEls[sh.id].root.classList.toggle('armed', armed));
   elCart.classList.toggle('armed', !armed && S.cart.length > 0 && S.phase === 'playing');
   patronEls.forEach((els, id) => {
     els.root.classList.toggle('armed', !!S.hand && S.hand.kind === 'patron' && S.hand.id === id);
   });
+}
+
+/* Hidden runs become blots rather than placeholder characters. */
+function segsHTML(segs) {
+  return segs.map((g) => g.on
+    ? '<span class="stain" aria-label="obscured by coffee">' + esc(g.t) + '</span>'
+    : esc(g.t)).join('');
 }
 
 function esc(s) {
@@ -1104,48 +1267,102 @@ function showMilestone(n) {
 
 /* ── Overlays ───────────────────────────────────────────────────────────── */
 
-function hideOverlay() { elOverlay.classList.add('hidden'); }
-
 let chosenMinutes = CONFIG.defaultMinutes;
+let chosenMode = MODES[0].id;
+let chosenShelves = SHELF_TIERS[0];
+
+function hideOverlay() { elOverlay.classList.add('hidden'); }
 
 function showTitle() {
   elOverlay.classList.remove('hidden');
+  const modeChips = MODES.map((m) =>
+    '<button class="chip" type="button" data-mode="' + m.id + '">' + m.name + '</button>').join('');
+  const tierChips = SHELF_TIERS.map((n) =>
+    '<button class="chip" type="button" data-tier="' + n + '">' + n + ' shelves</button>').join('');
+  const lenChips = CONFIG.shiftChoices.map((m) =>
+    '<button class="chip" type="button" data-min="' + m + '">' + m + ' min</button>').join('');
+
   elCard.innerHTML =
     '<h1>Quiet Stacks</h1>' +
     '<p class="sub">One short shift</p>' +
-    '<p>The reading room is yours for <b id="tMins"></b>. Returns keep arriving; ' +
-    'so do people with questions. Nothing here is urgent, exactly.</p>' +
     '<ul class="rules">' +
       '<li><i>1</i><span>Tap the <b>return cart</b> for the top book, read it, then tap the shelf it belongs on.</span></li>' +
       '<li><i>2</i><span>Tap a <b>patron</b> to hear their request, then tap the section that answers it.</span></li>' +
-      '<li><i>3</i><span>Everyone waiting is a little less calm. Patience runs out gently, and politely.</span></li>' +
-      '<li><i>4</i><span>Goal: shelve <b id="tBooks"></b> books and help <b id="tPatrons"></b> patrons before closing.</span></li>' +
+      '<li><i>3</i><span>A wrong shelf costs you the streak. The book stays in hand — try again.</span></li>' +
     '</ul>' +
-    '<span class="slip-kicker">Shift length</span>' +
-    '<div class="lengths">' +
-      CONFIG.shiftChoices.map((m) =>
-        '<button class="len" type="button" data-min="' + m + '">' + m + ' min</button>').join('') +
+    '<div class="choices">' +
+      '<div class="choice"><span class="slip-kicker">Mode</span>' +
+        '<div class="chips">' + modeChips + '</div>' +
+        '<p class="chip-note" id="modeNote"></p></div>' +
+      '<div class="choice"><span class="slip-kicker">Shelves</span>' +
+        '<div class="chips">' + tierChips + '</div>' +
+        '<p class="chip-note" id="tierNote"></p></div>' +
+      '<div class="choice choice-wide"><span class="slip-kicker">Shift length</span>' +
+        '<div class="chips">' + lenChips + '</div>' +
+        '<p class="chip-note best-line" id="bestLine"></p></div>' +
     '</div>' +
-    '<p class="best-line" id="bestLine"></p>' +
-    '<button class="btn" type="button" id="beginBtn">Begin the shift</button>';
+    '<button class="btn" type="button" id="beginBtn">Begin the shift</button>' +
+    '<button class="btn ghost" type="button" id="resetBtn">Reset progress</button>';
 
-  const showTargets = () => {
-    const t = targetsFor(chosenMinutes);
-    $('tBooks').textContent = t.books;
-    $('tPatrons').textContent = t.patrons;
-    $('tMins').textContent = chosenMinutes + ' minutes';
-    const best = readBest(chosenMinutes);
-    $('bestLine').textContent = best ? 'Your best ' + chosenMinutes + '-minute shift: ' + best : '';
-    elCard.querySelectorAll('.len').forEach((b) =>
+  const refresh = () => {
+    const open = progress[chosenMode].unlocked;
+    if (chosenShelves > open) chosenShelves = open;
+
+    elCard.querySelectorAll('[data-mode]').forEach((b) =>
+      b.classList.toggle('on', b.dataset.mode === chosenMode));
+    $('modeNote').textContent = MODES.find((m) => m.id === chosenMode).blurb;
+
+    elCard.querySelectorAll('[data-tier]').forEach((b) => {
+      const n = Number(b.dataset.tier);
+      const locked = !tierUnlocked(chosenMode, n);
+      b.classList.toggle('on', n === chosenShelves);
+      b.classList.toggle('locked', locked);
+      b.disabled = locked;
+      b.textContent = (locked ? '🔒 ' : '') + n + ' shelves';
+    });
+    const nextLock = SHELF_TIERS.find((n) => !tierUnlocked(chosenMode, n));
+    $('tierNote').textContent = nextLock
+      ? 'Earn an A on ' + (nextLock - 1) + ' shelves to unlock ' + nextLock + '.'
+      : SHELVES.slice(0, chosenShelves).map((sh) => sh.short || sh.name).join(' · ');
+
+    elCard.querySelectorAll('[data-min]').forEach((b) =>
       b.classList.toggle('on', Number(b.dataset.min) === chosenMinutes));
+
+    const t = targetsFor(chosenMinutes);
+    const best = bestFor(chosenMode, chosenShelves);
+    $('bestLine').textContent = 'Shelve ' + t.books + ', help ' + t.patrons +
+      (best ? ' · best ' + best.score + ' (' + best.grade + ')' : '');
   };
-  elCard.querySelectorAll('.len').forEach((b) => b.addEventListener('click', () => {
-    chosenMinutes = Number(b.dataset.min);
-    showTargets();
-    playCue('pickup');
+
+  elCard.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', () => {
+    chosenMode = b.dataset.mode; refresh(); playCue('pickup');
   }));
-  showTargets();
-  $('beginBtn').addEventListener('click', () => startShift(chosenMinutes));
+  elCard.querySelectorAll('[data-tier]').forEach((b) => b.addEventListener('click', () => {
+    chosenShelves = Number(b.dataset.tier); refresh(); playCue('pickup');
+  }));
+  elCard.querySelectorAll('[data-min]').forEach((b) => b.addEventListener('click', () => {
+    chosenMinutes = Number(b.dataset.min); refresh(); playCue('pickup');
+  }));
+  $('beginBtn').addEventListener('click', () => startShift(chosenMinutes, chosenMode, chosenShelves));
+  $('resetBtn').addEventListener('click', showConfirmReset);
+  refresh();
+}
+
+function showConfirmReset() {
+  elOverlay.classList.remove('hidden');
+  elCard.innerHTML =
+    '<h2>Reset progress?</h2>' +
+    '<p class="sub">Unlocks and best scores</p>' +
+    '<p>Both modes go back to three shelves, and every best score is cleared. ' +
+    'Nothing else about the game changes.</p>' +
+    '<button class="btn" type="button" id="doResetBtn">Yes, clear it</button>' +
+    '<button class="btn ghost" type="button" id="keepBtn">Keep my progress</button>';
+  $('doResetBtn').addEventListener('click', () => {
+    resetProgress();
+    chosenShelves = SHELF_TIERS[0];
+    showTitle();
+  });
+  $('keepBtn').addEventListener('click', showTitle);
 }
 
 function showConfirmRestart() {
@@ -1158,7 +1375,7 @@ function showConfirmRestart() {
     S.shelved + ' shelved and ' + S.helped + ' helped. Beginning again clears all of it.</p>' +
     '<button class="btn" type="button" id="confirmBtn">Yes, fresh shift</button>' +
     '<button class="btn ghost" type="button" id="cancelBtn">No, back to work</button>';
-  $('confirmBtn').addEventListener('click', () => startShift(S.minutes));
+  $('confirmBtn').addEventListener('click', () => startShift(S.minutes, S.mode, S.shelfCount));
   $('cancelBtn').addEventListener('click', () => {
     S.phase = 'playing';
     lastFrame = performance.now();
@@ -1171,19 +1388,19 @@ function showResults() {
   const grade = computeGrade();
   const rows = [
     ['Books shelved', S.shelved + ' / ' + S.targets.books, S.shelved >= S.targets.books],
-    ['Shelving accuracy', S.shelved ? acc + '%' : '—', S.shelved > 0 && acc >= 95],
+    ['Accuracy', S.attempts ? acc + '%' : '—', S.attempts > 0 && acc >= 95],
     ['Patrons helped', S.helped + ' / ' + S.targets.patrons, S.helped >= S.targets.patrons],
     ['Satisfaction', Math.round(S.satisfaction) + '%', S.satisfaction >= 90],
     ['Best streak', String(S.bestStreak), S.bestStreak >= Math.max(8, Math.round(2.4 * S.minutes))],
     ['Final score', String(S.score), false],
-    [S.newRecord ? 'Previous best' : 'Your best (' + S.minutes + ' min)',
-     String(S.previousBest || '—'), false],
+    [S.newRecord ? 'Previous best' : 'Your best here', String(S.previousBest || '—'), false],
   ];
 
   elOverlay.classList.remove('hidden');
   elCard.innerHTML =
     '<h2>Closing time</h2>' +
-    '<p class="sub">' + (S.newRecord && S.previousBest ? 'New personal best' : 'Shift complete') + '</p>' +
+    '<p class="sub">' + MODES.find((m) => m.id === S.mode).name + ' · ' + S.shelfCount + ' shelves' +
+      (S.newRecord && S.previousBest ? ' · new best' : '') + '</p>' +
     '<div class="grade">' + grade + '</div>' +
     '<div class="results">' +
       rows.map(([label, value, met]) =>
@@ -1191,8 +1408,17 @@ function showResults() {
       ).join('') +
     '</div>' +
     '<p class="verdict">' + GRADE_NOTES[grade] + '</p>' +
-    '<button class="btn" type="button" id="againBtn">Take another shift</button>';
-  $('againBtn').addEventListener('click', () => startShift(S.minutes));
+    (S.unlockedShelf
+      ? '<div class="unlock">' +
+          '<span class="unlock-kicker">New shelf unlocked</span>' +
+          '<span class="unlock-name">' + esc(S.unlockedShelf.name) + '</span>' +
+          '<span class="unlock-note">' + (S.shelfCount + 1) + '-shelf shifts are now available.</span>' +
+        '</div>'
+      : '') +
+    '<button class="btn" type="button" id="againBtn">Take another shift</button>' +
+    '<button class="btn ghost" type="button" id="menuBtn">Change mode or shelves</button>';
+  $('againBtn').addEventListener('click', () => startShift(S.minutes, S.mode, S.shelfCount));
+  $('menuBtn').addEventListener('click', showTitle);
 }
 
 
@@ -1263,8 +1489,8 @@ elCart.addEventListener('click', takeTopBook);
 document.addEventListener('keydown', (e) => {
   if (S && S.phase !== 'playing') return;
   if (e.key === 'Escape') putBack();
-  else if (e.key === '1' || e.key === '2' || e.key === '3') {
-    const sh = SHELVES[Number(e.key) - 1];
+  else if (e.key >= '1' && e.key <= '5') {
+    const sh = S.shelves[Number(e.key) - 1];
     if (sh) chooseShelf(sh.id);
   } else if (e.key === ' ') { e.preventDefault(); takeTopBook(); }
 });
@@ -1280,7 +1506,7 @@ function loop(now) {
 }
 
 /* Boot */
-S = createState(CONFIG.defaultMinutes);
+S = createState(CONFIG.defaultMinutes, 'normal', SHELF_TIERS[0]);
 buildShelves();
 renderAll();
 showTitle();

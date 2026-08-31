@@ -214,21 +214,22 @@ html { overflow: hidden; }            /* gameplay never scrolls the page */
    V0 puts the streak banner across the middle of the screen; here that is
    the shelves. Tucked into the corner instead. */
 
+/* Sits just under the HUD rather than over the goals, and never stacks. */
 .landscape .milestone {
-  left: auto;
-  right: 10px;
-  top: 7px;
-  transform: none;
+  left: 50%;
+  right: auto;
+  top: 46px;
+  transform: translateX(-50%);
   font-size: 13px;
-  padding: 6px 13px;
-  animation: milestoneCorner 1.5s ease forwards;
+  padding: 5px 14px;
+  animation: milestoneDrop 1.45s ease forwards;
 }
 
-@keyframes milestoneCorner {
-  0%   { opacity: 0; transform: translateY(-6px) scale(.95); }
-  18%  { opacity: 1; transform: none; }
-  75%  { opacity: 1; transform: none; }
-  100% { opacity: 0; transform: translateY(-6px); }
+@keyframes milestoneDrop {
+  0%   { opacity: 0; transform: translateX(-50%) translateY(-8px) scale(.94); }
+  16%  { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+  74%  { opacity: 1; transform: translateX(-50%) translateY(0); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-6px); }
 }
 
 /* Landscape has little headroom, so the score float stays over the shelves

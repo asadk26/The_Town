@@ -29,10 +29,30 @@ const SHELVES = [
   { id: 'history',   name: 'History',         tag: 'what happened',    color: '#6f8659' },
 ];
 
-const MODES = [
-  { id: 'normal', name: 'Normal',       blurb: 'Returns as they come.' },
-  { id: 'coffee', name: 'Coffee Spill', blurb: 'Some returns come back stained.' },
+/* One of these is drawn at the start of every shift. `bookRate` and
+   `patronRate` scale the gap between arrivals, so below 1 means busier — none
+   of them add a mechanic, they only lean on the existing pressure. Tune the
+   whole feel of the draw here. */
+const CONDITIONS = [
+  { id: 'normal', name: 'Normal Shift', blurb: 'A quiet day at the desk.',
+    weight: 4, bookRate: 1,    patronRate: 1,    coffee: 0 },
+  { id: 'coffee', name: 'Coffee Spill', blurb: 'Some returns came back stained.',
+    weight: 3, bookRate: 1,    patronRate: 1,    coffee: 0.3 },
+  { id: 'returns', name: 'Return Rush', blurb: 'The drop box overflowed overnight.',
+    weight: 3, bookRate: 0.68, patronRate: 1.3,  coffee: 0 },
+  { id: 'desk',   name: 'Desk Rush',   blurb: 'Everyone needs something at once.',
+    weight: 3, bookRate: 1.3,  patronRate: 0.68, coffee: 0 },
 ];
+
+function rollCondition() {
+  const total = CONDITIONS.reduce((a, c) => a + c.weight, 0);
+  let n = Math.random() * total;
+  return CONDITIONS.find((c) => (n -= c.weight) < 0) || CONDITIONS[0];
+}
+
+function conditionById(id) {
+  return CONDITIONS.find((c) => c.id === id) || CONDITIONS[0];
+}
 
 const SHELF_TIERS = [3, 4, 5];
 
@@ -332,10 +352,8 @@ const OBJECTIVES = [
 const CONFIG = {
   // A brisk, accurate shift should land near this; it is the bar for an S.
   parSeconds: 70,
+  splashMs: 1250,                // how long the condition is shown before play
 
-  // Coffee Spill: roughly this share of returns come back with a stain over
-  // part of their title or description. Easy to tune.
-  coffeeChance: 0.3,
   cartMax: 8,                    // the cart quietly stops accepting past this
   queueMax: 4,
 
@@ -350,6 +368,7 @@ const CONFIG = {
   // With five sections the bays are narrower, so fewer books are kept on show
   // and each one gets the room to be read.
   shelfDisplayMax: 5,
+  shelfBackMax: 16,              // plain spines standing behind the labelled few
   // How deep a patron may reach when asking about an invented book. Kept at or
   // below the fewest spines any layout actually shows, so the answer is always
   // still on the shelf in front of the player — never a memory test.
@@ -366,13 +385,12 @@ const CONFIG = {
   bookRequestChance: 0.45,      // once enough books have been seen
   minSeenForBookRequest: 3,
 
-  // Pacing by seconds elapsed. A shift has no fixed length any more, so the
-  // ramp is absolute: calm to open, busier the longer you take.
+  // The arc runs on how much of the workload is done, so every shift gets the
+  // same shape however fast it is played: calm open, working middle, last push.
   phases: [
-    { until: 15,   label: 'Opening',  bookEvery: 5.0, patronEvery: 7.5, patience: 46 },
-    { until: 35,   label: 'Steady',   bookEvery: 4.2, patronEvery: 6.2, patience: 42 },
-    { until: 70,   label: 'Busy',     bookEvery: 3.6, patronEvery: 5.4, patience: 38 },
-    { until: 1e9,  label: 'Backlog',  bookEvery: 3.0, patronEvery: 4.6, patience: 34 },
+    { untilProgress: 0.25, label: 'Opening', bookEvery: 5.2, patronEvery: 7.6, patience: 46 },
+    { untilProgress: 0.75, label: 'Busy',    bookEvery: 4.0, patronEvery: 5.8, patience: 41 },
+    { untilProgress: 1.01, label: 'Closing', bookEvery: 3.2, patronEvery: 4.7, patience: 36 },
   ],
 
   points: {
@@ -402,16 +420,16 @@ let S = null;          // the whole game
 let lastFrame = 0;
 let rafId = 0;
 
-function createState(mode, shelfCount) {
+function createState(condition, shelfCount) {
   const shelves = SHELVES.slice(0, shelfCount);
   const ids = shelves.map((sh) => sh.id);
   return {
-    phase: 'title',          // 'title' | 'playing' | 'paused' | 'over'
-    mode: mode,
+    phase: 'title',          // 'title' | 'splash' | 'playing' | 'paused' | 'over'
+    condition: condition,
     shelfCount: shelfCount,
     shelves: shelves,                              // the sections in play
     pool: BOOKS.filter((b) => ids.includes(b.genre)),   // locked sections never spawn
-    stains: new Map(),                             // book -> coffee damage, Coffee Spill only
+    stains: new Map(),                             // book -> coffee damage, when the condition calls for it
     usedAsks: new Set(),                           // wording already heard this shift
     lastAskGenre: null,
     targets: targetsFor(),
@@ -470,6 +488,17 @@ function clamp(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
 function currentPhase() {
   return CONFIG.phases[S.phaseIndex];
 }
+
+/* 0..1 across the whole objective list. */
+function workloadProgress() {
+  const done = OBJECTIVES.reduce((a, ob) => a + Math.min(ob.read(S), S.targets[ob.id]), 0);
+  const total = OBJECTIVES.reduce((a, ob) => a + S.targets[ob.id], 0);
+  return total ? done / total : 0;
+}
+
+/* Arrival gaps, stretched or squeezed by the shift's condition. */
+function bookGap()   { return currentPhase().bookEvery   * S.condition.bookRate   * rand(0.85, 1.15); }
+function patronGap() { return currentPhase().patronEvery * S.condition.patronRate * rand(0.85, 1.15); }
 
 function shelfById(id) {
   return SHELVES.find((s) => s.id === id);
@@ -583,17 +612,22 @@ function addPatron() {
   return true;
 }
 
-function startShift(mode, shelfCount) {
-  S = createState(mode || (S && S.mode) || 'normal',
-                  shelfCount || (S && S.shelfCount) || SHELF_TIERS[0]);
-  S.phase = 'playing';
+/* Every run draws its own condition — no menu, a little anticipation. */
+function startShift(shelfCount, forcedCondition) {
+  const tier = shelfCount || (S && S.shelfCount) || SHELF_TIERS[0];
+  S = createState(forcedCondition || rollCondition(), tier);
+  S.phase = 'splash';
   for (let i = 0; i < CONFIG.startingBooks; i++) addBookToCart();
 
   clearBoard();
   buildShelves();
   renderAll();
   hideOverlay();
-  lastFrame = performance.now();
+  showConditionSplash(() => {
+    if (!S || S.phase !== 'splash') return;
+    S.phase = 'playing';
+    lastFrame = performance.now();
+  });
 }
 
 /* Elements that outlive game state (queue, effects) have to go too. */
@@ -608,9 +642,9 @@ function clearBoard() {
 function update(dt) {
   S.elapsed += dt;
 
-  // Phase ramp
+  // Phase ramp, driven by how much of the list is done
   while (S.phaseIndex < CONFIG.phases.length - 1 &&
-         S.elapsed >= CONFIG.phases[S.phaseIndex].until) {
+         workloadProgress() >= CONFIG.phases[S.phaseIndex].untilProgress) {
     S.phaseIndex++;
     renderPhase();
   }
@@ -625,7 +659,7 @@ function update(dt) {
   S.bookTimer -= dt;
   if (S.bookTimer <= 0) {
     if (addBookToCart()) {
-      S.bookTimer = currentPhase().bookEvery * rand(0.85, 1.15);
+      S.bookTimer = bookGap();
       renderCart();
     } else {
       S.bookTimer = 1.5;               // cart is full: wait, don't pile up forever
@@ -636,7 +670,7 @@ function update(dt) {
   S.patronTimer -= dt;
   if (S.patronTimer <= 0) {
     if (addPatron()) {
-      S.patronTimer = currentPhase().patronEvery * rand(0.85, 1.15);
+      S.patronTimer = patronGap();
       renderQueue();
     } else {
       S.patronTimer = 2;
@@ -673,6 +707,7 @@ function bumpStreak() {
   S.streak++;
   if (S.streak > S.bestStreak) S.bestStreak = S.streak;
   if (S.streak > 0 && S.streak % 5 === 0) showMilestone(S.streak);
+  $('streakBox').classList.toggle('blazing', S.streak >= 10);
 }
 
 function breakStreak() {
@@ -686,11 +721,13 @@ function takeTopBook() {
   if (S.hand) { say('One thing at a time — finish what’s in hand.', 'warn'); return; }
   if (S.cart.length === 0) { nudgeCart(); say('The cart is empty. A rare and peaceful moment.'); return; }
 
+  const from = elCart.getBoundingClientRect();
   S.hand = { kind: 'book', book: S.cart.pop() };
   playCue('pickup');
   renderCart();
   renderSlip();
   renderArmed();
+  liftToCounter(from);        // the book visibly comes off the cart
 }
 
 function selectPatron(id) {
@@ -734,6 +771,7 @@ function resolveBook(genreId) {
     S.satisfaction = clamp(S.satisfaction + CONFIG.satisfaction.wrongShelf, 0, 100);
     breakStreak();
     flashShelf(genreId, 'bad');
+    rejectFrom(shelfEls[genreId].root);    // the book bumps the shelf and comes back
     playCue('wrong');
     renderHud();
     return;                                // still in hand: try another shelf
@@ -746,16 +784,17 @@ function resolveBook(genreId) {
   clearStain(book);
 
   S.shelfHistory[book.genre].push(book);   // history is kept in full…
-  flyBook(elCart, shelfEls[book.genre].root, book.genre);
-  addSpine(book.genre, book);              // …the shelf only shows the recent few
 
   const gained = CONFIG.points.shelfCorrect + streakBonus();
   S.score += gained;
   bumpStreak();
+
+  // The card flies out of the counter, turns on its side and slots in.
+  fileToShelf(shelfEls[genreId], book, () => addSpine(book.genre, book));
   flashShelf(genreId, 'good');
   floatScore(shelfEls[genreId].root, '+' + gained, false);
-  say('Right where it belongs.', 'good');
-  playCue('right');
+  playCue(S.streak >= 10 ? 'rightHot' : 'right');
+  setTimeout(() => playCue('thunk'), 230);      // it lands a moment after it flies
 
   renderSlip();
   renderArmed();
@@ -780,7 +819,7 @@ function resolvePatron(genreId) {
     S.hand = null;
     flashShelf(genreId, 'good');
     floatScore(shelfEls[genreId].root, '+' + gained, false);
-    say(p.name + ': “' + pick(THANK_LINES) + '”', 'good');
+    reactAt(p.id, pick(THANK_LINES), 'good');
     playCue('helped');
     removePatron(p, 'helped');
     renderSlip();      // hand was already cleared above, so clear the desk too
@@ -793,6 +832,7 @@ function resolvePatron(genreId) {
     S.satisfaction = clamp(S.satisfaction + CONFIG.satisfaction.wrongAnswer, 0, 100);
     breakStreak();
     flashShelf(genreId, 'bad');
+    rejectFrom(shelfEls[genreId].root);
     playCue('wrong');
   }
 
@@ -802,7 +842,7 @@ function resolvePatron(genreId) {
 function patronLeaves(p) {
   S.left++;
   S.satisfaction = clamp(S.satisfaction + CONFIG.satisfaction.patronLeft, 0, 100);
-  say(p.name + ': “' + pick(LEAVING_LINES) + '”');
+  reactAt(p.id, pick(LEAVING_LINES), 'warn');
   removePatron(p, 'left');
   renderHud();
 }
@@ -896,8 +936,8 @@ function makeStain(book) {
 }
 
 function maybeStain(book) {
-  if (S.mode !== 'coffee' || S.stains.has(book)) return;
-  if (Math.random() >= CONFIG.coffeeChance) return;
+  if (!S.condition.coffee || S.stains.has(book)) return;
+  if (Math.random() >= S.condition.coffee) return;
   const stain = makeStain(book);
   if (stain) S.stains.set(book, stain);
 }
@@ -909,26 +949,42 @@ function clearStain(book) { S.stains.delete(book); }
    playable. Storage can be unavailable, in which case the game simply runs
    without memory rather than breaking. */
 
-const SAVE_KEY = 'quietstacks.save.v2';
+const SAVE_KEY = 'quietstacks.save.v3';
+const OLD_SAVE_KEY = 'quietstacks.save.v2';   // per-mode ladders, before conditions were random
+
+const GRADE_ORDER = ['C', 'B', 'A', 'S'];
 
 function blankProgress() {
-  const p = {};
-  MODES.forEach((m) => { p[m.id] = { unlocked: SHELF_TIERS[0], best: {} }; });
-  return p;
+  return { unlocked: SHELF_TIERS[0], best: {} };
 }
 
+/* One ladder now: any condition counts toward the next shelf tier. An older
+   save had a ladder per mode, so it folds in at whichever got furthest. */
 function loadProgress() {
   const fresh = blankProgress();
   try {
     const raw = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
-    if (!raw) return fresh;
-    MODES.forEach((m) => {
-      const got = raw[m.id];
-      if (!got) return;
-      const n = parseInt(got.unlocked, 10);
-      fresh[m.id].unlocked = clamp(Number.isFinite(n) ? n : 3, SHELF_TIERS[0], 5);
-      if (got.best && typeof got.best === 'object') fresh[m.id].best = got.best;
-    });
+    if (raw) {
+      const n = parseInt(raw.unlocked, 10);
+      fresh.unlocked = clamp(Number.isFinite(n) ? n : 3, SHELF_TIERS[0], 5);
+      if (raw.best && typeof raw.best === 'object') fresh.best = raw.best;
+      return fresh;
+    }
+    const old = JSON.parse(localStorage.getItem(OLD_SAVE_KEY) || 'null');
+    if (old) {
+      Object.keys(old).forEach((mode) => {
+        const m = old[mode];
+        if (!m) return;
+        const n = parseInt(m.unlocked, 10);
+        if (Number.isFinite(n)) fresh.unlocked = Math.max(fresh.unlocked, clamp(n, 3, 5));
+        Object.keys(m.best || {}).forEach((tier) => {
+          const b = m.best[tier];
+          if (!b || !Number.isFinite(b.score)) return;
+          const kept = fresh.best[tier];
+          if (!kept || b.score > kept.score) fresh.best[tier] = { score: b.score, grade: b.grade, time: b.time };
+        });
+      });
+    }
   } catch (e) { /* no memory is fine */ }
   return fresh;
 }
@@ -939,17 +995,17 @@ function saveProgress() {
 
 function resetProgress() {
   progress = blankProgress();
-  try { localStorage.removeItem(SAVE_KEY); } catch (e) { /* fine */ }
+  try {
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.removeItem(OLD_SAVE_KEY);
+  } catch (e) { /* fine */ }
 }
 
 let progress = loadProgress();
 
-function bestFor(mode, shelfCount) {
-  const b = progress[mode].best[shelfCount];
-  return b && Number.isFinite(b.score) ? b : null;
-}
+function bestFor(shelfCount) { return progress.best[shelfCount] || null; }
 
-function tierUnlocked(mode, shelfCount) { return shelfCount <= progress[mode].unlocked; }
+function tierUnlocked(shelfCount) { return shelfCount <= progress.unlocked; }
 
 /* ── Personal best ──────────────────────────────────────────────────────
    Kept per shift length, so a 2-minute run is never measured against a
@@ -995,20 +1051,35 @@ function endShift() {
   S.hand = null;
   S.finishedIn = S.elapsed;
   const grade = computeGrade();
-  const prev = bestFor(S.mode, S.shelfCount);
-  S.previousBest = prev ? prev.score : 0;
-  S.newRecord = S.score > S.previousBest;
+  const prev = bestFor(S.shelfCount);
+  const time = Math.round(S.finishedIn);
 
-  // An A or S at the mode's current top tier opens the next one, once.
+  // Each record stands on its own, so a scrappy but fast run still shows one.
+  S.records = {
+    score:  !prev || S.score > prev.score,
+    time:   !prev || !prev.time || time < prev.time,
+    streak: !prev || !prev.streak || S.bestStreak > prev.streak,
+    grade:  !prev || !prev.grade || GRADE_ORDER.indexOf(grade) > GRADE_ORDER.indexOf(prev.grade),
+  };
+  S.previousBest = prev ? prev.score : 0;
+  S.newRecord = S.records.score;
+
+  // An A or S at the top unlocked tier opens the next one, whatever condition
+  // came up — there is a single ladder.
   S.unlockedShelf = null;
   if ((grade === 'A' || grade === 'S') &&
-      S.shelfCount === progress[S.mode].unlocked && S.shelfCount < 5) {
-    progress[S.mode].unlocked = S.shelfCount + 1;
-    S.unlockedShelf = SHELVES[S.shelfCount];      // the section just opened
+      S.shelfCount === progress.unlocked && S.shelfCount < 5) {
+    progress.unlocked = S.shelfCount + 1;
+    S.unlockedShelf = SHELVES[S.shelfCount];
   }
-  if (S.newRecord) progress[S.mode].best[S.shelfCount] =
-    { score: S.score, grade: grade, time: Math.round(S.finishedIn) };
-  if (S.newRecord || S.unlockedShelf) saveProgress();
+
+  progress.best[S.shelfCount] = {
+    score:  S.records.score  ? S.score      : prev.score,
+    time:   S.records.time   ? time         : prev.time,
+    streak: S.records.streak ? S.bestStreak : prev.streak,
+    grade:  S.records.grade  ? grade        : prev.grade,
+  };
+  saveProgress();
   renderSlip();
   renderArmed();
   renderHud();
@@ -1052,11 +1123,13 @@ function buildShelves() {
     btn.innerHTML =
       '<span class="shelf-name">' + (sh.short || sh.name) +
         '<span class="shelf-tag">' + sh.tag + '</span></span>' +
+      '<span class="shelf-back"></span>' +
       '<span class="shelf-spines"></span>' +
       '<span class="shelf-plank"></span>';
     btn.addEventListener('click', () => chooseShelf(sh.id));
     elShelves.appendChild(btn);
-    shelfEls[sh.id] = { root: btn, spines: btn.querySelector('.shelf-spines') };
+    shelfEls[sh.id] = { root: btn, spines: btn.querySelector('.shelf-spines'),
+                        back: btn.querySelector('.shelf-back') };
   });
 }
 
@@ -1074,9 +1147,13 @@ function shadeOf(base, i) {
    on the element (and in S.shelfHistory) regardless of what is shown. */
 function addSpine(genreId, book) {
   const bay = shelfEls[genreId];
+  // The shelving animation lands after a delay, so a new shift with fewer
+  // sections may already have torn this bay down.
+  if (!bay) return;
   const count = bay.spines.children.length;
   while (bay.spines.children.length >= CONFIG.shelfDisplayMax) {
-    bay.spines.removeChild(bay.spines.firstChild);      // oldest slides out of view
+    bay.spines.removeChild(bay.spines.firstChild);      // oldest loses its label…
+    addBackSpine(genreId);                              // …but stays on the shelf
   }
   const el = document.createElement('span');
   el.className = 'spine';
@@ -1090,6 +1167,20 @@ function addSpine(genreId, book) {
     el.appendChild(label);
   }
   bay.spines.appendChild(el);
+}
+
+/* Books that have scrolled past the labelled few stand up at the back, so the
+   shelf visibly fills as the shift goes on. */
+function addBackSpine(genreId) {
+  const bay = shelfEls[genreId];
+  if (!bay || bay.back.children.length >= CONFIG.shelfBackMax) return;
+  const n = bay.back.children.length;
+  const el = document.createElement('span');
+  el.className = 'back-spine';
+  el.style.setProperty('--sp', shadeOf(shelfById(genreId).color, n + 2));
+  el.style.height = (62 + ((n * 29) % 30)) + '%';
+  el.style.width = (5 + (n % 3)) + 'px';
+  bay.back.appendChild(el);
 }
 
 function flashShelf(genreId, kind) {
@@ -1196,6 +1287,7 @@ function renderQueue() {
     el.setAttribute('aria-label', p.name + ' is waiting');
     el.innerHTML =
       '<span class="bubble" aria-hidden="true">?</span>' +
+      '<span class="reaction" aria-hidden="true"></span>' +
       '<span class="face" style="--fc:' + p.color + '">' + p.name.charAt(0) + '</span>' +
       '<span class="patron-name">' + p.name + '</span>' +
       '<span class="patience"><span class="patience-fill"></span></span>';
@@ -1205,6 +1297,16 @@ function renderQueue() {
   });
 
   elQueueEmpty.classList.toggle('hidden', S.patrons.length > 0);
+}
+
+/* A short line above the patron themselves, rather than a message at the desk. */
+function reactAt(id, text, tone) {
+  const els = patronEls.get(id);
+  if (!els) return;
+  const el = els.root.querySelector('.reaction');
+  if (!el) return;
+  el.textContent = text;
+  el.className = 'reaction show ' + (tone || '');
 }
 
 function dismissPatronEl(id, how) {
@@ -1296,6 +1398,69 @@ function say(text, tone) {
   toastTimer = setTimeout(() => elToast.classList.remove('show'), 2200);
 }
 
+/* The counter card, cloned and animated. Kept short — the game must never wait
+   on it, so state has already changed by the time these run. */
+function counterRect() { return elSlip.getBoundingClientRect(); }
+
+function liftToCounter(fromRect) {
+  const to = counterRect();
+  const el = document.createElement('div');
+  el.className = 'lift';
+  el.style.left = (fromRect.left + fromRect.width / 2 - 26) + 'px';
+  el.style.top = (fromRect.top + 24) + 'px';
+  elFx.appendChild(el);
+  const dx = (to.left + to.width / 2) - (fromRect.left + fromRect.width / 2);
+  const dy = (to.top + to.height / 2) - (fromRect.top + 24);
+  requestAnimationFrame(() => {
+    el.style.transform = 'translate(' + dx + 'px,' + dy + 'px) scale(2.1)';
+    el.style.opacity = '0';
+  });
+  setTimeout(() => el.remove(), 300);
+}
+
+/* Counter -> shelf: the card shrinks and rotates into a spine as it goes. */
+function fileToShelf(bay, book, onArrive) {
+  if (!bay) { onArrive(); return; }
+  const from = counterRect();
+  const to = bay.spines.getBoundingClientRect();
+  const el = document.createElement('div');
+  el.className = 'file-card';
+  el.style.setProperty('--sp', shelfById(book.genre).color);
+  el.style.left = from.left + 'px';
+  el.style.top = from.top + 'px';
+  el.style.width = from.width + 'px';
+  el.style.height = from.height + 'px';
+  el.textContent = book.title;
+  elFx.appendChild(el);
+
+  const dx = (to.left + to.width / 2) - (from.left + from.width / 2);
+  const dy = (to.bottom - 10) - (from.top + from.height / 2);
+  requestAnimationFrame(() => {
+    el.style.transform =
+      'translate(' + dx + 'px,' + dy + 'px) rotate(-8deg) scale(.22, .16)';
+    el.style.opacity = '.25';
+  });
+  setTimeout(() => { el.remove(); onArrive(); }, 320);
+}
+
+/* Wrong shelf: a short lunge and a bounce back to the counter. */
+function rejectFrom(shelfEl) {
+  const from = counterRect();
+  const to = shelfEl.getBoundingClientRect();
+  const el = document.createElement('div');
+  el.className = 'reject-card';
+  el.style.left = from.left + 'px';
+  el.style.top = from.top + 'px';
+  el.style.width = from.width + 'px';
+  el.style.height = from.height + 'px';
+  elFx.appendChild(el);
+  const dx = ((to.left + to.width / 2) - (from.left + from.width / 2)) * 0.22;
+  const dy = ((to.top + to.height / 2) - (from.top + from.height / 2)) * 0.22;
+  el.style.setProperty('--dx', dx + 'px');
+  el.style.setProperty('--dy', dy + 'px');
+  setTimeout(() => el.remove(), 300);
+}
+
 function flyBook(fromEl, toEl, genreId) {
   const a = fromEl.getBoundingClientRect();
   const b = toEl.getBoundingClientRect();
@@ -1326,27 +1491,35 @@ function floatScore(anchorEl, text, warn) {
   setTimeout(() => el.remove(), 1000);
 }
 
-const MILESTONE_WORDS = ['the shelves approve', 'quietly magnificent', 'not a single wobble', 'the stacks are humming'];
+const MILESTONES = {
+  5:  'In the Groove',
+  10: 'Well Read',
+  15: 'The Stacks Are Humming',
+  20: 'Master Librarian',
+};
+
 function showMilestone(n) {
+  const name = MILESTONES[n] || 'Still Going';
+  elFx.querySelectorAll('.milestone').forEach((old) => old.remove());  // only ever one
   const el = document.createElement('div');
-  el.className = 'milestone';
-  el.textContent = '✦ Streak ' + n + ' — ' + pick(MILESTONE_WORDS);
+  el.className = 'milestone tier-' + Math.min(4, Math.floor(n / 5));
+  el.innerHTML = '<b>' + n + '</b> ' + esc(name);
   elFx.appendChild(el);
-  setTimeout(() => el.remove(), 1550);
+  setTimeout(() => el.remove(), 1450);
+  document.body.classList.add('streaking');
+  clearTimeout(showMilestone.glow);
+  showMilestone.glow = setTimeout(() => document.body.classList.remove('streaking'), 900);
   playCue('streak');
 }
 
 /* ── Overlays ───────────────────────────────────────────────────────────── */
 
-let chosenMode = MODES[0].id;
 let chosenShelves = SHELF_TIERS[0];
 
 function hideOverlay() { elOverlay.classList.add('hidden'); }
 
 function showTitle() {
   elOverlay.classList.remove('hidden');
-  const modeChips = MODES.map((m) =>
-    '<button class="chip" type="button" data-mode="' + m.id + '">' + m.name + '</button>').join('');
   const tierChips = SHELF_TIERS.map((n) =>
     '<button class="chip" type="button" data-tier="' + n + '">' + n + ' shelves</button>').join('');
 
@@ -1354,59 +1527,64 @@ function showTitle() {
     '<h1>Quiet Stacks</h1>' +
     '<p class="sub">One short shift</p>' +
     '<ul class="rules">' +
-      '<li><i>1</i><span>Tap the <b>return cart</b> for the top book, read it, then tap the shelf it belongs on.</span></li>' +
-      '<li><i>2</i><span>Tap a <b>patron</b> to hear their request, then tap the section that answers it.</span></li>' +
-      '<li><i>3</i><span>A wrong shelf costs you the streak. The book stays in hand — try again.</span></li>' +
-      '<li><i>4</i><span>The shift ends the moment the whole list is done. Quick and clean scores best.</span></li>' +
+      '<li><i>1</i><span>Take the top book off the <b>cart</b>, read it, put it on the right shelf.</span></li>' +
+      '<li><i>2</i><span>Tap a <b>patron</b> to hear what they want, then point them at a section.</span></li>' +
+      '<li><i>3</i><span>Wrong shelf? It bounces back. The streak goes, the book stays.</span></li>' +
+      '<li><i>4</i><span>Every shift deals its own conditions. Finish the list to clock off.</span></li>' +
     '</ul>' +
     '<div class="choices">' +
-      '<div class="choice"><span class="slip-kicker">Mode</span>' +
-        '<div class="chips">' + modeChips + '</div>' +
-        '<p class="chip-note" id="modeNote"></p></div>' +
-      '<div class="choice"><span class="slip-kicker">Shelves</span>' +
+      '<div class="choice choice-wide"><span class="slip-kicker">Shelves</span>' +
         '<div class="chips">' + tierChips + '</div>' +
         '<p class="chip-note" id="tierNote"></p></div>' +
     '</div>' +
     '<p class="best-line" id="bestLine"></p>' +
-    '<button class="btn" type="button" id="beginBtn">Begin the shift</button>' +
+    '<button class="btn" type="button" id="beginBtn">Start shift</button>' +
     '<button class="btn ghost" type="button" id="resetBtn">Reset progress</button>';
 
   const refresh = () => {
-    const open = progress[chosenMode].unlocked;
-    if (chosenShelves > open) chosenShelves = open;
-
-    elCard.querySelectorAll('[data-mode]').forEach((b) =>
-      b.classList.toggle('on', b.dataset.mode === chosenMode));
-    $('modeNote').textContent = MODES.find((m) => m.id === chosenMode).blurb;
+    if (chosenShelves > progress.unlocked) chosenShelves = progress.unlocked;
 
     elCard.querySelectorAll('[data-tier]').forEach((b) => {
       const n = Number(b.dataset.tier);
-      const locked = !tierUnlocked(chosenMode, n);
+      const locked = !tierUnlocked(n);
       b.classList.toggle('on', n === chosenShelves);
       b.classList.toggle('locked', locked);
       b.disabled = locked;
       b.textContent = (locked ? '🔒 ' : '') + n + ' shelves';
     });
-    const nextLock = SHELF_TIERS.find((n) => !tierUnlocked(chosenMode, n));
+
+    const nextLock = SHELF_TIERS.find((n) => !tierUnlocked(n));
     $('tierNote').textContent = nextLock
       ? 'Earn an A on ' + (nextLock - 1) + ' shelves to unlock ' + nextLock + '.'
       : SHELVES.slice(0, chosenShelves).map((sh) => sh.short || sh.name).join(' · ');
 
     const t = targetsFor();
-    const best = bestFor(chosenMode, chosenShelves);
+    const best = bestFor(chosenShelves);
     $('bestLine').textContent = 'Shelve ' + t.books + ' · help ' + t.patrons +
       (best ? ' · best ' + best.score + ' (' + best.grade + ', ' + formatTime(best.time || 0) + ')' : '');
   };
 
-  elCard.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', () => {
-    chosenMode = b.dataset.mode; refresh(); playCue('pickup');
-  }));
   elCard.querySelectorAll('[data-tier]').forEach((b) => b.addEventListener('click', () => {
     chosenShelves = Number(b.dataset.tier); refresh(); playCue('pickup');
   }));
-  $('beginBtn').addEventListener('click', () => startShift(chosenMode, chosenShelves));
+  $('beginBtn').addEventListener('click', () => startShift(chosenShelves));
   $('resetBtn').addEventListener('click', showConfirmReset);
   refresh();
+}
+
+/* A beat of anticipation between tapping start and the first book. */
+function showConditionSplash(done) {
+  if (!CONFIG.splashMs) { done(); return; }
+  const el = document.createElement('div');
+  el.className = 'splash cond-' + S.condition.id;
+  el.innerHTML =
+    '<span class="splash-kicker">Today&rsquo;s shift</span>' +
+    '<span class="splash-name">' + esc(S.condition.name) + '</span>' +
+    '<span class="splash-blurb">' + esc(S.condition.blurb) + '</span>';
+  elFx.appendChild(el);
+  playCue('deal');
+  setTimeout(() => { el.classList.add('out'); }, CONFIG.splashMs - 350);
+  setTimeout(() => { el.remove(); done(); }, CONFIG.splashMs);
 }
 
 function showConfirmReset() {
@@ -1414,8 +1592,7 @@ function showConfirmReset() {
   elCard.innerHTML =
     '<h2>Reset progress?</h2>' +
     '<p class="sub">Unlocks and best scores</p>' +
-    '<p>Both modes go back to three shelves, and every best score is cleared. ' +
-    'Nothing else about the game changes.</p>' +
+    '<p>Back to three shelves, and every best is cleared. Nothing else changes.</p>' +
     '<button class="btn" type="button" id="doResetBtn">Yes, clear it</button>' +
     '<button class="btn ghost" type="button" id="keepBtn">Keep my progress</button>';
   $('doResetBtn').addEventListener('click', () => {
@@ -1436,7 +1613,7 @@ function showConfirmRestart() {
     S.targets.patrons + ' helped, in ' + formatTime(S.elapsed) + '. Beginning again clears it.</p>' +
     '<button class="btn" type="button" id="confirmBtn">Yes, fresh shift</button>' +
     '<button class="btn ghost" type="button" id="cancelBtn">No, back to work</button>';
-  $('confirmBtn').addEventListener('click', () => startShift(S.mode, S.shelfCount));
+  $('confirmBtn').addEventListener('click', () => startShift(S.shelfCount));
   $('cancelBtn').addEventListener('click', () => {
     S.phase = 'playing';
     lastFrame = performance.now();
@@ -1447,24 +1624,26 @@ function showConfirmRestart() {
 function showResults() {
   const acc = Math.round(accuracy() * 100);
   const grade = computeGrade();
+  const r = S.records || {};
   const rows = [
-    ['Time', formatTime(S.finishedIn), S.finishedIn <= CONFIG.parSeconds],
-    ['Accuracy', S.attempts ? acc + '%' : '—', S.attempts > 0 && acc >= 94],
-    ['Best streak', String(S.bestStreak), S.bestStreak >= 8],
-    ['Books shelved', S.shelved + ' / ' + S.targets.books, S.shelved >= S.targets.books],
-    ['Patrons helped', S.helped + ' / ' + S.targets.patrons, S.helped >= S.targets.patrons],
-    ['Score', String(S.score), false],
+    ['Time', formatTime(S.finishedIn), S.finishedIn <= CONFIG.parSeconds, r.time],
+    ['Accuracy', S.attempts ? acc + '%' : '—', S.attempts > 0 && acc >= 94, false],
+    ['Score', String(S.score), false, r.score],
+    ['Best streak', String(S.bestStreak), S.bestStreak >= 8, r.streak],
+    ['Books shelved', S.shelved + ' / ' + S.targets.books, true, false],
+    ['Patrons helped', S.helped + ' / ' + S.targets.patrons, true, false],
   ];
 
   elOverlay.classList.remove('hidden');
   elCard.innerHTML =
     '<h2>Closing time</h2>' +
-    '<p class="sub">' + MODES.find((m) => m.id === S.mode).name + ' · ' + S.shelfCount + ' shelves' +
-      (S.newRecord && S.previousBest ? ' · new best' : '') + '</p>' +
+    '<p class="sub">' + S.condition.name + ' · ' + S.shelfCount + ' shelves</p>' +
     '<div class="grade">' + grade + '</div>' +
     '<div class="results">' +
-      rows.map(([label, value, met]) =>
-        '<div class="result-row' + (met ? ' met' : '') + '"><span>' + label + '</span><b>' + value + '</b></div>'
+      rows.map(([label, value, met, record]) =>
+        '<div class="result-row' + (met ? ' met' : '') + (record ? ' record' : '') + '">' +
+          '<span>' + label + (record ? '<i class="newbest">new best</i>' : '') + '</span>' +
+          '<b>' + value + '</b></div>'
       ).join('') +
     '</div>' +
     '<p class="verdict">' + GRADE_NOTES[grade] +
@@ -1476,9 +1655,9 @@ function showResults() {
           '<span class="unlock-note">' + (S.shelfCount + 1) + '-shelf shifts are now available.</span>' +
         '</div>'
       : '') +
-    '<button class="btn" type="button" id="againBtn">Take another shift</button>' +
-    '<button class="btn ghost" type="button" id="menuBtn">Change mode or shelves</button>';
-  $('againBtn').addEventListener('click', () => startShift(S.mode, S.shelfCount));
+    '<button class="btn" type="button" id="againBtn">Play again</button>' +
+    '<button class="btn ghost" type="button" id="menuBtn">Change shelves</button>';
+  $('againBtn').addEventListener('click', () => startShift(S.shelfCount));
   $('menuBtn').addEventListener('click', showTitle);
 }
 
@@ -1503,6 +1682,12 @@ const CUES = {
             { f: 1175, at: 0.140, d: 0.22, g: 0.038, t: 'sine' }],
   wrong:   [{ f: 311, at: 0,     d: 0.16, g: 0.055, t: 'triangle' },
             { f: 233, at: 0.105, d: 0.30, g: 0.050, t: 'triangle' }],
+  rightHot:[{ f: 784, at: 0,     d: 0.09, g: 0.050, t: 'sine' },
+            { f: 1175, at: 0.065, d: 0.20, g: 0.046, t: 'sine' }],
+  thunk:   [{ f: 150, at: 0,     d: 0.11, g: 0.055, t: 'triangle' }],
+  deal:    [{ f: 392, at: 0,     d: 0.13, g: 0.040, t: 'sine' },
+            { f: 523, at: 0.100, d: 0.13, g: 0.038, t: 'sine' },
+            { f: 659, at: 0.200, d: 0.26, g: 0.036, t: 'sine' }],
   streak:  [{ f: 784, at: 0,     d: 0.12, g: 0.040, t: 'sine' },
             { f: 1047, at: 0.090, d: 0.14, g: 0.036, t: 'sine' },
             { f: 1568, at: 0.180, d: 0.28, g: 0.030, t: 'sine' }],
@@ -1533,8 +1718,70 @@ function playCue(name) {
   } catch (e) { /* audio is a nicety, never a requirement */ }
 }
 
+/* iOS will not start an audio context outside a gesture, so wake it on the
+   first one and then get out of the way. */
+function wakeAudio() {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  } catch (e) { /* audio is a nicety */ }
+  window.removeEventListener('pointerdown', wakeAudio);
+  window.removeEventListener('touchstart', wakeAudio);
+  window.removeEventListener('keydown', wakeAudio);
+}
+window.addEventListener('pointerdown', wakeAudio, { once: false });
+window.addEventListener('touchstart', wakeAudio, { once: false });
+window.addEventListener('keydown', wakeAudio, { once: false });
+
+/* ── Optional drag: the book can also be thrown at a shelf. Tap is untouched —
+   a drag only begins once the pointer has actually moved. ── */
+let dragging = null;
+
+elSlip.addEventListener('pointerdown', (e) => {
+  if (!S || S.phase !== 'playing' || !S.hand) return;
+  dragging = { id: e.pointerId, x: e.clientX, y: e.clientY, live: false, ghost: null };
+});
+
+window.addEventListener('pointermove', (e) => {
+  if (!dragging || e.pointerId !== dragging.id) return;
+  const dx = e.clientX - dragging.x, dy = e.clientY - dragging.y;
+  if (!dragging.live) {
+    if (Math.hypot(dx, dy) < 10) return;          // still a tap
+    dragging.live = true;
+    const r = elSlip.getBoundingClientRect();
+    const g = document.createElement('div');
+    g.className = 'drag-ghost';
+    g.style.left = r.left + 'px';
+    g.style.top = r.top + 'px';
+    g.style.width = r.width + 'px';
+    g.style.height = r.height + 'px';
+    elFx.appendChild(g);
+    dragging.ghost = g;
+    elSlip.classList.add('dragging');
+  }
+  dragging.ghost.style.transform = 'translate(' + dx + 'px,' + dy + 'px) scale(.72)';
+  const over = shelfUnder(e.clientX, e.clientY);
+  S.shelves.forEach((sh) => shelfEls[sh.id].root.classList.toggle('hover', over === sh.id));
+});
+
+window.addEventListener('pointerup', (e) => {
+  if (!dragging || e.pointerId !== dragging.id) return;
+  const drop = dragging.live ? shelfUnder(e.clientX, e.clientY) : null;
+  if (dragging.ghost) dragging.ghost.remove();
+  elSlip.classList.remove('dragging');
+  if (S && S.shelves) S.shelves.forEach((sh) => shelfEls[sh.id].root.classList.remove('hover'));
+  dragging = null;
+  if (drop) chooseShelf(drop);
+});
+
+function shelfUnder(x, y) {
+  const el = document.elementFromPoint(x, y);
+  const shelf = el && el.closest ? el.closest('.shelf') : null;
+  return shelf ? shelf.dataset.genre : null;
+}
+
 $('restartBtn').addEventListener('click', () => {
-  if (S.phase !== 'playing') { startShift(chosenMode, chosenShelves); return; }
+  if (S.phase !== 'playing') { startShift(chosenShelves); return; }
   showConfirmRestart();
 });
 
@@ -1567,7 +1814,7 @@ function loop(now) {
 }
 
 /* Boot */
-S = createState('normal', SHELF_TIERS[0]);
+S = createState(CONDITIONS[0], SHELF_TIERS[0]);
 buildShelves();
 renderAll();
 showTitle();

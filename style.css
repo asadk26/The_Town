@@ -177,6 +177,23 @@ button {
 }
 #streakBox.hot .readout-value { color: var(--brass); }
 
+#streakBox.blazing {
+  border-color: var(--brass);
+  box-shadow: 0 0 18px rgba(216, 166, 87, .7);
+  animation: streakPulse 1.4s ease-in-out infinite;
+}
+@keyframes streakPulse { 50% { box-shadow: 0 0 26px rgba(216, 166, 87, .95); } }
+
+body.streaking .bookcase {
+  box-shadow: var(--shadow-soft), inset 0 0 0 1px rgba(216, 166, 87, .55), 0 0 26px rgba(216, 166, 87, .22);
+}
+
+.milestone b { color: var(--cream); margin-right: 6px; }
+.milestone.tier-3, .milestone.tier-4 {
+  border-color: var(--brass);
+  box-shadow: 0 0 40px rgba(216, 166, 87, .55);
+}
+
 .icon-btn {
   width: 38px;
   height: 38px;
@@ -341,6 +358,8 @@ button {
 }
 
 .shelf-spines {
+  position: relative;
+  z-index: 1;
   flex: 1 1 auto;
   display: flex;
   flex-direction: column-reverse;   /* newest rests on top of the pile */
@@ -379,6 +398,32 @@ button {
 
 /* The title reads across the book. A long one takes a second line rather than
    losing its ending; the full title lives on the element and in game state. */
+/* Older books stand at the back of the bay, unlabelled — the shelf fills up. */
+.shelf-back {
+  position: absolute;
+  left: 5px;
+  right: 5px;
+  bottom: 6px;
+  height: 62%;
+  display: flex;
+  align-items: flex-end;
+  gap: 1px;
+  opacity: .5;
+  pointer-events: none;
+}
+
+.back-spine {
+  border-radius: 1px 1px 0 0;
+  background: var(--sp, #8a6a4a);
+  box-shadow: inset -1px 0 0 rgba(0, 0, 0, .3);
+  animation: backSpineIn .3s ease both;
+}
+
+@keyframes backSpineIn {
+  0%   { transform: translateY(6px); opacity: 0; }
+  100% { transform: none; opacity: 1; }
+}
+
 .spine-label {
   width: 100%;
   font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
@@ -435,21 +480,51 @@ button {
   flex: 0 0 auto;
 }
 
-.slip {
-  min-height: 116px;
+.desk {
+  /* the counter surface the book sits on */
   border-radius: var(--radius);
-  padding: 12px 14px;
   background:
-    linear-gradient(180deg, var(--cream), var(--paper-dim));
+    repeating-linear-gradient(96deg, rgba(0,0,0,.05) 0 3px, transparent 3px 10px),
+    linear-gradient(180deg, var(--wood-mid), var(--wood-dark));
+  box-shadow: inset 0 2px 6px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,220,170,.09);
+  padding: 6px;
+}
+
+.slip {
+  position: relative;
+  min-height: 104px;
+  border-radius: 3px 9px 9px 3px;    /* bound edge on the left, pages on the right */
+  padding: 11px 15px 11px 20px;
+  background:
+    linear-gradient(90deg, rgba(120,80,40,.16) 0 5px, rgba(255,252,244,.5) 5px 9px, transparent 9px),
+    linear-gradient(178deg, var(--cream), var(--paper-dim));
   color: var(--ink);
-  box-shadow: var(--shadow-soft), inset 0 0 0 1px rgba(120, 80, 40, .18);
+  box-shadow:
+    inset 5px 0 0 var(--unsorted, #8a7c6a),        /* the spine — never a genre colour */
+    0 6px 14px rgba(20, 10, 4, .45),
+    0 1px 0 rgba(255, 252, 244, .5);
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 6px;
+  gap: 5px;
+  transform: rotate(-.35deg);
 }
 
-.slip.idle { justify-content: center; align-items: center; text-align: center; }
+.slip.enter { animation: bookLands .3s cubic-bezier(.2, 1.25, .4, 1) both; }
+.slip.dragging { opacity: .25; }
+
+@keyframes bookLands {
+  0%   { transform: translateY(-10px) rotate(-2.4deg) scale(.94); opacity: 0; }
+  100% { transform: rotate(-.35deg); opacity: 1; }
+}
+
+.slip.idle {
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  box-shadow: inset 5px 0 0 rgba(138, 124, 106, .35), 0 4px 10px rgba(20, 10, 4, .3);
+  background: linear-gradient(178deg, rgba(251, 246, 234, .82), rgba(230, 216, 189, .82));
+}
 
 .slip-hint {
   font-size: 14px;
@@ -518,7 +593,6 @@ button {
 }
 .slip-back:active { background: rgba(120, 80, 40, .2); }
 
-.slip.enter { animation: slipIn .28s cubic-bezier(.2, .9, .3, 1) both; }
 @keyframes slipIn {
   from { transform: translateY(8px) rotate(-.6deg); opacity: 0; }
   to   { transform: none; opacity: 1; }
@@ -773,6 +847,38 @@ button {
 .patience-fill.low  { background: var(--amber); animation: pulseLow 1s ease-in-out infinite; }
 @keyframes pulseLow { 50% { opacity: .55; } }
 
+.reaction {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 3px;
+  padding: 3px 7px;
+  border-radius: 8px;
+  background: rgba(30, 18, 10, .95);
+  border: 1px solid rgba(216, 166, 87, .45);
+  color: var(--paper);
+  font-size: 9.5px;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  white-space: nowrap;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 4;
+}
+.reaction.show { animation: reactionPop 1.1s ease forwards; }
+.reaction.good { border-color: rgba(127, 154, 111, .8); color: #dbe9d2; }
+.reaction.warn { border-color: rgba(207, 138, 68, .7); color: #f3ddc2; }
+
+@keyframes reactionPop {
+  0%   { opacity: 0; transform: translateX(-50%) translateY(4px) scale(.9); }
+  15%  { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+  75%  { opacity: 1; }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-6px); }
+}
+
 .bubble {
   position: absolute;
   top: 2px;
@@ -797,7 +903,109 @@ button {
   position: fixed;
   inset: 0;
   pointer-events: none;
+  overflow: hidden;      /* a card in flight can never add scroll to the page */
   z-index: 30;
+}
+
+/* ── Handling a book ── */
+
+.lift {
+  position: fixed;
+  width: 52px;
+  height: 13px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #a2917c, #8a7c6a);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, .5);
+  transition: transform .28s cubic-bezier(.25, .9, .3, 1), opacity .28s ease;
+}
+
+.file-card {
+  position: fixed;
+  border-radius: 3px;
+  background: linear-gradient(178deg, var(--cream), var(--paper-dim));
+  box-shadow: inset 5px 0 0 var(--sp, #8a6a4a), 0 6px 14px rgba(20, 10, 4, .45);
+  color: var(--ink);
+  font: 600 10px/1.2 ui-sans-serif, system-ui, sans-serif;
+  padding: 6px 8px;
+  overflow: hidden;
+  transform-origin: 50% 100%;
+  transition: transform .32s cubic-bezier(.4, .05, .3, 1), opacity .32s ease;
+}
+
+.reject-card {
+  position: fixed;
+  border-radius: 3px 9px 9px 3px;
+  background: linear-gradient(178deg, var(--cream), var(--paper-dim));
+  box-shadow: inset 5px 0 0 var(--unsorted, #8a7c6a), 0 6px 14px rgba(20, 10, 4, .4);
+  animation: bumpBack .3s cubic-bezier(.3, .9, .4, 1) both;
+}
+
+@keyframes bumpBack {
+  0%   { transform: none; }
+  40%  { transform: translate(var(--dx), var(--dy)) rotate(-2deg); }
+  70%  { transform: translate(calc(var(--dx) * -.16), calc(var(--dy) * -.16)) rotate(1.5deg); }
+  100% { transform: none; opacity: 0; }
+}
+
+.drag-ghost {
+  position: fixed;
+  border-radius: 3px 9px 9px 3px;
+  background: linear-gradient(178deg, var(--cream), var(--paper-dim));
+  box-shadow: inset 5px 0 0 var(--unsorted, #8a7c6a), 0 10px 22px rgba(20, 10, 4, .5);
+  opacity: .92;
+  pointer-events: none;
+}
+
+.shelf.hover {
+  box-shadow: inset 0 8px 14px rgba(0,0,0,.35), inset 0 0 0 3px var(--brass);
+  transform: translateY(-2px);
+}
+
+/* ── The shift's condition, dealt before play ── */
+
+.splash {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  background: rgba(24, 14, 8, .82);
+  backdrop-filter: blur(2px);
+  animation: splashIn .22s ease both;
+}
+.splash.out { animation: splashOut .3s ease both; }
+
+.splash-kicker {
+  font-size: 10px;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  color: var(--brass-dim);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
+.splash-name {
+  font-size: 30px;
+  font-weight: 700;
+  color: var(--cream);
+  text-shadow: 0 0 26px rgba(216, 166, 87, .45);
+  animation: splashName .5s cubic-bezier(.2, 1.4, .4, 1) both;
+}
+.splash-blurb {
+  font-size: 13.5px;
+  color: rgba(246, 236, 217, .72);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
+.splash.cond-coffee  .splash-name { color: #d8a86a; }
+.splash.cond-returns .splash-name { color: #cfa2e0; }
+.splash.cond-desk    .splash-name { color: #8fc0d8; }
+
+@keyframes splashIn  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes splashOut { to { opacity: 0; } }
+@keyframes splashName {
+  0%   { transform: scale(.86); opacity: 0; letter-spacing: .12em; }
+  100% { transform: none; opacity: 1; letter-spacing: normal; }
 }
 
 .fly {
@@ -1100,6 +1308,22 @@ button {
 .result-row span { color: var(--ink-soft); font-family: ui-sans-serif, system-ui, sans-serif; font-size: 13.5px; }
 .result-row b { font-size: 17px; font-variant-numeric: tabular-nums; }
 .result-row.met b { color: var(--sage-deep); }
+.result-row.record b { color: var(--brass-dim); }
+
+.newbest {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--brass);
+  color: #2a1a12;
+  font-size: 8.5px;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  vertical-align: 1px;
+}
 
 .verdict {
   margin: 0 0 14px;
@@ -1121,7 +1345,33 @@ button {
   .bays { height: 236px; gap: 10px; padding: 10px 0; }
   .shelf-name { font-size: 14px; }
   .shelf-spines { gap: 3px; }
-  .spine-label { font-size: 9.5px; }
+  /* Older books stand at the back of the bay, unlabelled — the shelf fills up. */
+.shelf-back {
+  position: absolute;
+  left: 5px;
+  right: 5px;
+  bottom: 6px;
+  height: 62%;
+  display: flex;
+  align-items: flex-end;
+  gap: 1px;
+  opacity: .5;
+  pointer-events: none;
+}
+
+.back-spine {
+  border-radius: 1px 1px 0 0;
+  background: var(--sp, #8a6a4a);
+  box-shadow: inset -1px 0 0 rgba(0, 0, 0, .3);
+  animation: backSpineIn .3s ease both;
+}
+
+@keyframes backSpineIn {
+  0%   { transform: translateY(6px); opacity: 0; }
+  100% { transform: none; opacity: 1; }
+}
+
+.spine-label { font-size: 9.5px; }
   .slip { min-height: 130px; padding: 16px 20px; }
   .slip-title { font-size: 22px; }
   .floor { grid-template-columns: 160px 1fr; }

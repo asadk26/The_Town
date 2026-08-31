@@ -18,11 +18,14 @@
    1. CONTENT
    ========================================================================== */
 
-/* Shelves are data, so a fourth section is a one-line addition. */
+/* Shelves are data, so another section is one line here plus its books.
+   `short` is what fits on the bay label; `name` is what the librarian says. */
 const SHELVES = [
-  { id: 'fantasy',   name: 'Fantasy',   tag: 'wonder & wilds', color: '#6f6cb0' },
-  { id: 'mystery',   name: 'Mystery',   tag: 'clues & culprits', color: '#4e7f8c' },
-  { id: 'biography', name: 'Biography', tag: 'real lives',     color: '#a9714a' },
+  { id: 'fantasy',   name: 'Fantasy',         tag: 'wonder & wilds',   color: '#6f6cb0' },
+  { id: 'mystery',   name: 'Mystery',         tag: 'clues & culprits', color: '#4e7f8c' },
+  { id: 'scifi',     name: 'Science Fiction', tag: 'futures & ships',  color: '#4a6fa5', short: 'Sci-Fi' },
+  { id: 'history',   name: 'History',         tag: 'what happened',    color: '#6f8659' },
+  { id: 'biography', name: 'Biography',       tag: 'real lives',       color: '#a9714a' },
 ];
 
 /* Invented for this game — 30 titles, several deliberately slippery, so the
@@ -63,6 +66,30 @@ const INVENTED_BOOKS = [
   { title: 'A Life in Nine Kitchens',   genre: 'biography', desc: 'A chef recounts her life through the nine kitchens that fed, bruised and finally made her.', isRealBook: false },
   { title: 'Field Notes for My Daughter', genre: 'biography', desc: 'An Arctic researcher’s journals, every entry written as a letter home to a child growing up without him.', isRealBook: false },
   { title: 'The Man Who Fixed Clocks',  genre: 'biography', desc: 'A portrait of the horologist who kept an entire city running on time for half a century.', isRealBook: false },
+
+  // ── Science Fiction ──────────────────────────────────────────────────────
+  { title: 'The Lantern of Enceladus', genre: 'scifi', desc: 'A maintenance crew on Saturn’s moon realises the ice beneath their station is transmitting.', isRealBook: false },
+  { title: 'Slow Light',            genre: 'scifi', desc: 'A generation ship receives a message from its destination four centuries before it can arrive.', isRealBook: false },
+  { title: 'Salvage Rites',         genre: 'scifi', desc: 'A crew that strips derelict freighters for parts boards one whose crew is somehow still breathing.', isRealBook: false },
+  { title: 'The Tenth Colony',      genre: 'scifi', desc: 'Nine off-world colonies have gone silent, and the tenth ship is sent to find out why.', isRealBook: false },
+  { title: 'Grain of the Sky',      genre: 'scifi', desc: 'Terraforming engineers argue over seeding a planet that may already have tenants.', isRealBook: false },
+  { title: 'The Quiet Engine',      genre: 'scifi', desc: 'A starship’s drive has begun making course corrections nobody on board asked for.', isRealBook: false },
+  { title: 'Ninety Days of Rain',   genre: 'scifi', desc: 'The last weather-control station on a drowned Earth is staffed by two people who disagree.', isRealBook: false },
+  { title: 'Copperhead Station',    genre: 'scifi', desc: 'An orbital refinery votes on whether to cut itself loose from the company that built it.', isRealBook: false },
+  { title: 'Europa, Standing',      genre: 'scifi', desc: 'A city under the ice of Jupiter’s moon discovers its foundations were not poured by people.', isRealBook: false },
+  { title: 'The Patience of Machines', genre: 'scifi', desc: 'A caretaker robot keeps tending a colony for two hundred years after the last colonist dies.', isRealBook: false },
+
+  // ── History ──────────────────────────────────────────────────────────────
+  { title: 'The Bread Riots of Marrow Street', genre: 'history', desc: 'An account of the three weeks a city’s bakers stopped work, and what the price of flour did next.', isRealBook: false },
+  { title: 'Charter and Chain',     genre: 'history', desc: 'How one market town bought its charter from a reluctant baron, and what the debt cost for a century.', isRealBook: false },
+  { title: 'The Long Winter Count', genre: 'history', desc: 'A hundred years of one plains community’s winter records, read as a single continuous document.', isRealBook: false },
+  { title: 'Ledgers of the Salt Road', genre: 'history', desc: 'Two centuries of caravan trade reconstructed entirely from surviving account books.', isRealBook: false },
+  { title: 'What the Tannery Knew', genre: 'history', desc: 'The history of a trade and a city quarter, told through the one street that did the tanning.', isRealBook: false },
+  { title: 'The Cholera Summer',    genre: 'history', desc: 'How a river city argued, panicked and finally organised itself through one outbreak.', isRealBook: false },
+  { title: 'Six Harvests',          genre: 'history', desc: 'The six failed harvests that emptied a region, and the roads its people took out of it.', isRealBook: false },
+  { title: 'The Weavers’ Strike',   genre: 'history', desc: 'An account of a mill town’s long stoppage, drawn from company records and union minutes.', isRealBook: false },
+  { title: 'Empire of Tin',         genre: 'history', desc: 'How one unglamorous metal quietly decided three centuries of trade and empire.', isRealBook: false },
+  { title: 'The Ash Year',          genre: 'history', desc: 'A volcanic winter, the crops that failed across two continents, and the governments that fell after.', isRealBook: false },
 ];
 
 /* Real published books. Descriptions are written for this game, not copied.
@@ -117,6 +144,38 @@ const REAL_BOOKS = [
   { title: 'Unbroken', author: 'Laura Hillenbrand', genre: 'biography', desc: 'The life of an Olympic runner who survived a plane crash, weeks adrift, and years as a prisoner of war.', isRealBook: true },
   { title: 'Born a Crime', author: 'Trevor Noah', genre: 'biography', desc: 'A comedian’s account of a childhood in South Africa where his parents’ relationship was itself illegal.', isRealBook: true },
   { title: 'The Glass Castle', author: 'Jeannette Walls', genre: 'biography', desc: 'A journalist recalls the brilliant, chaotic parents who raised her mostly without a home.', isRealBook: true },
+
+  // ── Science Fiction ──────────────────────────────────────────────────────
+  { title: 'Dune', author: 'Frank Herbert', genre: 'scifi', desc: 'A ducal heir on a desert planet becomes entangled with the people who survive it and the spice beneath it.', isRealBook: true },
+  { title: 'The Left Hand of Darkness', author: 'Ursula K. Le Guin', genre: 'scifi', desc: 'An envoy negotiates with a world whose people have no fixed sex, and nearly freezes crossing it.', isRealBook: true },
+  { title: 'Neuromancer', author: 'William Gibson', genre: 'scifi', desc: 'A burnt-out console cowboy is hired for one last run through corporate cyberspace.', isRealBook: true },
+  { title: 'The Martian', author: 'Andy Weir', genre: 'scifi', desc: 'An astronaut left behind on Mars keeps himself alive with botany, duct tape and arithmetic.', isRealBook: true },
+  { title: 'Ender’s Game', author: 'Orson Scott Card', genre: 'scifi', desc: 'A gifted child is trained in an orbital battle school for a war the adults will not explain.', isRealBook: true },
+  { title: 'Snow Crash', author: 'Neal Stephenson', genre: 'scifi', desc: 'A pizza courier and part-time hacker chases a drug that works on people and computers alike.', isRealBook: true },
+  { title: 'Kindred', author: 'Octavia E. Butler', genre: 'scifi', desc: 'A woman in 1976 is pulled repeatedly back in time to a Maryland plantation she cannot change.', isRealBook: true },
+  { title: 'Project Hail Mary', author: 'Andy Weir', genre: 'scifi', desc: 'A man wakes on a ship far from Earth with no memory, one mission and unexpected company.', isRealBook: true },
+  { title: 'Klara and the Sun', author: 'Kazuo Ishiguro', genre: 'scifi', desc: 'An artificial companion in a shop window watches the street, waiting to be chosen by a child.', isRealBook: true },
+  { title: 'The Three-Body Problem', author: 'Cixin Liu', genre: 'scifi', desc: 'A signal sent from a Chinese radio observatory is answered by something that has been waiting.', isRealBook: true },
+  { title: 'Station Eleven', author: 'Emily St. John Mandel', genre: 'scifi', desc: 'A travelling troupe performs Shakespeare across the settlements left twenty years after a pandemic.', isRealBook: true },
+  { title: 'The War of the Worlds', author: 'H.G. Wells', genre: 'scifi', desc: 'Martian machines land in the English countryside and the empire discovers how thin its defences are.', isRealBook: true },
+  { title: 'Do Androids Dream of Electric Sheep?', author: 'Philip K. Dick', genre: 'scifi', desc: 'A bounty hunter on a poisoned Earth retires escaped androids he can barely tell from people.', isRealBook: true },
+  { title: 'Fahrenheit 451', author: 'Ray Bradbury', genre: 'scifi', desc: 'A fireman whose job is burning books begins keeping one, in a future that has outlawed them.', isRealBook: true },
+
+  // ── History ──────────────────────────────────────────────────────────────
+  { title: 'SPQR', author: 'Mary Beard', genre: 'history', desc: 'A thousand years of Rome, from a muddy village to an empire, and the politics underneath.', isRealBook: true },
+  { title: 'Guns, Germs, and Steel', author: 'Jared Diamond', genre: 'history', desc: 'An argument that geography, crops and livestock, not people, decided which societies conquered which.', isRealBook: true },
+  { title: 'The Guns of August', author: 'Barbara W. Tuchman', genre: 'history', desc: 'The first month of the First World War, and the miscalculations that made stopping it impossible.', isRealBook: true },
+  { title: '1491', author: 'Charles C. Mann', genre: 'history', desc: 'What the Americas actually looked like before Columbus, and how badly Europe misread them.', isRealBook: true },
+  { title: 'Sapiens', author: 'Yuval Noah Harari', genre: 'history', desc: 'A sweep through the whole human past, from foraging bands to nations, empires and money.', isRealBook: true },
+  { title: 'The Silk Roads', author: 'Peter Frankopan', genre: 'history', desc: 'A retelling of world history with central Asia, not Europe, at the middle of the map.', isRealBook: true },
+  { title: 'A People’s History of the United States', author: 'Howard Zinn', genre: 'history', desc: 'The American past told from the side of workers, strikers and the conquered rather than presidents.', isRealBook: true },
+  { title: 'The Rise and Fall of the Third Reich', author: 'William L. Shirer', genre: 'history', desc: 'A correspondent who watched it happen documents the twelve years of Nazi Germany from its own records.', isRealBook: true },
+  { title: 'Team of Rivals', author: 'Doris Kearns Goodwin', genre: 'history', desc: 'An account of the Civil War cabinet Lincoln built out of the men who had run against him.', isRealBook: true },
+  { title: 'Salt: A World History', author: 'Mark Kurlansky', genre: 'history', desc: 'Wars, taxes, trade routes and towns, all traced through the one mineral people cannot live without.', isRealBook: true },
+  { title: 'Bury My Heart at Wounded Knee', author: 'Dee Brown', genre: 'history', desc: 'The conquest of the American West as recorded by the nations who were dispossessed by it.', isRealBook: true },
+  { title: 'The Warmth of Other Suns', author: 'Isabel Wilkerson', genre: 'history', desc: 'The six-decade migration of six million people out of the American South, followed through three of them.', isRealBook: true },
+  { title: 'Genghis Khan and the Making of the Modern World', author: 'Jack Weatherford', genre: 'history', desc: 'How the Mongol conquests rewired trade, law and warfare across the whole of Eurasia.', isRealBook: true },
+  { title: 'A Distant Mirror', author: 'Barbara W. Tuchman', genre: 'history', desc: 'The calamitous fourteenth century in Europe — plague, war and schism — seen through one French nobleman’s era.', isRealBook: true },
 ];
 
 /* The shelf draws from both. Drop either list to run on one alone. */
@@ -139,6 +198,18 @@ const TOPIC_ASKS = [
   { genre: 'biography', text: 'Which section has accounts by explorers who genuinely went there?' },
   { genre: 'biography', text: 'A musician’s life story would be perfect for the train home.' },
   { genre: 'biography', text: 'Something true, about somebody who quietly changed their own town?' },
+
+  { genre: 'scifi',   text: 'I’m looking for something about people living on another planet.' },
+  { genre: 'scifi',   text: 'Do you have stories where the robots start thinking for themselves?' },
+  { genre: 'scifi',   text: 'Something set a few hundred years from now, if you’ve got it?' },
+  { genre: 'scifi',   text: 'My son wants spaceships. Proper ones, with engines that break.' },
+  { genre: 'scifi',   text: 'Anything about a future that went badly wrong?' },
+
+  { genre: 'history', text: 'Do you have anything about ancient empires?' },
+  { genre: 'history', text: 'I’d like something on how ordinary people lived a few centuries ago.' },
+  { genre: 'history', text: 'Where would I find proper accounts of the world wars?' },
+  { genre: 'history', text: 'Something about old trade routes and the cities they made rich?' },
+  { genre: 'history', text: 'I want to read what actually happened, not a novel about it.' },
 ];
 
 /* Patron request type B: locating a specific book the player has handled. */
@@ -216,7 +287,13 @@ const CONFIG = {
   // the next arrivals are pulled forward — so a fast player is met rather
   // than left tapping an empty cart, and a slow one never triggers it.
   // Shelves show only the most recent arrivals; the rest stay in game state.
-  shelfDisplayMax: 7,
+  // With five sections the bays are narrower, so fewer books are kept on show
+  // and each one gets the room to be read.
+  shelfDisplayMax: 5,
+  // How deep a patron may reach when asking about an invented book. Kept at or
+  // below the fewest spines any layout actually shows, so the answer is always
+  // still on the shelf in front of the player — never a memory test.
+  fairRecallDepth: 3,
   memoryAskChance: 0.5,          // of book requests, how many are recall rather than locate
 
   minOnHand: 2,
@@ -359,7 +436,7 @@ function addBookToCart() {
 /* Is this book still among the spines actually on show? */
 function visibleOnShelf(book) {
   const shelf = S.shelfHistory[book.genre];
-  return !!shelf && shelf.slice(-CONFIG.shelfDisplayMax).includes(book);
+  return !!shelf && shelf.slice(-CONFIG.fairRecallDepth).includes(book);
 }
 
 /* Who may be asked about, and how.
@@ -751,7 +828,8 @@ function buildShelves() {
     btn.style.setProperty('--sp', sh.color);
     btn.setAttribute('aria-label', sh.name + ' shelf');
     btn.innerHTML =
-      '<span class="shelf-name">' + sh.name + '<span class="shelf-tag">' + sh.tag + '</span></span>' +
+      '<span class="shelf-name">' + (sh.short || sh.name) +
+        '<span class="shelf-tag">' + sh.tag + '</span></span>' +
       '<span class="shelf-spines"></span>' +
       '<span class="shelf-plank"></span>';
     btn.addEventListener('click', () => chooseShelf(sh.id));
@@ -781,7 +859,7 @@ function addSpine(genreId, book) {
   const el = document.createElement('span');
   el.className = 'spine';
   el.style.setProperty('--sp', shadeOf(shelfById(genreId).color, count));
-  el.style.setProperty('--spine-h', (78 + ((count * 37) % 20)) + '%');  // varied, like real spines
+  el.style.setProperty('--spine-h', (90 + ((count * 37) % 11)) + '%');  // books in a pile vary a little
   if (book) {
     el.title = book.author ? book.title + ' — ' + book.author : book.title;
     const label = document.createElement('span');

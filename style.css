@@ -291,6 +291,7 @@ button {
   height: 168px;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
+  grid-auto-rows: 1fr;             /* a fourth and fifth section wrap to a second row */
   gap: 6px;
   padding: 6px 0;
 }
@@ -335,49 +336,60 @@ button {
 .shelf-spines {
   flex: 1 1 auto;
   display: flex;
-  align-items: flex-end;
-  justify-content: flex-start;
+  flex-direction: column-reverse;   /* newest rests on top of the pile */
+  align-items: flex-start;
+  justify-content: flex-start;      /* the pile sits on the shelf floor */
   gap: 2px;
-  padding: 6px 3px 0;
+  padding: 5px 4px 0;
   min-height: 0;
 }
 
 .spine {
-  flex: 0 1 16px;
-  min-width: 9px;
-  height: var(--spine-h, 86%);
-  border-radius: 2px 2px 0 0;
+  flex: 0 0 auto;
+  width: var(--spine-h, 96%);    /* books in a pile are not all the same size */
+  min-height: 12px;
+  padding: 1px 5px 1px 8px;
+  border-radius: 2px 3px 3px 2px;
   background: var(--sp, #8a6a4a);
-  box-shadow: inset -2px 0 0 rgba(0, 0, 0, .25), 0 -1px 3px rgba(0, 0, 0, .3);
-  transform-origin: bottom center;
-  animation: spinePop .4s cubic-bezier(.2, 1.3, .5, 1) both;
+  box-shadow:
+    inset 3px 0 0 rgba(0, 0, 0, .3),          /* the spine edge of the book */
+    inset -4px 0 0 rgba(255, 252, 244, .16),  /* the page block at the fore edge */
+    inset 0 1px 0 rgba(255, 255, 255, .12),
+    0 1px 2px rgba(0, 0, 0, .34);
+  animation: spinePop .38s cubic-bezier(.2, 1.2, .4, 1) both;
   display: flex;
-  align-items: flex-end;
-  justify-content: center;
+  align-items: center;
+  justify-content: flex-start;
   overflow: hidden;
   pointer-events: none;          /* the whole bay is the tap target */
 }
 
-/* Titles run up the spine, the way they do on a real shelf. The bay decides how
-   much fits; the full title lives on the element's tooltip and in game state. */
+/* Three legible titles beat five cramped ones, which is the trade a five-shelf
+   bay forces. The rest stay in the DOM and in S.shelfHistory, just not on show.
+   CONFIG.fairRecallDepth is kept at or below this, so a patron never asks about
+   an invented book that has already left the shelf. */
+.shelf-spines > .spine:nth-last-child(n+4) { display: none; }
+
+/* The title reads across the book. A long one takes a second line rather than
+   losing its ending; the full title lives on the element and in game state. */
 .spine-label {
-  writing-mode: vertical-rl;
-  transform: rotate(180deg);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-height: 100%;
-  padding: 4px 0;
+  width: 100%;
   font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
-  font-size: 7.5px;
+  font-size: 8.5px;
+  line-height: 1.3;
   letter-spacing: .01em;
-  color: rgba(255, 250, 240, .93);
+  text-align: left;
+  color: rgba(255, 250, 240, .95);
   text-shadow: 0 1px 1px rgba(0, 0, 0, .55);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
 @keyframes spinePop {
-  0%   { transform: translateY(14px) scaleY(.4); opacity: 0; }
-  100% { transform: translateY(0) scaleY(1); opacity: 1; }
+  0%   { transform: translateY(-8px); opacity: 0; }
+  100% { transform: none; opacity: 1; }
 }
 
 .shelf-plank {
@@ -803,29 +815,34 @@ button {
   100% { transform: translate(-50%, -46px); opacity: 0; }
 }
 
+/* Sits at the top rather than across the middle: the middle of the screen is
+   the shelves, and those are what you are about to tap. */
 .milestone {
   position: fixed;
   left: 50%;
-  top: 34%;
-  transform: translate(-50%, -50%);
-  padding: 12px 26px;
+  top: 8px;
+  transform: translateX(-50%);
+  padding: 9px 20px;
   border-radius: 999px;
   background: rgba(30, 18, 10, .93);
   border: 1px solid var(--brass);
   color: var(--brass);
-  font-size: 19px;
-  letter-spacing: .06em;
-  box-shadow: 0 0 34px rgba(216, 166, 87, .4);
+  font-size: 16px;
+  letter-spacing: .05em;
+  box-shadow: 0 0 30px rgba(216, 166, 87, .38);
   animation: milestonePop 1.5s ease forwards;
   white-space: nowrap;
+  max-width: 94vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 @keyframes milestonePop {
-  0%   { opacity: 0; transform: translate(-50%, -50%) scale(.8); }
-  18%  { opacity: 1; transform: translate(-50%, -50%) scale(1.04); }
-  30%  { transform: translate(-50%, -50%) scale(1); }
+  0%   { opacity: 0; transform: translateX(-50%) translateY(-8px) scale(.9); }
+  18%  { opacity: 1; transform: translateX(-50%) translateY(0) scale(1.02); }
+  30%  { transform: translateX(-50%) translateY(0) scale(1); }
   75%  { opacity: 1; }
-  100% { opacity: 0; transform: translate(-50%, -62%) scale(1); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-8px) scale(1); }
 }
 
 /* ── Overlay ──────────────────────────────────────────────── */
@@ -999,8 +1016,7 @@ button {
   .bays { height: 236px; gap: 10px; padding: 10px 0; }
   .shelf-name { font-size: 14px; }
   .shelf-spines { gap: 3px; }
-  .spine { flex-basis: 22px; }
-  .spine-label { font-size: 9px; }
+  .spine-label { font-size: 9.5px; }
   .slip { min-height: 130px; padding: 16px 20px; }
   .slip-title { font-size: 22px; }
   .floor { grid-template-columns: 160px 1fr; }
@@ -1019,8 +1035,29 @@ button {
 /* Short viewports (small phones, landscape): compress rather than clip. */
 @media (max-height: 700px) {
   .counter { gap: 8px; padding: 8px 10px calc(10px + env(safe-area-inset-bottom)); }
-  .clock-time { font-size: 22px; }
-  .bays { height: 158px; }
+
+  /* Five sections need two rows of bays, and a short screen has no spare
+     height, so the HUD folds onto one line and hands the shelf the difference. */
+  .hud { display: flex; align-items: center; gap: 8px; padding: 5px 9px; }
+  .hud-row { flex: 0 0 auto; margin: 0; gap: 7px; }
+  .hud-row-lower { margin: 0; }
+  .shift-bar { flex: 1 1 auto; margin: 0; height: 5px; min-width: 34px; }
+  .clock { flex-direction: row; align-items: baseline; gap: 6px; }
+  .clock-time { font-size: 18px; }
+  .clock-phase { margin-top: 0; font-size: 8px; }
+  .readouts { gap: 6px; }
+  .readout { padding: 2px 6px 3px; min-width: 42px; }
+  .readout-label { font-size: 7.5px; }
+  .readout-value { font-size: 13px; }
+  .hud-buttons { flex-direction: row; gap: 4px; }
+  .icon-btn { width: 26px; height: 26px; font-size: 12px; }
+  .goal { font-size: 10px; padding: 2px 5px; }
+  .goal-icon { display: none; }
+  .mood { margin-left: 0; }
+  .mood-label { display: none; }
+  .mood-bar { width: 38px; }
+
+  .bays { height: 250px; }
   .slip { min-height: 92px; padding: 10px 12px; }
   .slip-title { font-size: 17px; }
   .slip-author {

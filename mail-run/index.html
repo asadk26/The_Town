@@ -7,6 +7,7 @@
 <meta name="description" content="A tiny postal round: drive the route, pull up at the curb, drop the mail.">
 <meta name="theme-color" content="#3f7d3a">
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="../shared/play-surface.css">
 </head>
 <body>
 
@@ -17,7 +18,7 @@
   <p>Mail Run drives along the road, so it needs the long edge.</p>
 </div>
 
-<div class="game">
+<div class="game play-surface">
 
   <!-- ── the route board ─────────────────────────────── -->
   <header class="board">
@@ -31,7 +32,7 @@
 
   <!-- ── the town ────────────────────────────────────── -->
   <main class="road" id="road">
-    <canvas id="view"></canvas>
+    <canvas id="view" class="play-drag"></canvas>
 
     <!-- rating pops and the off-screen pointer live here -->
     <div class="fx" id="fx" aria-hidden="true"></div>
@@ -40,23 +41,24 @@
     <!-- ── controls ──────────────────────────────────── -->
     <!-- Steering is one horizontal stick. The generous outer zone is the
          part you actually have to hit; the base is only the picture. -->
-    <div class="stick-zone" id="stickZone">
+    <div class="stick-zone play-drag" id="stickZone">
       <div class="stick" id="stick">
         <i class="stick-track" aria-hidden="true"></i>
-        <button class="stick-knob" id="stickKnob" type="button"
+        <button class="stick-knob play-drag" id="stickKnob" type="button"
                 aria-label="Steering" role="slider"
                 aria-valuemin="-1" aria-valuemax="1" aria-valuenow="0"></button>
       </div>
     </div>
-    <div class="pad pad-drive">
-      <button class="key key-brake" id="keyBrake" type="button" aria-label="Brake and reverse"></button>
-      <button class="key key-gas"   id="keyGas"   type="button" aria-label="Accelerate"></button>
+    <div class="pad pad-drive play-drag">
+      <button class="key key-brake play-drag" id="keyBrake" type="button" aria-label="Brake and reverse"></button>
+      <button class="key key-gas play-drag"   id="keyGas"   type="button" aria-label="Accelerate"></button>
     </div>
   </main>
 
   <div class="overlay" id="overlay"><div class="card" id="card"></div></div>
 </div>
 
+<script src="../shared/play-surface.js"></script>
 <script src="game.js"></script>
 </body>
 </html>

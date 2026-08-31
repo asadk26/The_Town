@@ -9,10 +9,11 @@
 <!-- V0's stylesheet first, then landscape-only layout overrides on top. -->
 <link rel="stylesheet" href="../style.css">
 <link rel="stylesheet" href="layout.css">
+<link rel="stylesheet" href="../../shared/play-surface.css">
 </head>
 <body class="landscape">
 
-<div class="room">
+<div class="room play-surface">
   <div class="lamp-glow" aria-hidden="true"></div>
   <div class="motes" aria-hidden="true"><i></i><i></i><i></i></div>
 
@@ -115,6 +116,7 @@
   </div>
 </div>
 
+<script src="../../shared/play-surface.js"></script>
 <script src="../game.js"></script>
 <script>
   // Presentation only: the shift should not tick away behind the rotate card.

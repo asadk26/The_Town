@@ -1,0 +1,81 @@
+/* ==========================================================================
+   THE TOWN — the play surface
+
+   Shared by every game in the collection.  A game is something you tap, hold
+   and drag at speed; a web page is something you select, magnify and drag
+   pictures out of.  These rules turn the second into the first — over the
+   part of the page you are actually playing, and nowhere else.
+
+   How to use it in a new game:
+
+     .play-surface   the gameplay area — the cabinet the game lives in, not
+                     <body>.  Nothing inside it selects, highlights blue,
+                     shows the iOS long-press callout, or drags out as an
+                     image, however hard it is tapped.
+     .play-drag      anything the game reads gestures on itself: a canvas, a
+                     joystick, a hold-to-steer pad.  The browser stops
+                     scrolling and zooming with the gesture and hands it over.
+     .play-text      an escape hatch inside a surface, for the rare run of
+                     text meant to be read and copied.
+
+   Link this file, then <script src=".../play-surface.js"> for the two events
+   browsers fire regardless of the CSS.  Launcher pages, prose and anything
+   outside a .play-surface are deliberately left alone: the collection's front
+   page is a web page and should behave like one.
+   ========================================================================== */
+
+.play-surface,
+.play-surface * {
+  -webkit-user-select: none;
+     -moz-user-select: none;
+      -ms-user-select: none;
+          user-select: none;
+  -webkit-touch-callout: none;              /* no iOS copy/share long-press card */
+  -webkit-tap-highlight-color: transparent; /* no grey flash on a fast tap */
+}
+
+/* A tap is a tap, not a possible double-tap-to-zoom: this is what takes the
+   300ms hesitation out of repeated tapping.  Pull-to-refresh and rubber-band
+   stop at the edge of the game rather than dragging the page around under it. */
+.play-surface {
+  touch-action: manipulation;
+  overscroll-behavior: contain;
+}
+
+/* Artwork stays put: no ghost image peeling off under a slow drag. */
+.play-surface img,
+.play-surface svg,
+.play-surface canvas,
+.play-surface a {
+  -webkit-user-drag: none;
+}
+
+/* Where the game itself is reading the gesture, the browser must not also be
+   panning or pinching with it. */
+.play-drag { touch-action: none; }
+
+/* ── the escape hatches ─────────────────────────────────────────────────
+   Anything that is genuinely text, and anything you type into, behaves like
+   the web again.  These come last on purpose: they win over the blanket
+   rules above. */
+
+.play-text,
+.play-text * {
+  -webkit-user-select: text;
+     -moz-user-select: text;
+      -ms-user-select: text;
+          user-select: text;
+  -webkit-touch-callout: default;
+}
+
+.play-surface input,
+.play-surface textarea,
+.play-surface select,
+.play-surface [contenteditable="true"] {
+  -webkit-user-select: auto;
+     -moz-user-select: auto;
+      -ms-user-select: auto;
+          user-select: auto;
+  -webkit-touch-callout: default;
+  touch-action: auto;
+}

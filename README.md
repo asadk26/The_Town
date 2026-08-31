@@ -88,8 +88,38 @@ order-up/
 mail-run/
   index.html  style.css  game.js
   test/mailrun.mjs             regression suite (see below)
+shared/
+  play-surface.css             the gameplay surface: no selecting, no callouts
+  play-surface.js              the two events CSS cannot cover
+  test/play-surface.mjs        checks it holds, on every game
 .github/workflows/pages.yml    publishes the whole repo on every push to main
 ```
+
+## The play surface
+
+A game is something you tap, hold and drag at speed. A web page is something
+you select, magnify and drag pictures out of. Left alone, a browser gives you
+the second: repeated tapping turns the HUD blue, a long press on a control
+offers to copy it, and a drag on the road highlights the score.
+
+`shared/play-surface.css` and `shared/play-surface.js` settle that once for
+the whole collection, over the part of the page you are actually playing and
+nowhere else. A new game opts in with two lines in the head and three classes:
+
+```html
+<link rel="stylesheet" href="../shared/play-surface.css">
+<script src="../shared/play-surface.js"></script>
+```
+
+| class | put it on | what it does |
+|---|---|---|
+| `play-surface` | the gameplay area — the cabinet, not `<body>` | nothing inside selects, highlights, shows the iOS long-press callout or drags out as artwork; taps stop waiting to see if they are double-taps |
+| `play-drag` | anything the game reads gestures on itself — a canvas, a joystick, a hold-to-steer pad | the browser stops scrolling and zooming with the gesture and hands it over |
+| `play-text` | the rare run of text meant to be read and copied | behaves like the web again |
+
+Text fields keep working inside a surface, buttons still click and still take
+focus, keyboard controls are untouched, and anything outside a `play-surface`
+— this page, the launcher, prose — is deliberately left alone.
 
 ## Tests
 
@@ -98,6 +128,12 @@ the shift and its objectives, wrong-shelf handling, the patron loop, saved
 bests, and, at three portrait and four landscape sizes, that nothing scrolls
 or clips, that shelved titles are never cut off, and that type both clears a
 readable floor *and* actually grows with the screen.
+
+`shared/test/play-surface.mjs` covers all three games at once, since the rules
+are shared: it drags across each one mid-round and checks that nothing
+highlights, that a burst of fast tapping leaves no selection behind, that the
+escape hatches and text fields still work, and that ordinary page text outside
+the game still selects normally.
 
 Mail Run's is driven by a scripted pure-pursuit driver that runs the whole
 route, which is how the handling and the route length were tuned: it checks
@@ -110,6 +146,7 @@ reverse.
 npm i playwright-core            # or use an existing install
 node quiet-stacks/test/quietstacks.mjs
 node mail-run/test/mailrun.mjs
+node shared/test/play-surface.mjs
 ```
 
 It uses Playwright's own Chromium by default; set `CHROME=/path/to/chrome`

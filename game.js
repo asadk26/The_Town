@@ -40,150 +40,150 @@ const SHELF_TIERS = [3, 4, 5];
    description is sometimes the only tell. */
 const INVENTED_BOOKS = [
   // ── Fantasy ──────────────────────────────────────────────────────────────
-  { title: 'The Salt Lantern',          genre: 'fantasy',   desc: 'A lighthouse keeper realises the flame in her tower is the last dragon’s breath, and it is going out.', isRealBook: false },
-  { title: 'Copper for the Crow King',  genre: 'fantasy',   desc: 'A blacksmith’s apprentice bargains with a court of talking crows for one more winter of warmth.', isRealBook: false },
-  { title: 'Ninefold Morning',          genre: 'fantasy',   desc: 'The same sunrise repeats nine times until a village girl remembers the name the sun forgot.', isRealBook: false },
-  { title: 'The Quiet Between Bells',   genre: 'fantasy',   desc: 'Two apprentice mages discover the silence in their tower is a god having a very long nap.', isRealBook: false },
-  { title: 'Wolfwater',                 genre: 'fantasy',   desc: 'The river that once granted wishes to the valley has begun, politely, to ask for them back.', isRealBook: false },
-  { title: 'The Cartographer’s Third Hand', genre: 'fantasy', desc: 'Every road this wandering mapmaker draws quietly appears in the world the following morning.', isRealBook: false },
-  { title: 'Bone Orchard Hymn',         genre: 'fantasy',   desc: 'An orchard grown from a sleeping giant’s ribs must be sung to every dusk, or it wakes.', isRealBook: false },
-  { title: 'Harrow & Thimble',          genre: 'fantasy',   desc: 'A village tailor stitches armour out of moonlight for a knight who would rather stop fighting.', isRealBook: false },
-  { title: 'The Last Cinder Fair',      genre: 'fantasy',   desc: 'A runaway trades her shadow for a paper crown at a fair that visits the moor once a century.', isRealBook: false },
-  { title: 'Glasswing Rebellion',       genre: 'fantasy',   desc: 'A colony of moth-riders wages an exceedingly gentle war against a mountain full of clockwork.', isRealBook: false },
+  { title: 'The Salt Lantern',          genre: 'fantasy',   desc: 'A lighthouse flame is a dragon’s last breath.', isRealBook: false },
+  { title: 'Copper for the Crow King',  genre: 'fantasy',   desc: 'An apprentice bargains with a court of talking crows.', isRealBook: false },
+  { title: 'Ninefold Morning',          genre: 'fantasy',   desc: 'One sunrise repeats until a girl recalls a forgotten name.', isRealBook: false },
+  { title: 'The Quiet Between Bells',   genre: 'fantasy',   desc: 'Two apprentice mages find a sleeping god upstairs.', isRealBook: false },
+  { title: 'Wolfwater',                 genre: 'fantasy',   desc: 'A wish-granting river starts asking for the wishes back.', isRealBook: false },
+  { title: 'The Cartographer’s Third Hand', genre: 'fantasy', desc: 'Roads this mapmaker draws appear by morning.', isRealBook: false },
+  { title: 'Bone Orchard Hymn',         genre: 'fantasy',   desc: 'An orchard grown from a giant’s ribs must be sung to sleep.', isRealBook: false },
+  { title: 'Harrow & Thimble',          genre: 'fantasy',   desc: 'A village tailor stitches armour out of moonlight.', isRealBook: false },
+  { title: 'The Last Cinder Fair',      genre: 'fantasy',   desc: 'A runaway trades her shadow for a paper crown.', isRealBook: false },
+  { title: 'Glasswing Rebellion',       genre: 'fantasy',   desc: 'Moth-riders wage a gentle war on a clockwork mountain.', isRealBook: false },
 
   // ── Mystery ──────────────────────────────────────────────────────────────
-  { title: 'The Wrong Piano',           genre: 'mystery',   desc: 'A concert-hall tuner finds a dead man’s fingerprint on middle C, and the hall was locked all week.', isRealBook: false },
-  { title: 'Six Empty Chairs',          genre: 'mystery',   desc: 'A dinner party’s place cards list one more name than there are guests, and one fewer by morning.', isRealBook: false },
-  { title: 'The Marmalade Alibi',       genre: 'mystery',   desc: 'A village baker’s flawless breakfast timeline is the only thing wrong with an otherwise perfect confession.', isRealBook: false },
-  { title: 'Low Tide, No Witnesses',    genre: 'mystery',   desc: 'A seaside inspector has six hours to read a crime scene before the water politely erases it.', isRealBook: false },
-  { title: 'The Understudy Knows',      genre: 'mystery',   desc: 'The whole company saw the accident on stage; only the understudy saw it happen twice.', isRealBook: false },
-  { title: 'A Ledger of Small Lies',    genre: 'mystery',   desc: 'An accountant’s immaculate books turn out to be hiding a decade of missing persons.', isRealBook: false },
-  { title: 'The Blue Hour Case',        genre: 'mystery',   desc: 'Every photograph taken at dusk on the promenade contains a woman who was never standing there.', isRealBook: false },
-  { title: 'Nobody Rings Twice at Elmsleigh', genre: 'mystery', desc: 'A hotel bell sounds at three each morning, and guests vanish in the exact order they checked in.', isRealBook: false },
-  { title: 'The Botanist’s Mistake', genre: 'mystery', desc: 'A rare poison in a locked greenhouse points to the one gardener who could not possibly have grown it.', isRealBook: false },
-  { title: 'Return Address Unknown',    genre: 'mystery',   desc: 'Letters from a man dead eleven years keep arriving with this week’s postmark on them.', isRealBook: false },
+  { title: 'The Wrong Piano',           genre: 'mystery',   desc: 'A dead man’s fingerprint on a locked hall’s piano.', isRealBook: false },
+  { title: 'Six Empty Chairs',          genre: 'mystery',   desc: 'The place cards list one guest too many.', isRealBook: false },
+  { title: 'The Marmalade Alibi',       genre: 'mystery',   desc: 'A baker’s flawless breakfast timeline breaks a confession.', isRealBook: false },
+  { title: 'Low Tide, No Witnesses',    genre: 'mystery',   desc: 'A seaside inspector investigates a disappearing crime scene.', isRealBook: false },
+  { title: 'The Understudy Knows',      genre: 'mystery',   desc: 'Everyone saw the accident; the understudy saw it twice.', isRealBook: false },
+  { title: 'A Ledger of Small Lies',    genre: 'mystery',   desc: 'Tidy accounts hide a decade of missing persons.', isRealBook: false },
+  { title: 'The Blue Hour Case',        genre: 'mystery',   desc: 'Dusk photographs keep showing a woman who wasn’t there.', isRealBook: false },
+  { title: 'Nobody Rings Twice at Elmsleigh', genre: 'mystery', desc: 'Hotel guests vanish in the order they checked in.', isRealBook: false },
+  { title: 'The Botanist’s Mistake', genre: 'mystery', desc: 'A locked greenhouse poison accuses the wrong gardener.', isRealBook: false },
+  { title: 'Return Address Unknown',    genre: 'mystery',   desc: 'Letters from a dead man arrive with fresh postmarks.', isRealBook: false },
 
   // ── Biography ────────────────────────────────────────────────────────────
-  { title: 'Salt in the Mortar',        genre: 'biography', desc: 'The life of a nineteenth-century apothecary who mapped an epidemic house by house, on foot.', isRealBook: false },
-  { title: 'The Woman Who Counted Birds', genre: 'biography', desc: 'Sixty years of one ornithologist’s notebooks, recording every migration through a single valley.', isRealBook: false },
-  { title: 'Bricklayer, Poet, Mayor',   genre: 'biography', desc: 'How a self-taught mason talked his way into becoming the most quoted mayor a mill town ever had.', isRealBook: false },
-  { title: 'Letters to a Younger Engineer', genre: 'biography', desc: 'Six decades of a bridge-builder’s correspondence, equal parts steel calculations and doubt.', isRealBook: false },
-  { title: 'Hands Like That',           genre: 'biography', desc: 'A surgeon’s memoir of twenty years abroad and the village clinic she came home to run.', isRealBook: false },
-  { title: 'The Cartwright of Vesey Street', genre: 'biography', desc: 'A wheelwright whose order books became the fullest surviving record of a neighbourhood now gone.', isRealBook: false },
-  { title: 'Second Violin',             genre: 'biography', desc: 'Forty years in an orchestra, told by the player who sat one seat away from the spotlight.', isRealBook: false },
-  { title: 'A Life in Nine Kitchens',   genre: 'biography', desc: 'A chef recounts her life through the nine kitchens that fed, bruised and finally made her.', isRealBook: false },
-  { title: 'Field Notes for My Daughter', genre: 'biography', desc: 'An Arctic researcher’s journals, every entry written as a letter home to a child growing up without him.', isRealBook: false },
-  { title: 'The Man Who Fixed Clocks',  genre: 'biography', desc: 'A portrait of the horologist who kept an entire city running on time for half a century.', isRealBook: false },
+  { title: 'Salt in the Mortar',        genre: 'biography', desc: 'The apothecary who mapped an epidemic house by house.', isRealBook: false },
+  { title: 'The Woman Who Counted Birds', genre: 'biography', desc: 'Sixty years of one ornithologist’s migration notebooks.', isRealBook: false },
+  { title: 'Bricklayer, Poet, Mayor',   genre: 'biography', desc: 'A self-taught mason talks his way into office.', isRealBook: false },
+  { title: 'Letters to a Younger Engineer', genre: 'biography', desc: 'Six decades of a bridge-builder’s correspondence.', isRealBook: false },
+  { title: 'Hands Like That',           genre: 'biography', desc: 'A surgeon returns from abroad to her village clinic.', isRealBook: false },
+  { title: 'The Cartwright of Vesey Street', genre: 'biography', desc: 'A wheelwright whose order books recorded a lost neighbourhood.', isRealBook: false },
+  { title: 'Second Violin',             genre: 'biography', desc: 'Forty years seated one place from the spotlight.', isRealBook: false },
+  { title: 'A Life in Nine Kitchens',   genre: 'biography', desc: 'A chef’s life told through nine kitchens.', isRealBook: false },
+  { title: 'Field Notes for My Daughter', genre: 'biography', desc: 'An Arctic researcher’s journals, written as letters home.', isRealBook: false },
+  { title: 'The Man Who Fixed Clocks',  genre: 'biography', desc: 'The horologist who kept a whole city on time.', isRealBook: false },
 
   // ── Science Fiction ──────────────────────────────────────────────────────
-  { title: 'The Lantern of Enceladus', genre: 'scifi', desc: 'A maintenance crew on Saturn’s moon realises the ice beneath their station is transmitting.', isRealBook: false },
-  { title: 'Slow Light',            genre: 'scifi', desc: 'A generation ship receives a message from its destination four centuries before it can arrive.', isRealBook: false },
-  { title: 'Salvage Rites',         genre: 'scifi', desc: 'A crew that strips derelict freighters for parts boards one whose crew is somehow still breathing.', isRealBook: false },
-  { title: 'The Tenth Colony',      genre: 'scifi', desc: 'Nine off-world colonies have gone silent, and the tenth ship is sent to find out why.', isRealBook: false },
-  { title: 'Grain of the Sky',      genre: 'scifi', desc: 'Terraforming engineers argue over seeding a planet that may already have tenants.', isRealBook: false },
-  { title: 'The Quiet Engine',      genre: 'scifi', desc: 'A starship’s drive has begun making course corrections nobody on board asked for.', isRealBook: false },
-  { title: 'Ninety Days of Rain',   genre: 'scifi', desc: 'The last weather-control station on a drowned Earth is staffed by two people who disagree.', isRealBook: false },
-  { title: 'Copperhead Station',    genre: 'scifi', desc: 'An orbital refinery votes on whether to cut itself loose from the company that built it.', isRealBook: false },
-  { title: 'Europa, Standing',      genre: 'scifi', desc: 'A city under the ice of Jupiter’s moon discovers its foundations were not poured by people.', isRealBook: false },
-  { title: 'The Patience of Machines', genre: 'scifi', desc: 'A caretaker robot keeps tending a colony for two hundred years after the last colonist dies.', isRealBook: false },
+  { title: 'The Lantern of Enceladus', genre: 'scifi', desc: 'A crew on Saturn’s moon finds the ice transmitting.', isRealBook: false },
+  { title: 'Slow Light',            genre: 'scifi', desc: 'A generation ship hears from its destination far too early.', isRealBook: false },
+  { title: 'Salvage Rites',         genre: 'scifi', desc: 'Scavengers board a derelict whose crew still breathes.', isRealBook: false },
+  { title: 'The Tenth Colony',      genre: 'scifi', desc: 'Nine colonies went silent; the tenth ship investigates.', isRealBook: false },
+  { title: 'Grain of the Sky',      genre: 'scifi', desc: 'Terraformers argue over a world that may be occupied.', isRealBook: false },
+  { title: 'The Quiet Engine',      genre: 'scifi', desc: 'A starship’s drive makes course changes nobody ordered.', isRealBook: false },
+  { title: 'Ninety Days of Rain',   genre: 'scifi', desc: 'Two keepers run the last weather station on a drowned Earth.', isRealBook: false },
+  { title: 'Copperhead Station',    genre: 'scifi', desc: 'An orbital refinery votes to leave its company.', isRealBook: false },
+  { title: 'Europa, Standing',      genre: 'scifi', desc: 'A city under Europa’s ice was not built by people.', isRealBook: false },
+  { title: 'The Patience of Machines', genre: 'scifi', desc: 'A caretaker robot outlives the colony it served.', isRealBook: false },
 
   // ── History ──────────────────────────────────────────────────────────────
-  { title: 'The Bread Riots of Marrow Street', genre: 'history', desc: 'An account of the three weeks a city’s bakers stopped work, and what the price of flour did next.', isRealBook: false },
-  { title: 'Charter and Chain',     genre: 'history', desc: 'How one market town bought its charter from a reluctant baron, and what the debt cost for a century.', isRealBook: false },
-  { title: 'The Long Winter Count', genre: 'history', desc: 'A hundred years of one plains community’s winter records, read as a single continuous document.', isRealBook: false },
-  { title: 'Ledgers of the Salt Road', genre: 'history', desc: 'Two centuries of caravan trade reconstructed entirely from surviving account books.', isRealBook: false },
-  { title: 'What the Tannery Knew', genre: 'history', desc: 'The history of a trade and a city quarter, told through the one street that did the tanning.', isRealBook: false },
-  { title: 'The Cholera Summer',    genre: 'history', desc: 'How a river city argued, panicked and finally organised itself through one outbreak.', isRealBook: false },
-  { title: 'Six Harvests',          genre: 'history', desc: 'The six failed harvests that emptied a region, and the roads its people took out of it.', isRealBook: false },
-  { title: 'The Weavers’ Strike',   genre: 'history', desc: 'An account of a mill town’s long stoppage, drawn from company records and union minutes.', isRealBook: false },
-  { title: 'Empire of Tin',         genre: 'history', desc: 'How one unglamorous metal quietly decided three centuries of trade and empire.', isRealBook: false },
-  { title: 'The Ash Year',          genre: 'history', desc: 'A volcanic winter, the crops that failed across two continents, and the governments that fell after.', isRealBook: false },
+  { title: 'The Bread Riots of Marrow Street', genre: 'history', desc: 'Three weeks a city’s bakers stopped work.', isRealBook: false },
+  { title: 'Charter and Chain',     genre: 'history', desc: 'How a market town bought its charter, and the debt after.', isRealBook: false },
+  { title: 'The Long Winter Count', genre: 'history', desc: 'A century of one community’s winter records.', isRealBook: false },
+  { title: 'Ledgers of the Salt Road', genre: 'history', desc: 'Caravan trade reconstructed from surviving account books.', isRealBook: false },
+  { title: 'What the Tannery Knew', genre: 'history', desc: 'A trade and a city quarter, told through one street.', isRealBook: false },
+  { title: 'The Cholera Summer',    genre: 'history', desc: 'How a river city organised itself through an outbreak.', isRealBook: false },
+  { title: 'Six Harvests',          genre: 'history', desc: 'Six failed harvests and the roads out of the region.', isRealBook: false },
+  { title: 'The Weavers’ Strike',   genre: 'history', desc: 'A mill town’s stoppage, from company and union records.', isRealBook: false },
+  { title: 'Empire of Tin',         genre: 'history', desc: 'How one dull metal decided three centuries of trade.', isRealBook: false },
+  { title: 'The Ash Year',          genre: 'history', desc: 'A volcanic winter, failed crops, fallen governments.', isRealBook: false },
 ];
 
 /* Real published books. Descriptions are written for this game, not copied.
    An `author` is what marks a shelf card as a real one. */
 const REAL_BOOKS = [
   // ── Fantasy ──────────────────────────────────────────────────────────────
-  { title: 'The Hobbit', author: 'J.R.R. Tolkien', genre: 'fantasy', desc: 'A comfortable hobbit is bustled out of his door and into a quest to win back a dwarf kingdom from a dragon.', isRealBook: true },
-  { title: 'A Wizard of Earthsea', author: 'Ursula K. Le Guin', genre: 'fantasy', desc: 'A gifted young wizard looses a shadow upon the world and sails to the edge of the map to face it.', isRealBook: true },
-  { title: 'Howl’s Moving Castle', author: 'Diana Wynne Jones', genre: 'fantasy', desc: 'A hatmaker cursed into old age keeps house for a vain wizard in a castle that walks about the hills.', isRealBook: true },
-  { title: 'The Lion, the Witch and the Wardrobe', author: 'C.S. Lewis', genre: 'fantasy', desc: 'Four children step through a wardrobe into a country held in endless winter by a white witch.', isRealBook: true },
-  { title: 'The Name of the Wind', author: 'Patrick Rothfuss', genre: 'fantasy', desc: 'An innkeeper with a hidden past recounts how he became the most notorious magician of his age.', isRealBook: true },
-  { title: 'Piranesi', author: 'Susanna Clarke', genre: 'fantasy', desc: 'A man living in an endless house of statues and tides begins to suspect he is not its only inhabitant.', isRealBook: true },
-  { title: 'The Fifth Season', author: 'N.K. Jemisin', genre: 'fantasy', desc: 'On a continent shaken by regular apocalypses, a woman with earth-moving power hunts for her stolen daughter.', isRealBook: true },
-  { title: 'Uprooted', author: 'Naomi Novik', genre: 'fantasy', desc: 'A village girl is taken as tribute by the wizard who guards her valley against a malevolent wood.', isRealBook: true },
-  { title: 'The Last Unicorn', author: 'Peter S. Beagle', genre: 'fantasy', desc: 'The last unicorn leaves her forest to discover what became of all the others.', isRealBook: true },
-  { title: 'Sabriel', author: 'Garth Nix', genre: 'fantasy', desc: 'A necromancer’s daughter crosses into the Old Kingdom to look for her father among the dead.', isRealBook: true },
+  { title: 'The Hobbit', author: 'J.R.R. Tolkien', genre: 'fantasy', desc: 'A comfortable hobbit joins a quest against a dragon.', isRealBook: true },
+  { title: 'A Wizard of Earthsea', author: 'Ursula K. Le Guin', genre: 'fantasy', desc: 'A young wizard sails to face the shadow he loosed.', isRealBook: true },
+  { title: 'Howl’s Moving Castle', author: 'Diana Wynne Jones', genre: 'fantasy', desc: 'A cursed hatmaker keeps house in a walking castle.', isRealBook: true },
+  { title: 'The Lion, the Witch and the Wardrobe', author: 'C.S. Lewis', genre: 'fantasy', desc: 'Four children find a country locked in winter.', isRealBook: true },
+  { title: 'The Name of the Wind', author: 'Patrick Rothfuss', genre: 'fantasy', desc: 'An innkeeper recounts becoming a notorious magician.', isRealBook: true },
+  { title: 'Piranesi', author: 'Susanna Clarke', genre: 'fantasy', desc: 'A man lives in an endless house of statues and tides.', isRealBook: true },
+  { title: 'The Fifth Season', author: 'N.K. Jemisin', genre: 'fantasy', desc: 'A woman with earth-moving power hunts her stolen daughter.', isRealBook: true },
+  { title: 'Uprooted', author: 'Naomi Novik', genre: 'fantasy', desc: 'A village girl is taken by the wizard guarding her valley.', isRealBook: true },
+  { title: 'The Last Unicorn', author: 'Peter S. Beagle', genre: 'fantasy', desc: 'The last unicorn goes looking for the others.', isRealBook: true },
+  { title: 'Sabriel', author: 'Garth Nix', genre: 'fantasy', desc: 'A necromancer’s daughter seeks her father among the dead.', isRealBook: true },
 
   // ── Mystery ──────────────────────────────────────────────────────────────
-  { title: 'The Hound of the Baskervilles', author: 'Arthur Conan Doyle', genre: 'mystery', desc: 'Sherlock Holmes investigates the spectral hound said to hunt one family across the moors.', isRealBook: true },
-  { title: 'Murder on the Orient Express', author: 'Agatha Christie', genre: 'mystery', desc: 'Hercule Poirot is snowbound on a train with twelve suspects and one much-stabbed passenger.', isRealBook: true },
-  { title: 'The Maltese Falcon', author: 'Dashiell Hammett', genre: 'mystery', desc: 'A San Francisco detective is drawn into the hunt for a jewelled statuette worth killing over.', isRealBook: true },
-  { title: 'The Big Sleep', author: 'Raymond Chandler', genre: 'mystery', desc: 'Philip Marlowe takes a simple blackmail case for a dying general and finds a great deal more.', isRealBook: true },
-  { title: 'Gaudy Night', author: 'Dorothy L. Sayers', genre: 'mystery', desc: 'Harriet Vane returns to her Oxford college to trace a poison-pen writer among the dons.', isRealBook: true },
-  { title: 'The Moonstone', author: 'Wilkie Collins', genre: 'mystery', desc: 'A cursed Indian diamond disappears from an English country house on the night it is given away.', isRealBook: true },
-  { title: 'The Girl with the Dragon Tattoo', author: 'Stieg Larsson', genre: 'mystery', desc: 'A disgraced journalist and a ferocious hacker reopen a disappearance that has been cold for forty years.', isRealBook: true },
-  { title: 'In the Woods', author: 'Tana French', genre: 'mystery', desc: 'A Dublin detective works a child’s murder in the same wood where he himself vanished as a boy.', isRealBook: true },
-  { title: 'The No. 1 Ladies’ Detective Agency', author: 'Alexander McCall Smith', genre: 'mystery', desc: 'Botswana’s first female private detective opens for business and takes on her neighbours’ troubles.', isRealBook: true },
-  { title: 'The Thursday Murder Club', author: 'Richard Osman', genre: 'mystery', desc: 'Four residents of a retirement village meet weekly over cold cases, then land a very fresh one.', isRealBook: true },
+  { title: 'The Hound of the Baskervilles', author: 'Arthur Conan Doyle', genre: 'mystery', desc: 'Holmes investigates a spectral hound on the moors.', isRealBook: true },
+  { title: 'Murder on the Orient Express', author: 'Agatha Christie', genre: 'mystery', desc: 'A snowbound train, twelve suspects, one stabbed passenger.', isRealBook: true },
+  { title: 'The Maltese Falcon', author: 'Dashiell Hammett', genre: 'mystery', desc: 'A detective hunts a jewelled statuette worth killing for.', isRealBook: true },
+  { title: 'The Big Sleep', author: 'Raymond Chandler', genre: 'mystery', desc: 'A blackmail case for a dying general turns worse.', isRealBook: true },
+  { title: 'Gaudy Night', author: 'Dorothy L. Sayers', genre: 'mystery', desc: 'An Oxford college hides a poison-pen writer.', isRealBook: true },
+  { title: 'The Moonstone', author: 'Wilkie Collins', genre: 'mystery', desc: 'A cursed diamond vanishes from a country house.', isRealBook: true },
+  { title: 'The Girl with the Dragon Tattoo', author: 'Stieg Larsson', genre: 'mystery', desc: 'A journalist and a hacker reopen a cold disappearance.', isRealBook: true },
+  { title: 'In the Woods', author: 'Tana French', genre: 'mystery', desc: 'A detective works a murder in the wood where he vanished.', isRealBook: true },
+  { title: 'The No. 1 Ladies’ Detective Agency', author: 'Alexander McCall Smith', genre: 'mystery', desc: 'Botswana’s first female private detective opens for business.', isRealBook: true },
+  { title: 'The Thursday Murder Club', author: 'Richard Osman', genre: 'mystery', desc: 'Retirement-village friends take on a very fresh case.', isRealBook: true },
 
   // ── Biography ────────────────────────────────────────────────────────────
-  { title: 'The Diary of a Young Girl', author: 'Anne Frank', genre: 'biography', desc: 'The diary a Jewish teenager kept through two years hidden in a concealed annexe in Amsterdam.', isRealBook: true },
-  { title: 'Long Walk to Freedom', author: 'Nelson Mandela', genre: 'biography', desc: 'Mandela’s own account of the road from a Transkei village through twenty-seven years in prison to the presidency.', isRealBook: true },
-  { title: 'I Know Why the Caged Bird Sings', author: 'Maya Angelou', genre: 'biography', desc: 'Angelou’s account of growing up in the segregated American South, and the years she chose not to speak.', isRealBook: true },
-  { title: 'The Immortal Life of Henrietta Lacks', author: 'Rebecca Skloot', genre: 'biography', desc: 'The story of the woman whose cells were taken without her consent and never stopped dividing.', isRealBook: true },
-  { title: 'Educated', author: 'Tara Westover', genre: 'biography', desc: 'A woman raised by survivalist parents with no schooling at all makes her way to a Cambridge doctorate.', isRealBook: true },
-  { title: 'Steve Jobs', author: 'Walter Isaacson', genre: 'biography', desc: 'An authorised portrait of Apple’s founder, built from dozens of interviews with the man himself.', isRealBook: true },
-  { title: 'Alexander Hamilton', author: 'Ron Chernow', genre: 'biography', desc: 'The life of the orphaned immigrant who built the financial machinery of the United States.', isRealBook: true },
-  { title: 'The Wright Brothers', author: 'David McCullough', genre: 'biography', desc: 'Two Ohio bicycle makers teach themselves the physics of flight and get a machine into the air.', isRealBook: true },
-  { title: 'A Beautiful Mind', author: 'Sylvia Nasar', genre: 'biography', desc: 'The mathematician John Nash’s descent into schizophrenia and his improbable return to his work.', isRealBook: true },
-  { title: 'Becoming', author: 'Michelle Obama', genre: 'biography', desc: 'The former First Lady’s account of the South Side, the law, and the years that followed.', isRealBook: true },
+  { title: 'The Diary of a Young Girl', author: 'Anne Frank', genre: 'biography', desc: 'A teenager’s diary from two years in hiding.', isRealBook: true },
+  { title: 'Long Walk to Freedom', author: 'Nelson Mandela', genre: 'biography', desc: 'From a Transkei village, through prison, to the presidency.', isRealBook: true },
+  { title: 'I Know Why the Caged Bird Sings', author: 'Maya Angelou', genre: 'biography', desc: 'Growing up in the segregated South, and years of silence.', isRealBook: true },
+  { title: 'The Immortal Life of Henrietta Lacks', author: 'Rebecca Skloot', genre: 'biography', desc: 'The woman whose cells were taken and never stopped dividing.', isRealBook: true },
+  { title: 'Educated', author: 'Tara Westover', genre: 'biography', desc: 'Raised without schooling, she reaches a Cambridge doctorate.', isRealBook: true },
+  { title: 'Steve Jobs', author: 'Walter Isaacson', genre: 'biography', desc: 'An authorised portrait of Apple’s founder.', isRealBook: true },
+  { title: 'Alexander Hamilton', author: 'Ron Chernow', genre: 'biography', desc: 'The orphaned immigrant who built America’s financial system.', isRealBook: true },
+  { title: 'The Wright Brothers', author: 'David McCullough', genre: 'biography', desc: 'Two bicycle makers teach themselves to fly.', isRealBook: true },
+  { title: 'A Beautiful Mind', author: 'Sylvia Nasar', genre: 'biography', desc: 'A mathematician’s illness and improbable return to work.', isRealBook: true },
+  { title: 'Becoming', author: 'Michelle Obama', genre: 'biography', desc: 'A former First Lady on the South Side and after.', isRealBook: true },
 
   // ── Added in v0.2: a mix of recognisable and deliberately misleading ──
-  { title: 'The Princess Bride', author: 'William Goldman', genre: 'fantasy', desc: 'A farmhand turned pirate crosses a kingdom of swordsmen and giants to reach the woman he loves.', isRealBook: true },
-  { title: 'Good Omens', author: 'Terry Pratchett and Neil Gaiman', genre: 'fantasy', desc: 'An angel and a demon who have grown fond of England conspire to misplace the Antichrist.', isRealBook: true },
-  { title: 'The Golden Compass', author: 'Philip Pullman', genre: 'fantasy', desc: 'A girl and her animal-shaped soul travel north to find children stolen for an experiment.', isRealBook: true },
-  { title: 'Stardust', author: 'Neil Gaiman', genre: 'fantasy', desc: 'A young man crosses the wall at the edge of his village to fetch a fallen star, which turns out to be a woman.', isRealBook: true },
-  { title: 'And Then There Were None', author: 'Agatha Christie', genre: 'mystery', desc: 'Ten strangers are lured to an island and accused by a voice, then killed one by one.', isRealBook: true },
-  { title: 'The Cuckoo’s Calling', author: 'Robert Galbraith', genre: 'mystery', desc: 'A private detective reopens a supermodel’s fall from a balcony that everyone else has filed as suicide.', isRealBook: true },
-  { title: 'Devil in a Blue Dress', author: 'Walter Mosley', genre: 'mystery', desc: 'A laid-off aircraft worker in 1940s Los Angeles is paid to find a missing woman and becomes a detective by accident.', isRealBook: true },
-  { title: 'Still Life', author: 'Louise Penny', genre: 'mystery', desc: 'A Quebec village painter is found dead in the woods, and the arrow through her was not an accident.', isRealBook: true },
-  { title: 'Hidden Figures', author: 'Margot Lee Shetterly', genre: 'biography', desc: 'The lives of the Black women mathematicians whose calculations put American astronauts into orbit.', isRealBook: true },
-  { title: 'Unbroken', author: 'Laura Hillenbrand', genre: 'biography', desc: 'The life of an Olympic runner who survived a plane crash, weeks adrift, and years as a prisoner of war.', isRealBook: true },
-  { title: 'Born a Crime', author: 'Trevor Noah', genre: 'biography', desc: 'A comedian’s account of a childhood in South Africa where his parents’ relationship was itself illegal.', isRealBook: true },
-  { title: 'The Glass Castle', author: 'Jeannette Walls', genre: 'biography', desc: 'A journalist recalls the brilliant, chaotic parents who raised her mostly without a home.', isRealBook: true },
+  { title: 'The Princess Bride', author: 'William Goldman', genre: 'fantasy', desc: 'A farmhand turned pirate crosses a kingdom of swordsmen.', isRealBook: true },
+  { title: 'Good Omens', author: 'Terry Pratchett and Neil Gaiman', genre: 'fantasy', desc: 'An angel and a demon misplace the Antichrist.', isRealBook: true },
+  { title: 'The Golden Compass', author: 'Philip Pullman', genre: 'fantasy', desc: 'A girl and her animal-shaped soul travel north.', isRealBook: true },
+  { title: 'Stardust', author: 'Neil Gaiman', genre: 'fantasy', desc: 'A young man crosses a wall to fetch a fallen star.', isRealBook: true },
+  { title: 'And Then There Were None', author: 'Agatha Christie', genre: 'mystery', desc: 'Ten strangers on an island, killed one by one.', isRealBook: true },
+  { title: 'The Cuckoo’s Calling', author: 'Robert Galbraith', genre: 'mystery', desc: 'A detective reopens a supermodel’s fall from a balcony.', isRealBook: true },
+  { title: 'Devil in a Blue Dress', author: 'Walter Mosley', genre: 'mystery', desc: 'A laid-off worker becomes a detective by accident.', isRealBook: true },
+  { title: 'Still Life', author: 'Louise Penny', genre: 'mystery', desc: 'A village painter is found dead in the woods.', isRealBook: true },
+  { title: 'Hidden Figures', author: 'Margot Lee Shetterly', genre: 'biography', desc: 'The Black women mathematicians behind American spaceflight.', isRealBook: true },
+  { title: 'Unbroken', author: 'Laura Hillenbrand', genre: 'biography', desc: 'An Olympic runner survives a crash, the sea and captivity.', isRealBook: true },
+  { title: 'Born a Crime', author: 'Trevor Noah', genre: 'biography', desc: 'A comedian’s childhood, when his parents’ love was illegal.', isRealBook: true },
+  { title: 'The Glass Castle', author: 'Jeannette Walls', genre: 'biography', desc: 'A journalist recalls her brilliant, chaotic, homeless parents.', isRealBook: true },
 
   // ── Science Fiction ──────────────────────────────────────────────────────
-  { title: 'Dune', author: 'Frank Herbert', genre: 'scifi', desc: 'A ducal heir on a desert planet becomes entangled with the people who survive it and the spice beneath it.', isRealBook: true },
-  { title: 'The Left Hand of Darkness', author: 'Ursula K. Le Guin', genre: 'scifi', desc: 'An envoy negotiates with a world whose people have no fixed sex, and nearly freezes crossing it.', isRealBook: true },
-  { title: 'Neuromancer', author: 'William Gibson', genre: 'scifi', desc: 'A burnt-out console cowboy is hired for one last run through corporate cyberspace.', isRealBook: true },
-  { title: 'The Martian', author: 'Andy Weir', genre: 'scifi', desc: 'An astronaut left behind on Mars keeps himself alive with botany, duct tape and arithmetic.', isRealBook: true },
-  { title: 'Ender’s Game', author: 'Orson Scott Card', genre: 'scifi', desc: 'A gifted child is trained in an orbital battle school for a war the adults will not explain.', isRealBook: true },
-  { title: 'Snow Crash', author: 'Neal Stephenson', genre: 'scifi', desc: 'A pizza courier and part-time hacker chases a drug that works on people and computers alike.', isRealBook: true },
-  { title: 'Kindred', author: 'Octavia E. Butler', genre: 'scifi', desc: 'A woman in 1976 is pulled repeatedly back in time to a Maryland plantation she cannot change.', isRealBook: true },
-  { title: 'Project Hail Mary', author: 'Andy Weir', genre: 'scifi', desc: 'A man wakes on a ship far from Earth with no memory, one mission and unexpected company.', isRealBook: true },
-  { title: 'Klara and the Sun', author: 'Kazuo Ishiguro', genre: 'scifi', desc: 'An artificial companion in a shop window watches the street, waiting to be chosen by a child.', isRealBook: true },
-  { title: 'The Three-Body Problem', author: 'Cixin Liu', genre: 'scifi', desc: 'A signal sent from a Chinese radio observatory is answered by something that has been waiting.', isRealBook: true },
-  { title: 'Station Eleven', author: 'Emily St. John Mandel', genre: 'scifi', desc: 'A travelling troupe performs Shakespeare across the settlements left twenty years after a pandemic.', isRealBook: true },
-  { title: 'The War of the Worlds', author: 'H.G. Wells', genre: 'scifi', desc: 'Martian machines land in the English countryside and the empire discovers how thin its defences are.', isRealBook: true },
-  { title: 'Do Androids Dream of Electric Sheep?', author: 'Philip K. Dick', genre: 'scifi', desc: 'A bounty hunter on a poisoned Earth retires escaped androids he can barely tell from people.', isRealBook: true },
-  { title: 'Fahrenheit 451', author: 'Ray Bradbury', genre: 'scifi', desc: 'A fireman whose job is burning books begins keeping one, in a future that has outlawed them.', isRealBook: true },
+  { title: 'Dune', author: 'Frank Herbert', genre: 'scifi', desc: 'A ducal heir, a desert planet, and the spice beneath.', isRealBook: true },
+  { title: 'The Left Hand of Darkness', author: 'Ursula K. Le Guin', genre: 'scifi', desc: 'An envoy on a frozen world with no fixed sex.', isRealBook: true },
+  { title: 'Neuromancer', author: 'William Gibson', genre: 'scifi', desc: 'A burnt-out hacker takes one last run through cyberspace.', isRealBook: true },
+  { title: 'The Martian', author: 'Andy Weir', genre: 'scifi', desc: 'An astronaut left on Mars survives on botany and arithmetic.', isRealBook: true },
+  { title: 'Ender’s Game', author: 'Orson Scott Card', genre: 'scifi', desc: 'A gifted child is trained in an orbital battle school.', isRealBook: true },
+  { title: 'Snow Crash', author: 'Neal Stephenson', genre: 'scifi', desc: 'A pizza courier chases a drug that infects computers.', isRealBook: true },
+  { title: 'Kindred', author: 'Octavia E. Butler', genre: 'scifi', desc: 'A woman in 1976 is pulled back to a plantation.', isRealBook: true },
+  { title: 'Project Hail Mary', author: 'Andy Weir', genre: 'scifi', desc: 'A man wakes far from Earth with no memory.', isRealBook: true },
+  { title: 'Klara and the Sun', author: 'Kazuo Ishiguro', genre: 'scifi', desc: 'An artificial friend waits in a shop window.', isRealBook: true },
+  { title: 'The Three-Body Problem', author: 'Cixin Liu', genre: 'scifi', desc: 'A signal from a radio observatory is answered.', isRealBook: true },
+  { title: 'Station Eleven', author: 'Emily St. John Mandel', genre: 'scifi', desc: 'A troupe performs Shakespeare twenty years after a pandemic.', isRealBook: true },
+  { title: 'The War of the Worlds', author: 'H.G. Wells', genre: 'scifi', desc: 'Martian machines land in the English countryside.', isRealBook: true },
+  { title: 'Do Androids Dream of Electric Sheep?', author: 'Philip K. Dick', genre: 'scifi', desc: 'A bounty hunter retires androids he can barely identify.', isRealBook: true },
+  { title: 'Fahrenheit 451', author: 'Ray Bradbury', genre: 'scifi', desc: 'A fireman who burns books begins keeping one.', isRealBook: true },
 
   // ── History ──────────────────────────────────────────────────────────────
-  { title: 'SPQR', author: 'Mary Beard', genre: 'history', desc: 'A thousand years of Rome, from a muddy village to an empire, and the politics underneath.', isRealBook: true },
-  { title: 'Guns, Germs, and Steel', author: 'Jared Diamond', genre: 'history', desc: 'An argument that geography, crops and livestock, not people, decided which societies conquered which.', isRealBook: true },
-  { title: 'The Guns of August', author: 'Barbara W. Tuchman', genre: 'history', desc: 'The first month of the First World War, and the miscalculations that made stopping it impossible.', isRealBook: true },
-  { title: '1491', author: 'Charles C. Mann', genre: 'history', desc: 'What the Americas actually looked like before Columbus, and how badly Europe misread them.', isRealBook: true },
-  { title: 'Sapiens', author: 'Yuval Noah Harari', genre: 'history', desc: 'A sweep through the whole human past, from foraging bands to nations, empires and money.', isRealBook: true },
-  { title: 'The Silk Roads', author: 'Peter Frankopan', genre: 'history', desc: 'A retelling of world history with central Asia, not Europe, at the middle of the map.', isRealBook: true },
-  { title: 'A People’s History of the United States', author: 'Howard Zinn', genre: 'history', desc: 'The American past told from the side of workers, strikers and the conquered rather than presidents.', isRealBook: true },
-  { title: 'The Rise and Fall of the Third Reich', author: 'William L. Shirer', genre: 'history', desc: 'A correspondent who watched it happen documents the twelve years of Nazi Germany from its own records.', isRealBook: true },
-  { title: 'Team of Rivals', author: 'Doris Kearns Goodwin', genre: 'history', desc: 'An account of the Civil War cabinet Lincoln built out of the men who had run against him.', isRealBook: true },
-  { title: 'Salt: A World History', author: 'Mark Kurlansky', genre: 'history', desc: 'Wars, taxes, trade routes and towns, all traced through the one mineral people cannot live without.', isRealBook: true },
-  { title: 'Bury My Heart at Wounded Knee', author: 'Dee Brown', genre: 'history', desc: 'The conquest of the American West as recorded by the nations who were dispossessed by it.', isRealBook: true },
-  { title: 'The Warmth of Other Suns', author: 'Isabel Wilkerson', genre: 'history', desc: 'The six-decade migration of six million people out of the American South, followed through three of them.', isRealBook: true },
-  { title: 'Genghis Khan and the Making of the Modern World', author: 'Jack Weatherford', genre: 'history', desc: 'How the Mongol conquests rewired trade, law and warfare across the whole of Eurasia.', isRealBook: true },
-  { title: 'A Distant Mirror', author: 'Barbara W. Tuchman', genre: 'history', desc: 'The calamitous fourteenth century in Europe — plague, war and schism — seen through one French nobleman’s era.', isRealBook: true },
+  { title: 'SPQR', author: 'Mary Beard', genre: 'history', desc: 'A thousand years of Rome, village to empire.', isRealBook: true },
+  { title: 'Guns, Germs, and Steel', author: 'Jared Diamond', genre: 'history', desc: 'Geography and crops, not people, decided who conquered.', isRealBook: true },
+  { title: 'The Guns of August', author: 'Barbara W. Tuchman', genre: 'history', desc: 'The first month of the First World War.', isRealBook: true },
+  { title: '1491', author: 'Charles C. Mann', genre: 'history', desc: 'The Americas before Columbus, and how Europe misread them.', isRealBook: true },
+  { title: 'Sapiens', author: 'Yuval Noah Harari', genre: 'history', desc: 'The whole human past, foraging bands to empires.', isRealBook: true },
+  { title: 'The Silk Roads', author: 'Peter Frankopan', genre: 'history', desc: 'World history with central Asia at the centre.', isRealBook: true },
+  { title: 'A People’s History of the United States', author: 'Howard Zinn', genre: 'history', desc: 'America told from workers, strikers and the conquered.', isRealBook: true },
+  { title: 'The Rise and Fall of the Third Reich', author: 'William L. Shirer', genre: 'history', desc: 'Twelve years of Nazi Germany, from its own records.', isRealBook: true },
+  { title: 'Team of Rivals', author: 'Doris Kearns Goodwin', genre: 'history', desc: 'The Civil War cabinet built from Lincoln’s opponents.', isRealBook: true },
+  { title: 'Salt: A World History', author: 'Mark Kurlansky', genre: 'history', desc: 'Wars, taxes and towns traced through one mineral.', isRealBook: true },
+  { title: 'Bury My Heart at Wounded Knee', author: 'Dee Brown', genre: 'history', desc: 'The conquest of the West, recorded by the dispossessed.', isRealBook: true },
+  { title: 'The Warmth of Other Suns', author: 'Isabel Wilkerson', genre: 'history', desc: 'Six million people leaving the American South.', isRealBook: true },
+  { title: 'Genghis Khan and the Making of the Modern World', author: 'Jack Weatherford', genre: 'history', desc: 'How Mongol conquest rewired trade and law.', isRealBook: true },
+  { title: 'A Distant Mirror', author: 'Barbara W. Tuchman', genre: 'history', desc: 'Plague, war and schism in fourteenth-century Europe.', isRealBook: true },
 ];
 
 /* The shelf draws from both. Drop either list to run on one alone. */
@@ -191,52 +191,100 @@ const BOOKS = INVENTED_BOOKS.concat(REAL_BOOKS);
 
 /* Patron request type A: "where do I find books about X?" — 15 phrasings. */
 const TOPIC_ASKS = [
-  { genre: 'fantasy',   text: 'Where would I find books about dragons? Proper ones, with hoards.' },
-  { genre: 'fantasy',   text: 'My nephew has decided he loves wizards. Which section, please?' },
-  { genre: 'fantasy',   text: 'Do you keep the enchanted-forest sort of story anywhere near here?' },
-  { genre: 'fantasy',   text: 'I’m after something with knights and an impossible quest in it.' },
-  { genre: 'fantasy',   text: 'Anything with faeries who make bad bargains? That’s my whole personality lately.' },
-  { genre: 'mystery',   text: 'Where do you shelve the detective novels? The tea’s already on.' },
-  { genre: 'mystery',   text: 'I want a locked-room puzzle, the fussier the better. Which way?' },
-  { genre: 'mystery',   text: 'Something with a small village and one very suspicious vicar, please.' },
-  { genre: 'mystery',   text: 'Do you have books about stolen paintings and the people who chase them?' },
-  { genre: 'mystery',   text: 'I’m looking for a missing-persons case that actually gets solved.' },
-  { genre: 'biography', text: 'Where are the life stories of scientists kept?' },
-  { genre: 'biography', text: 'I’d love a chef’s memoir — real kitchens, real disasters.' },
-  { genre: 'biography', text: 'Which section has accounts by explorers who genuinely went there?' },
-  { genre: 'biography', text: 'A musician’s life story would be perfect for the train home.' },
-  { genre: 'biography', text: 'Something true, about somebody who quietly changed their own town?' },
+  // Fantasy
+  { genre: 'fantasy',   text: 'Where do you keep the fantasy novels?' },
+  { genre: 'fantasy',   text: 'Where would I find books about dragons?' },
+  { genre: 'fantasy',   text: 'My nephew has decided he loves wizards. Which way?' },
+  { genre: 'fantasy',   text: 'I want to get lost somewhere that doesn’t exist.' },
+  { genre: 'fantasy',   text: 'It’s raining. Something with a quest in it?' },
+  { genre: 'fantasy',   text: 'Anything with faeries who make bad bargains?' },
+  { genre: 'fantasy',   text: 'Enchanted forests. That’s the whole request, sorry.' },
+  { genre: 'fantasy',   text: 'Something with magic, for a long train ride.' },
+  { genre: 'fantasy',   text: 'Knights, but the impossible kind. Where do I look?' },
+  { genre: 'fantasy',   text: 'My book club wants swords and prophecies this month.' },
+  { genre: 'fantasy',   text: 'I’d like a world with its own maps and languages.' },
+  { genre: 'fantasy',   text: 'Do you shelve the talking-animal kingdoms anywhere?' },
 
-  { genre: 'scifi',   text: 'I’m looking for something about people living on another planet.' },
-  { genre: 'scifi',   text: 'Do you have stories where the robots start thinking for themselves?' },
-  { genre: 'scifi',   text: 'Something set a few hundred years from now, if you’ve got it?' },
-  { genre: 'scifi',   text: 'My son wants spaceships. Proper ones, with engines that break.' },
-  { genre: 'scifi',   text: 'Anything about a future that went badly wrong?' },
+  // Mystery
+  { genre: 'mystery',   text: 'Where do you shelve the detective novels?' },
+  { genre: 'mystery',   text: 'I’m in the mood for a good whodunit.' },
+  { genre: 'mystery',   text: 'A locked-room puzzle, the fussier the better.' },
+  { genre: 'mystery',   text: 'A small village and one very suspicious vicar?' },
+  { genre: 'mystery',   text: 'Books about stolen paintings and the people chasing them?' },
+  { genre: 'mystery',   text: 'A missing-persons case that actually gets solved, please.' },
+  { genre: 'mystery',   text: 'I want to guess the culprit and be wrong.' },
+  { genre: 'mystery',   text: 'Something with a detective who drinks too much coffee.' },
+  { genre: 'mystery',   text: 'My train is an hour. Give me a puzzle.' },
+  { genre: 'mystery',   text: 'Anything where the alibi turns out to be the clue?' },
+  { genre: 'mystery',   text: 'I like a courtroom twist. Which way?' },
+  { genre: 'mystery',   text: 'Where would I find the cosy crime shelf?' },
 
-  { genre: 'history', text: 'Do you have anything about ancient empires?' },
-  { genre: 'history', text: 'I’d like something on how ordinary people lived a few centuries ago.' },
-  { genre: 'history', text: 'Where would I find proper accounts of the world wars?' },
-  { genre: 'history', text: 'Something about old trade routes and the cities they made rich?' },
-  { genre: 'history', text: 'I want to read what actually happened, not a novel about it.' },
+  // Biography
+  { genre: 'biography', text: 'Where are the life stories kept?' },
+  { genre: 'biography', text: 'A chef’s memoir — real kitchens, real disasters.' },
+  { genre: 'biography', text: 'Something about a real person who changed science?' },
+  { genre: 'biography', text: 'Accounts by explorers who genuinely went there?' },
+  { genre: 'biography', text: 'A musician’s life story for the train home.' },
+  { genre: 'biography', text: 'Somebody who quietly changed their own town.' },
+  { genre: 'biography', text: 'I want one person’s whole life, start to finish.' },
+  { genre: 'biography', text: 'Something true, told by the person who lived it.' },
+  { genre: 'biography', text: 'A memoir about a difficult childhood, if you have one.' },
+  { genre: 'biography', text: 'Where do the letters-and-diaries books live?' },
+  { genre: 'biography', text: 'An artist’s life, warts and all?' },
+  { genre: 'biography', text: 'I’d like a portrait of one stubborn individual.' },
+
+  // Science Fiction
+  { genre: 'scifi',     text: 'Where is the science fiction shelved?' },
+  { genre: 'scifi',     text: 'Something about people living on another planet.' },
+  { genre: 'scifi',     text: 'Stories where the robots start thinking for themselves?' },
+  { genre: 'scifi',     text: 'Anything with spaceships, but not too technical?' },
+  { genre: 'scifi',     text: 'A future that went badly wrong, please.' },
+  { genre: 'scifi',     text: 'My son wants engines that break in deep space.' },
+  { genre: 'scifi',     text: 'I’m in the mood for something set centuries ahead.' },
+  { genre: 'scifi',     text: 'Where would I find the time-travel books?' },
+  { genre: 'scifi',     text: 'First contact, but not a war story?' },
+  { genre: 'scifi',     text: 'Anything where the science is the puzzle?' },
+  { genre: 'scifi',     text: 'I’d like a colony that stops answering.' },
+  { genre: 'scifi',     text: 'Books about cities under ice or on the sea floor?' },
+
+  // History
+  { genre: 'history',   text: 'Where’s the history section?' },
+  { genre: 'history',   text: 'I want something about ancient wars and empires.' },
+  { genre: 'history',   text: 'How ordinary people lived a few centuries ago.' },
+  { genre: 'history',   text: 'Proper accounts of the world wars?' },
+  { genre: 'history',   text: 'Old trade routes and the cities they made rich?' },
+  { genre: 'history',   text: 'I want what actually happened, not a novel about it.' },
+  { genre: 'history',   text: 'Something about a plague, and how a city coped.' },
+  { genre: 'history',   text: 'How one industry shaped a whole town?' },
+  { genre: 'history',   text: 'I’d like a book with a lot of footnotes, honestly.' },
+  { genre: 'history',   text: 'Where do you keep the books about revolutions?' },
+  { genre: 'history',   text: 'Something about a century, not a person.' },
+  { genre: 'history',   text: 'Trade, taxes and empires. That sort of thing.' },
 ];
 
 /* Patron request type B: locating a specific book the player has handled. */
 const BOOK_ASKS = [
-  'I’m after “{title}” — which section is it in?',
-  'My book club chose “{title}”. Where do I find it?',
-  'A friend swears by “{title}”. Which shelf, do you think?',
-  'Could you point me to “{title}”? I’ve been circling for ages.',
-  'I returned “{title}” last week and now I want it again. Where’s it live?',
+  'I’m after “{title}” — which section?',
+  'My book club chose “{title}”. Where is it?',
+  'A friend swears by “{title}”. Which shelf?',
+  'Could you point me to “{title}”?',
+  'I returned “{title}” last week and want it again.',
+  'Someone reserved “{title}” for me. Where do I collect it?',
+  'Is “{title}” back on the shelf yet? Which one?',
+  'I’ve been circling for ages looking for “{title}”.',
 ];
 
 /* Type C: remembering a real book from earlier in the shift. Only ever asked
    about real titles, which are recognisable enough to recall once seen. */
 const MEMORY_ASKS = [
   'I liked “{title}”. Where should I look for something similar?',
-  'I finished “{title}” on the bus. What else is in that part of the library?',
-  'Someone lent me “{title}” — where do you keep the rest of those?',
+  'I loved “{title}”. Where should I browse for something like it?',
+  'I finished “{title}” on the bus. What else is in that part?',
+  'Someone lent me “{title}” — where are the rest of those?',
   'If I enjoyed “{title}”, which section should I be browsing?',
   'My last one was “{title}”. Point me back to that shelf?',
+  'More like “{title}”, please. Which way?',
+  '“{title}” was a good one. Where are its neighbours?',
 ];
 
 const PATRON_NAMES = [
@@ -269,11 +317,11 @@ const THANK_LINES = [
   'Wonderful — thank you kindly.',
 ];
 
-/* Objectives are a list so new ones can be appended without touching the loop.
-   Targets are per-minute rates, scaled to whatever shift length is chosen. */
+/* The shift IS this list: it ends the moment every objective is met. Targets
+   live here and nowhere else. */
 const OBJECTIVES = [
-  { id: 'books',   label: 'Books shelved',  perMinute: 4, read: (s) => s.shelved },
-  { id: 'patrons', label: 'Patrons helped', perMinute: 3, read: (s) => s.helped },
+  { id: 'books',   label: 'Books shelved',  target: 8, read: (s) => s.shelved },
+  { id: 'patrons', label: 'Patrons helped', target: 6, read: (s) => s.helped },
 ];
 
 
@@ -282,8 +330,8 @@ const OBJECTIVES = [
    ========================================================================== */
 
 const CONFIG = {
-  shiftChoices: [2, 4, 6],       // minutes, offered on the title card
-  defaultMinutes: 2,
+  // A brisk, accurate shift should land near this; it is the bar for an S.
+  parSeconds: 70,
 
   // Coffee Spill: roughly this share of returns come back with a stain over
   // part of their title or description. Easy to tune.
@@ -291,9 +339,9 @@ const CONFIG = {
   cartMax: 8,                    // the cart quietly stops accepting past this
   queueMax: 4,
 
-  startingBooks: 2,
-  firstBookDelay: 4,
-  firstPatronDelay: 6,
+  startingBooks: 3,
+  firstBookDelay: 2,
+  firstPatronDelay: 3,
 
   // Nobody should stand at an empty desk. When less than this is waiting,
   // the next arrivals are pulled forward — so a fast player is met rather
@@ -318,13 +366,13 @@ const CONFIG = {
   bookRequestChance: 0.45,      // once enough books have been seen
   minSeenForBookRequest: 3,
 
-  // Pacing. Boundaries are fractions of the shift, so a 2-minute and a
-  // 6-minute shift both open calm and end noticeably busy.
+  // Pacing by seconds elapsed. A shift has no fixed length any more, so the
+  // ramp is absolute: calm to open, busier the longer you take.
   phases: [
-    { untilFraction: 0.20, label: 'Opening',     bookEvery: 12.0, patronEvery: 16.0, patience: 50 },
-    { untilFraction: 0.50, label: 'Mid-morning', bookEvery: 10.0, patronEvery: 13.0, patience: 45 },
-    { untilFraction: 0.80, label: 'Afternoon',   bookEvery:  8.0, patronEvery: 11.0, patience: 40 },
-    { untilFraction: 1.01, label: 'Last call',   bookEvery:  6.0, patronEvery:  8.5, patience: 34 },
+    { until: 15,   label: 'Opening',  bookEvery: 5.0, patronEvery: 7.5, patience: 46 },
+    { until: 35,   label: 'Steady',   bookEvery: 4.2, patronEvery: 6.2, patience: 42 },
+    { until: 70,   label: 'Busy',     bookEvery: 3.6, patronEvery: 5.4, patience: 38 },
+    { until: 1e9,  label: 'Backlog',  bookEvery: 3.0, patronEvery: 4.6, patience: 34 },
   ],
 
   points: {
@@ -354,22 +402,20 @@ let S = null;          // the whole game
 let lastFrame = 0;
 let rafId = 0;
 
-function createState(minutes, mode, shelfCount) {
-  const shiftSeconds = minutes * 60;
+function createState(mode, shelfCount) {
   const shelves = SHELVES.slice(0, shelfCount);
   const ids = shelves.map((sh) => sh.id);
   return {
     phase: 'title',          // 'title' | 'playing' | 'paused' | 'over'
-    minutes: minutes,
     mode: mode,
     shelfCount: shelfCount,
     shelves: shelves,                              // the sections in play
     pool: BOOKS.filter((b) => ids.includes(b.genre)),   // locked sections never spawn
     stains: new Map(),                             // book -> coffee damage, Coffee Spill only
-    shiftSeconds: shiftSeconds,
-    targets: targetsFor(minutes),
+    usedAsks: new Set(),                           // wording already heard this shift
+    lastAskGenre: null,
+    targets: targetsFor(),
     elapsed: 0,
-    timeLeft: shiftSeconds,
     phaseIndex: 0,
 
     cart: [],                // books waiting, oldest first; the "top" is the last one in
@@ -405,10 +451,10 @@ function shelfHistoryStore(shelves) {
   return store;
 }
 
-/* Scaled once at the start of a shift, so every readout agrees on the target. */
-function targetsFor(minutes) {
+/* Copied once at the start of a shift, so every readout agrees on the target. */
+function targetsFor() {
   const t = {};
-  OBJECTIVES.forEach((o) => { t[o.id] = Math.round(o.perMinute * minutes); });
+  OBJECTIVES.forEach((o) => { t[o.id] = o.target; });
   return t;
 }
 
@@ -470,6 +516,16 @@ function recallCandidates() {
   return S.seen.filter((b) => b.isRealBook || visibleOnShelf(b));
 }
 
+/* Prefers wording this shift has not used yet, and steers away from repeating
+   the previous request's section back to back. Falls back to the whole list
+   once it is genuinely exhausted. */
+function pickFresh(list, keyOf) {
+  const unused = list.filter((x) => !S.usedAsks.has(keyOf(x)));
+  const chosen = pick(unused.length ? unused : list);
+  S.usedAsks.add(keyOf(chosen));
+  return chosen;
+}
+
 function makeRequest() {
   const pool = recallCandidates();
   const canAskForBook =
@@ -480,17 +536,19 @@ function makeRequest() {
     const book = pick(pool);
     // Recall-style asks are for real titles only; invented ones are located.
     const remembering = book.isRealBook && Math.random() < CONFIG.memoryAskChance;
-    let text;
-    if (remembering) {
-      text = pick(MEMORY_ASKS).replace('{title}', book.title) +
-             (book.author ? ' The ' + book.author + ' one.' : '');
-    } else {
-      text = pick(BOOK_ASKS).replace('{title}', book.title) +
-             (book.author ? ' It’s the ' + book.author + ' one.' : '');
-    }
+    const template = remembering ? pickFresh(MEMORY_ASKS, (t) => t)
+                                 : pickFresh(BOOK_ASKS, (t) => t);
+    const text = template.replace('{title}', book.title) +
+      (book.author ? (remembering ? ' The ' : ' It’s the ') + book.author + ' one.' : '');
+    S.lastAskGenre = book.genre;
     return { kind: 'book', answer: book.genre, book: book, text: text };
   }
-  const ask = pick(TOPIC_ASKS.filter((t) => S.shelfHistory.hasOwnProperty(t.genre)));
+
+  let asks = TOPIC_ASKS.filter((t) => S.shelfHistory.hasOwnProperty(t.genre));
+  const varied = asks.filter((t) => t.genre !== S.lastAskGenre);
+  if (varied.length) asks = varied;                 // not the same section twice running
+  const ask = pickFresh(asks, (t) => t.text);
+  S.lastAskGenre = ask.genre;
   return { kind: 'topic', answer: ask.genre, book: null, text: ask.text };
 }
 
@@ -525,9 +583,8 @@ function addPatron() {
   return true;
 }
 
-function startShift(minutes, mode, shelfCount) {
-  S = createState(minutes || (S && S.minutes) || CONFIG.defaultMinutes,
-                  mode || (S && S.mode) || 'normal',
+function startShift(mode, shelfCount) {
+  S = createState(mode || (S && S.mode) || 'normal',
                   shelfCount || (S && S.shelfCount) || SHELF_TIERS[0]);
   S.phase = 'playing';
   for (let i = 0; i < CONFIG.startingBooks; i++) addBookToCart();
@@ -550,11 +607,10 @@ function clearBoard() {
 
 function update(dt) {
   S.elapsed += dt;
-  S.timeLeft = Math.max(0, S.shiftSeconds - S.elapsed);
 
   // Phase ramp
   while (S.phaseIndex < CONFIG.phases.length - 1 &&
-         S.elapsed >= CONFIG.phases[S.phaseIndex].untilFraction * S.shiftSeconds) {
+         S.elapsed >= CONFIG.phases[S.phaseIndex].until) {
     S.phaseIndex++;
     renderPhase();
   }
@@ -605,7 +661,8 @@ function update(dt) {
     S.satisfaction = clamp(S.satisfaction + CONFIG.calmRecoveryPerSec * dt, 0, 100);
   }
 
-  if (S.timeLeft <= 0) endShift();
+  // The shift is over the moment the whole workload is done.
+  if (objectivesMet()) endShift();
 }
 
 function streakBonus() {
@@ -768,7 +825,7 @@ function removePatron(p, how) {
    the two are never heavily damaged at once. Segments are worked out when the
    book reaches the cart, so what the player sees never shifts under them. */
 
-const STAIN_LIMITS = { titleChars: 0.34, descWords: 0.26 };
+const STAIN_LIMITS = { titleChars: 0.34, descWords: 0.3 };
 
 /* Splits text into [visible, hidden, visible, …] segments. */
 function segments(text, hide) {
@@ -807,13 +864,18 @@ function stainTitle(title, heavy) {
   return later.length ? [pick(later)] : [];
 }
 
+/* Clues are only a handful of words now, so this blots a keyword or two rather
+   than a stretch of sentence: the opening always survives, and short joining
+   words are passed over in favour of one that carries meaning. */
 function stainDesc(desc, share) {
-  const spans = wordSpans(desc).slice(3);          // the opening always survives
-  if (spans.length < 4) return [];
-  const cap = Math.floor(wordSpans(desc).length * STAIN_LIMITS.descWords);
-  const want = Math.max(1, Math.min(cap, Math.round(spans.length * share)));
+  const all = wordSpans(desc);
+  if (all.length < 5) return [];
+  const cap = Math.max(1, Math.floor(all.length * STAIN_LIMITS.descWords));
+  const rest = all.slice(2);
+  const meaty = rest.filter((sp) => sp.to - sp.from >= 4);
+  const bag = (meaty.length ? meaty : rest).slice();
+  const want = Math.max(1, Math.min(cap, Math.round(bag.length * share)));
   const chosen = [];
-  const bag = spans.slice();
   while (chosen.length < want && bag.length) {
     chosen.push(bag.splice(Math.floor(Math.random() * bag.length), 1)[0]);
   }
@@ -825,7 +887,7 @@ function makeStain(book) {
   let title = [], desc = [];
   if (roll < 0.4)      { title = stainTitle(book.title, false); }
   else if (roll < 0.8) { desc = stainDesc(book.desc, 0.2); }
-  else                 { title = stainTitle(book.title, true); desc = stainDesc(book.desc, 0.12); }
+  else                 { title = stainTitle(book.title, true); desc = stainDesc(book.desc, 0.1); }
   // A stain that hid nothing is not a stain, and one that hid the title alone
   // still needs the description intact — which it is, by construction.
   if (!title.length && !desc.length) desc = stainDesc(book.desc, 0.2);
@@ -897,6 +959,11 @@ function tierUnlocked(mode, shelfCount) { return shelfCount <= progress[mode].un
 /* ── End of shift ───────────────────────────────────────────────────────── */
 
 /* Every shelf tap counts, whether it was a return or a patron's question. */
+function formatTime(seconds) {
+  const t = Math.floor(seconds);
+  return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0');
+}
+
 function accuracy() {
   return S.attempts === 0 ? 1 : S.correct / S.attempts;
 }
@@ -905,13 +972,14 @@ function objectivesMet() {
   return OBJECTIVES.every((o) => o.read(S) >= S.targets[o.id]);
 }
 
+/* Finishing is no longer the achievement — the shift only ends when the work is
+   done — so the grade is about how cleanly and how quickly you got there. */
 function computeGrade() {
   const acc = accuracy();
-  const streakGate = Math.max(8, Math.round(2.4 * S.minutes));
-  if (objectivesMet() && acc >= 0.95 && S.satisfaction >= 90 && S.bestStreak >= streakGate) return 'S';
-  if (objectivesMet()) return 'A';
-  const partial = OBJECTIVES.every((o) => o.read(S) >= S.targets[o.id] * 0.6);
-  if (partial && acc >= 0.7) return 'B';
+  const time = S.finishedIn || S.elapsed;
+  if (acc >= 0.94 && S.satisfaction >= 85 && time <= CONFIG.parSeconds && S.bestStreak >= 8) return 'S';
+  if (acc >= 0.82 && S.satisfaction >= 60 && time <= CONFIG.parSeconds * 2) return 'A';
+  if (acc >= 0.68) return 'B';
   return 'C';
 }
 
@@ -925,7 +993,7 @@ const GRADE_NOTES = {
 function endShift() {
   S.phase = 'over';
   S.hand = null;
-  S.timeLeft = 0;
+  S.finishedIn = S.elapsed;
   const grade = computeGrade();
   const prev = bestFor(S.mode, S.shelfCount);
   S.previousBest = prev ? prev.score : 0;
@@ -938,7 +1006,8 @@ function endShift() {
     progress[S.mode].unlocked = S.shelfCount + 1;
     S.unlockedShelf = SHELVES[S.shelfCount];      // the section just opened
   }
-  if (S.newRecord) progress[S.mode].best[S.shelfCount] = { score: S.score, grade: grade };
+  if (S.newRecord) progress[S.mode].best[S.shelfCount] =
+    { score: S.score, grade: grade, time: Math.round(S.finishedIn) };
   if (S.newRecord || S.unlockedShelf) saveProgress();
   renderSlip();
   renderArmed();
@@ -1043,13 +1112,15 @@ function renderAll() {
 /* ── HUD (cheap, runs every frame) ──────────────────────────────────────── */
 
 function renderHud() {
-  const t = Math.ceil(S.timeLeft);
-  $('clockTime').textContent = Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0');
+  $('clockTime').textContent = formatTime(S.elapsed);
 
-  const pct = (S.elapsed / S.shiftSeconds) * 100;
+  // The bar is progress through the workload, not through a countdown.
+  const done = OBJECTIVES.reduce((a, ob) => a + Math.min(ob.read(S), S.targets[ob.id]), 0);
+  const total = OBJECTIVES.reduce((a, ob) => a + S.targets[ob.id], 0);
+  const pct = (done / total) * 100;
   $('shiftFill').style.width = clamp(pct, 0, 100) + '%';
   $('shiftBar').setAttribute('aria-valuenow', Math.round(pct));
-  $('shiftBar').classList.toggle('rush', S.phaseIndex >= CONFIG.phases.length - 1);
+  $('shiftBar').classList.toggle('rush', pct >= 75);
 
   $('scoreValue').textContent = S.score;
   $('streakValue').textContent = S.streak;
@@ -1267,7 +1338,6 @@ function showMilestone(n) {
 
 /* ── Overlays ───────────────────────────────────────────────────────────── */
 
-let chosenMinutes = CONFIG.defaultMinutes;
 let chosenMode = MODES[0].id;
 let chosenShelves = SHELF_TIERS[0];
 
@@ -1279,8 +1349,6 @@ function showTitle() {
     '<button class="chip" type="button" data-mode="' + m.id + '">' + m.name + '</button>').join('');
   const tierChips = SHELF_TIERS.map((n) =>
     '<button class="chip" type="button" data-tier="' + n + '">' + n + ' shelves</button>').join('');
-  const lenChips = CONFIG.shiftChoices.map((m) =>
-    '<button class="chip" type="button" data-min="' + m + '">' + m + ' min</button>').join('');
 
   elCard.innerHTML =
     '<h1>Quiet Stacks</h1>' +
@@ -1289,6 +1357,7 @@ function showTitle() {
       '<li><i>1</i><span>Tap the <b>return cart</b> for the top book, read it, then tap the shelf it belongs on.</span></li>' +
       '<li><i>2</i><span>Tap a <b>patron</b> to hear their request, then tap the section that answers it.</span></li>' +
       '<li><i>3</i><span>A wrong shelf costs you the streak. The book stays in hand — try again.</span></li>' +
+      '<li><i>4</i><span>The shift ends the moment the whole list is done. Quick and clean scores best.</span></li>' +
     '</ul>' +
     '<div class="choices">' +
       '<div class="choice"><span class="slip-kicker">Mode</span>' +
@@ -1297,10 +1366,8 @@ function showTitle() {
       '<div class="choice"><span class="slip-kicker">Shelves</span>' +
         '<div class="chips">' + tierChips + '</div>' +
         '<p class="chip-note" id="tierNote"></p></div>' +
-      '<div class="choice choice-wide"><span class="slip-kicker">Shift length</span>' +
-        '<div class="chips">' + lenChips + '</div>' +
-        '<p class="chip-note best-line" id="bestLine"></p></div>' +
     '</div>' +
+    '<p class="best-line" id="bestLine"></p>' +
     '<button class="btn" type="button" id="beginBtn">Begin the shift</button>' +
     '<button class="btn ghost" type="button" id="resetBtn">Reset progress</button>';
 
@@ -1325,13 +1392,10 @@ function showTitle() {
       ? 'Earn an A on ' + (nextLock - 1) + ' shelves to unlock ' + nextLock + '.'
       : SHELVES.slice(0, chosenShelves).map((sh) => sh.short || sh.name).join(' · ');
 
-    elCard.querySelectorAll('[data-min]').forEach((b) =>
-      b.classList.toggle('on', Number(b.dataset.min) === chosenMinutes));
-
-    const t = targetsFor(chosenMinutes);
+    const t = targetsFor();
     const best = bestFor(chosenMode, chosenShelves);
-    $('bestLine').textContent = 'Shelve ' + t.books + ', help ' + t.patrons +
-      (best ? ' · best ' + best.score + ' (' + best.grade + ')' : '');
+    $('bestLine').textContent = 'Shelve ' + t.books + ' · help ' + t.patrons +
+      (best ? ' · best ' + best.score + ' (' + best.grade + ', ' + formatTime(best.time || 0) + ')' : '');
   };
 
   elCard.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', () => {
@@ -1340,10 +1404,7 @@ function showTitle() {
   elCard.querySelectorAll('[data-tier]').forEach((b) => b.addEventListener('click', () => {
     chosenShelves = Number(b.dataset.tier); refresh(); playCue('pickup');
   }));
-  elCard.querySelectorAll('[data-min]').forEach((b) => b.addEventListener('click', () => {
-    chosenMinutes = Number(b.dataset.min); refresh(); playCue('pickup');
-  }));
-  $('beginBtn').addEventListener('click', () => startShift(chosenMinutes, chosenMode, chosenShelves));
+  $('beginBtn').addEventListener('click', () => startShift(chosenMode, chosenShelves));
   $('resetBtn').addEventListener('click', showConfirmReset);
   refresh();
 }
@@ -1371,11 +1432,11 @@ function showConfirmRestart() {
   elCard.innerHTML =
     '<h2>Start over?</h2>' +
     '<p class="sub">The shift so far</p>' +
-    '<p>You are ' + Math.round((S.elapsed / S.shiftSeconds) * 100) + '% through, with ' +
-    S.shelved + ' shelved and ' + S.helped + ' helped. Beginning again clears all of it.</p>' +
+    '<p>' + S.shelved + ' of ' + S.targets.books + ' shelved and ' + S.helped + ' of ' +
+    S.targets.patrons + ' helped, in ' + formatTime(S.elapsed) + '. Beginning again clears it.</p>' +
     '<button class="btn" type="button" id="confirmBtn">Yes, fresh shift</button>' +
     '<button class="btn ghost" type="button" id="cancelBtn">No, back to work</button>';
-  $('confirmBtn').addEventListener('click', () => startShift(S.minutes, S.mode, S.shelfCount));
+  $('confirmBtn').addEventListener('click', () => startShift(S.mode, S.shelfCount));
   $('cancelBtn').addEventListener('click', () => {
     S.phase = 'playing';
     lastFrame = performance.now();
@@ -1387,13 +1448,12 @@ function showResults() {
   const acc = Math.round(accuracy() * 100);
   const grade = computeGrade();
   const rows = [
+    ['Time', formatTime(S.finishedIn), S.finishedIn <= CONFIG.parSeconds],
+    ['Accuracy', S.attempts ? acc + '%' : '—', S.attempts > 0 && acc >= 94],
+    ['Best streak', String(S.bestStreak), S.bestStreak >= 8],
     ['Books shelved', S.shelved + ' / ' + S.targets.books, S.shelved >= S.targets.books],
-    ['Accuracy', S.attempts ? acc + '%' : '—', S.attempts > 0 && acc >= 95],
     ['Patrons helped', S.helped + ' / ' + S.targets.patrons, S.helped >= S.targets.patrons],
-    ['Satisfaction', Math.round(S.satisfaction) + '%', S.satisfaction >= 90],
-    ['Best streak', String(S.bestStreak), S.bestStreak >= Math.max(8, Math.round(2.4 * S.minutes))],
-    ['Final score', String(S.score), false],
-    [S.newRecord ? 'Previous best' : 'Your best here', String(S.previousBest || '—'), false],
+    ['Score', String(S.score), false],
   ];
 
   elOverlay.classList.remove('hidden');
@@ -1407,7 +1467,8 @@ function showResults() {
         '<div class="result-row' + (met ? ' met' : '') + '"><span>' + label + '</span><b>' + value + '</b></div>'
       ).join('') +
     '</div>' +
-    '<p class="verdict">' + GRADE_NOTES[grade] + '</p>' +
+    '<p class="verdict">' + GRADE_NOTES[grade] +
+      (S.previousBest ? ' Best here: ' + S.previousBest + '.' : '') + '</p>' +
     (S.unlockedShelf
       ? '<div class="unlock">' +
           '<span class="unlock-kicker">New shelf unlocked</span>' +
@@ -1417,7 +1478,7 @@ function showResults() {
       : '') +
     '<button class="btn" type="button" id="againBtn">Take another shift</button>' +
     '<button class="btn ghost" type="button" id="menuBtn">Change mode or shelves</button>';
-  $('againBtn').addEventListener('click', () => startShift(S.minutes, S.mode, S.shelfCount));
+  $('againBtn').addEventListener('click', () => startShift(S.mode, S.shelfCount));
   $('menuBtn').addEventListener('click', showTitle);
 }
 
@@ -1473,7 +1534,7 @@ function playCue(name) {
 }
 
 $('restartBtn').addEventListener('click', () => {
-  if (S.phase !== 'playing') { startShift(chosenMinutes); return; }
+  if (S.phase !== 'playing') { startShift(chosenMode, chosenShelves); return; }
   showConfirmRestart();
 });
 
@@ -1506,7 +1567,7 @@ function loop(now) {
 }
 
 /* Boot */
-S = createState(CONFIG.defaultMinutes, 'normal', SHELF_TIERS[0]);
+S = createState('normal', SHELF_TIERS[0]);
 buildShelves();
 renderAll();
 showTitle();

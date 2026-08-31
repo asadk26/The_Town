@@ -37,7 +37,9 @@ html { overflow: hidden; }            /* gameplay never scrolls the page */
   padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
   gap: 6px;
   display: grid;
-  grid-template-columns: minmax(92px, 112px) minmax(0, 1.05fr) minmax(0, 1.2fr);
+  /* Equal flanks so the desk sits centred beneath the shelves: read the card,
+     glance straight up, tap. The cart and queue are peripheral. */
+  grid-template-columns: minmax(96px, 136px) minmax(0, 1fr) minmax(96px, 136px);
   grid-template-rows: auto minmax(0, 2.7fr) minmax(0, 4fr);
   grid-template-areas:
     "hud  hud   hud"
@@ -180,9 +182,20 @@ html { overflow: hidden; }            /* gameplay never scrolls the page */
 .landscape .slip-desc { font-size: 12.5px; line-height: 1.35; }
 .landscape .slip-ask { font-size: 13.5px; line-height: 1.35; }
 .landscape .slip-hint { font-size: 12.5px; line-height: 1.4; }
-.landscape .slip-foot { margin-top: auto; }
+.landscape .slip { justify-content: center; }   /* short clues sit centred, not stranded at the top */
+.landscape .slip-foot { margin-top: 6px; }
 .landscape .slip-nudge { font-size: 11px; }
 .landscape .slip-back { min-height: 30px; padding: 4px 11px; font-size: 12px; }
+
+/* The queue stacks two-by-two so it stays narrow enough for the desk to centre. */
+.landscape .queue {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: minmax(0, 1fr);
+  gap: 4px;
+  overflow: visible;
+}
+.landscape .patron { max-width: none; width: auto; }
 
 /* ── Cart and queue, side by side under the shelves ────────── */
 

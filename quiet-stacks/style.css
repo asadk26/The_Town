@@ -1302,6 +1302,7 @@ body.streaking .bookcase {
   z-index: 40;
   display: grid;
   place-items: center;
+  --play-pad: 18px;
   padding: 18px;
   background: rgba(18, 10, 6, .8);
   backdrop-filter: blur(3px);
@@ -1593,6 +1594,71 @@ body.streaking .bookcase {
   line-height: 1.5;
   color: var(--ink);
   font-style: italic;
+}
+
+/* ── A card fits the screen it is on ───────────────────────────
+   These cards grew: five shelf tiers, four rules, six result rows, a grade and
+   two buttons. On a phone in landscape — or a portrait one with Safari's bars
+   taking a third of the height — that stopped fitting, and an overlay you can
+   scroll is an overlay that hides its own Start button. So below the heights
+   where it stops fitting, the whole card steps down a size, and the result rows
+   go two and then three abreast rather than one under another. */
+
+@media (max-height: 740px) {
+  .card { padding: 16px 16px 18px; }
+  .shelf-band { height: clamp(20px, 5vmin, 34px); margin: -16px -16px 10px; }
+  .card h1 { font-size: clamp(24px, 7vmin, 36px); }
+  .card h2 { font-size: 20px; margin-bottom: 7px; }
+  .card .sub { font-size: 11.5px; margin-bottom: 9px; }
+  .card p { font-size: 13.5px; line-height: 1.45; margin-bottom: 8px; }
+  .rules { margin-bottom: 11px; }
+  .rules li { font-size: 13.5px; line-height: 1.4; padding: 3px 0; }
+  .chip { min-height: 38px; font-size: 13.5px; }
+  .best-line { margin: -4px 0 8px; font-size: 12.5px; }
+  .btn { min-height: 48px; font-size: clamp(15px, 4.2vmin, 19px); }
+  .btn.ghost { min-height: 40px; font-size: 13.5px; margin-top: 7px; }
+  .grade { width: 66px; height: 66px; font-size: 33px; margin-bottom: 9px; }
+
+  /* Two columns: the same six numbers in half the height. */
+  .results { display: grid; grid-template-columns: 1fr 1fr; column-gap: 14px; }
+  .result-row { padding: 5px 2px; font-size: 13.5px; }
+  .result-row b { font-size: 15px; }
+  .verdict { font-size: 13.5px; margin-bottom: 10px; }
+  .unlock { padding: 9px 12px; margin-bottom: 10px; }
+  .unlock-name { font-size: 18px; }
+}
+
+@media (max-height: 600px) {
+  .card { padding: 12px 14px 14px; }
+  .shelf-band { height: clamp(16px, 4.4vmin, 26px); margin: -12px -14px 8px; }
+  .card h1 { font-size: clamp(20px, 6vmin, 30px); }
+  .card h2 { font-size: 18px; }
+  .card .sub { font-size: 10.5px; margin-bottom: 7px; }
+  .rules { margin-bottom: 8px; }
+  .rules li { font-size: 12px; line-height: 1.35; padding: 1px 0; }
+  .chips { margin: 3px 0 3px; gap: 6px; }
+  .chip { min-height: 34px; font-size: 12.5px; padding: 4px 9px; }
+  .chip-note { font-size: 11px; margin-bottom: 6px; }
+  .best-line { margin: -2px 0 7px; font-size: 11.5px; min-height: 0; }
+  .btn { min-height: 42px; font-size: 15px; }
+  .btn.ghost { min-height: 34px; font-size: 12.5px; margin-top: 5px; }
+  .grade { width: 50px; height: 50px; font-size: 25px; margin: 0 auto 7px; }
+  .results { grid-template-columns: repeat(3, 1fr); column-gap: 12px; }
+  .result-row { padding: 3px 2px; font-size: 12px; }
+  .result-row b { font-size: 13px; }
+  .result-row span { font-size: 11px; }
+  .verdict { font-size: 12px; margin-bottom: 8px; }
+  .unlock { padding: 7px 11px; margin-bottom: 8px; }
+  .unlock-name { font-size: 16px; }
+  .unlock-note { font-size: 11px; }
+}
+
+/* Shortest of all — a phone on its side. Two of the six rows are the objectives,
+   which the card has already said in words, so the grid stays three abreast and
+   the rules fold into two columns. */
+@media (max-height: 430px) {
+  .rules { display: grid; grid-template-columns: 1fr 1fr; column-gap: 14px; }
+  .card:has(.unlock) .verdict { display: none; }
 }
 
 /* ── Wider screens ────────────────────────────────────────── */

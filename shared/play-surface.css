@@ -35,11 +35,46 @@
 }
 
 /* A tap is a tap, not a possible double-tap-to-zoom: this is what takes the
-   300ms hesitation out of repeated tapping.  Pull-to-refresh and rubber-band
-   stop at the edge of the game rather than dragging the page around under it. */
-.play-surface {
+   300ms hesitation out of repeated tapping, and what stops a fast double tap
+   from zooming the page in.  touch-action does not inherit, so it goes on
+   everything inside the surface and not just the surface itself — the browser
+   reads it from the element actually under the thumb.  Pull-to-refresh and
+   rubber-band stop at the edge of the game rather than dragging the page
+   around under it.
+
+   Pinch zoom is deliberately left alone: it is how someone gets back out of a
+   zoom, and how anyone who needs the game bigger makes it bigger. */
+.play-surface,
+.play-surface * {
   touch-action: manipulation;
+}
+
+.play-surface {
   overscroll-behavior: contain;
+
+  /* Keep the game out from under the notch, the Dynamic Island and the home
+     indicator.  The surface still paints edge to edge; only its contents move
+     in.  The custom properties exist so a test can pose an island without a
+     phone — and so a game can read the same insets for its own layout. */
+  --play-safe-top:    env(safe-area-inset-top, 0px);
+  --play-safe-right:  env(safe-area-inset-right, 0px);
+  --play-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --play-safe-left:   env(safe-area-inset-left, 0px);
+  padding:
+    var(--play-safe-top) var(--play-safe-right)
+    var(--play-safe-bottom) var(--play-safe-left);
+}
+
+/* Cards and other fixed overlays are positioned against the viewport, so they
+   escape the surface's own padding and have to take the insets themselves.
+   Scoped under .play-surface so it outranks whatever padding the game already
+   gives them; --play-pad is that padding, which it never goes below. */
+.play-surface .play-inset {
+  padding:
+    max(var(--play-safe-top, 0px), var(--play-pad, 0px))
+    max(var(--play-safe-right, 0px), var(--play-pad, 0px))
+    max(var(--play-safe-bottom, 0px), var(--play-pad, 0px))
+    max(var(--play-safe-left, 0px), var(--play-pad, 0px));
 }
 
 /* Artwork stays put: no ghost image peeling off under a slow drag. */

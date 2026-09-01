@@ -27,6 +27,75 @@ const GAMES = [
   ['Mail Run',               page_('mail-run/index.html'),               '.game',  [844, 390], '#goBtn'],
 ];
 
+/* ── Fit ────────────────────────────────────────────────────────────────
+   A phone is not as tall as it says it is: Safari's bars take a third of a
+   landscape screen, so a 852x393 handset plays in about 852x320. A card that
+   overflows there hides its own Start button behind a scroll nobody expects in
+   a game — which is exactly what a player finds. Each game is checked in the
+   states its cards actually appear in, at the sizes real phones actually give.
+
+   The setups run in the page and use the game's own globals. */
+const LANDSCAPE = [[852, 393], [852, 330], [844, 320], [740, 300], [667, 280]];
+const PORTRAIT   = [[393, 852], [393, 660], [375, 600], [360, 540], [360, 520]];
+
+const CARDS = [
+  { name: 'Quiet Stacks', page: page_('quiet-stacks/index.html'), card: '#overlayCard',
+    sizes: PORTRAIT, states: {
+      'the title, every tier open': () => {
+        progress.unlocked = 5; progress.best = { 3: { score: 900, grade: 'S', time: 64 } };
+        saveProgress(); showTitle(); },
+      'the shift results': () => {
+        CONFIG.splashMs = 0; startShift(3);
+        S.shelved = 8; S.helped = 6; S.attempts = 15; S.correct = 14;
+        S.bestStreak = 9; S.score = 640; S.elapsed = 66; endShift(); },
+    } },
+  { name: 'Quiet Stacks landscape', page: page_('quiet-stacks/landscape/index.html'),
+    card: '#overlayCard', sizes: LANDSCAPE, states: {
+      'the title, every tier open': () => {
+        progress.unlocked = 5;
+        progress.best = { 3: { score: 900, grade: 'S', time: 64 },
+                          4: { score: 800, grade: 'A', time: 88 },
+                          5: { score: 700, grade: 'B', time: 99 } };
+        saveProgress(); showTitle(); },
+      'the shift results': () => {
+        CONFIG.splashMs = 0; startShift(3);
+        S.shelved = 8; S.helped = 6; S.attempts = 15; S.correct = 14;
+        S.bestStreak = 9; S.score = 640; S.elapsed = 66; endShift(); },
+      'are you sure': () => showConfirmReset(),
+    } },
+  { name: 'Order Up', page: page_('order-up/index.html'), card: '#card',
+    sizes: LANDSCAPE, states: {
+      'the door': () => { best = { order: 7, correct: 22, streak: 9 }; saveBest(); showTitle(); },
+      'the rush is over': () => {
+        startRun(); S.highest = 7; S.correct = 18; S.bestStreak = 9; S.mistakes = 3;
+        endRun(false); },
+    } },
+  { name: 'Mail Run', page: page_('mail-run/index.html'), card: '#card',
+    sizes: LANDSCAPE, states: {
+      'the depot, every round open': () => {
+        best.unlocked = ROUTES.length;
+        ROUTES.forEach((r, i) => { best.records[r.id] = { time: 61.2 + i, score: 900 + i, grade: 'A' }; });
+        best.endless = { payout: 4321, delivered: 17, top: 268 };
+        best.random = { time: 70, score: 800 };
+        saveBest(); showTitle(); },
+      'a round driven': () => {
+        best.unlocked = ROUTES.length; chosenRoute = ROUTES[0].id; startRun();
+        S.t = 78.4; S.ratings = ['messy', 'good', 'messy', 'good', 'messy'];
+        S.score = 565; S.at = 5; endRun(); },
+      'a round that unlocks the next': () => {
+        best.unlocked = 1; saveBest(); chosenRoute = ROUTES[0].id; startRun();
+        S.t = 61; S.ratings = ['perfect', 'perfect', 'perfect', 'perfect', 'perfect'];
+        S.score = 1100; S.at = 5; endRun(); },
+    } },
+];
+
+/* An iPhone's sensor housing, posed without an iPhone: the shared surface reads
+   its insets through these custom properties, so a stylesheet can stand in for
+   the notch and the checks can see whether anything sits under it. */
+const ISLAND = (t, r, b, l) => `.play-surface {
+  --play-safe-top: ${t}px; --play-safe-right: ${r}px;
+  --play-safe-bottom: ${b}px; --play-safe-left: ${l}px; }`;
+
 const fails = [];
 let checks = 0;
 const ck = (name, ok, extra = '') => {
@@ -167,6 +236,48 @@ for (const [name, url, root, [w, h], beginSel] of GAMES) {
   ck('and a text field is still a text field',
      hatch.field === 'auto' || hatch.field === 'text', hatch.field);
 
+  /* touch-action does not inherit, so what matters is the value on the element
+     under the thumb — the scenery and the HUD, not just the cabinet. */
+  const taps = await page.evaluate((sel) => {
+    const el = document.querySelector(sel);
+    const kids = [...el.querySelectorAll('*')].filter((n) => !n.closest('.play-drag'));
+    const bad = kids.filter((n) => {
+      const t = getComputedStyle(n).touchAction;
+      return t !== 'manipulation' && t !== 'none';
+    });
+    return { of: kids.length, bad: bad.length,
+             first: bad[0] ? bad[0].tagName.toLowerCase() + '.' + (bad[0].className || '') : '' };
+  }, root);
+  ck('every part of the game refuses double-tap zoom, not just the cabinet',
+     taps.bad === 0, taps.bad ? taps.bad + ' of ' + taps.of + ' still auto, e.g. ' + taps.first
+                              : 'all ' + taps.of + ' of them');
+
+  /* And the belt to that brace: a second tap in quick succession on the scenery
+     has its default suppressed, while a control keeps its click — tapping the
+     same button twice fast is a move, not a zoom. */
+  const dbl = await page.evaluate((sel) => {
+    const tap = (el) => {
+      const r = el.getBoundingClientRect();
+      const t = new Touch({ identifier: 1, target: el,
+                            clientX: r.x + r.width / 2, clientY: r.y + r.height / 2 });
+      const e = new TouchEvent('touchend', { bubbles: true, cancelable: true,
+                                             changedTouches: [t], touches: [] });
+      el.dispatchEvent(e);
+      return e.defaultPrevented;
+    };
+    const surface = document.querySelector(sel);
+    const scenery = [...surface.querySelectorAll('*')]
+      .find((n) => !n.closest('button, a, [role="button"], [tabindex]') &&
+                   n.getBoundingClientRect().width > 40);
+    const control = surface.querySelector('button');
+    const out = {};
+    tap(scenery); out.scenery = tap(scenery);        // the second of two, quickly
+    tap(control); out.control = tap(control);
+    return out;
+  }, root);
+  ck('a fast double tap on the game does not zoom the page', dbl.scenery);
+  ck('but a control keeps both its taps', dbl.control === false);
+
   // the surfaces the game reads gestures on itself
   const drags = await page.evaluate(() => [...document.querySelectorAll('.play-drag')]
     .map((el) => ({ what: el.id || el.className, touch: getComputedStyle(el).touchAction })));
@@ -217,6 +328,81 @@ for (const [name, url, root, [w, h], beginSel] of GAMES) {
      ui.ok === null ? 'no sound button on this build' : '');
   ck('no errors', errors.length === 0, errors[0] || '');
   await page.close();
+}
+
+/* ── Everything fits the screen it is played on ─────────────────────────── */
+
+for (const g of CARDS) {
+  console.log(`\n── ${g.name}: fit ──`);
+  for (const [state, setup] of Object.entries(g.states)) {
+    const tight = [];
+    for (const [w, h] of g.sizes) {
+      const page = await browser.newPage({ viewport: { width: w, height: h } });
+      await page.goto(g.page);
+      await page.evaluate(setup);
+      await page.waitForTimeout(140);
+      const over = await page.evaluate((sel) => {
+        const c = document.querySelector(sel);
+        if (!c) return 9999;
+        const ov = c.closest('.overlay');
+        return Math.round(Math.max(ov.scrollHeight - ov.clientHeight,
+                                   c.getBoundingClientRect().bottom - innerHeight));
+      }, g.card);
+      if (over > 0) tight.push(`${w}x${h} over by ${over}`);
+      await page.close();
+    }
+    ck(`${state} fits every screen it can be read on`, tight.length === 0,
+       tight.length ? tight.join(', ') : g.sizes.length + ' sizes, down to ' +
+         g.sizes[g.sizes.length - 1].join('x'));
+  }
+}
+
+/* ── The sensor housing ─────────────────────────────────────────────────── */
+
+console.log('\n── the notch ──');
+{
+  const POSES = [
+    ['Quiet Stacks in portrait', page_('quiet-stacks/index.html'), [393, 660], [59, 0, 34, 0],
+     '#beginBtn', ['.hud', '.bookcase', '.desk', '.floor'], '#overlayCard'],
+    ['Quiet Stacks on its side', page_('quiet-stacks/landscape/index.html'), [852, 330], [0, 59, 21, 59],
+     '#beginBtn', ['.hud', '.bookcase', '.desk', '.cart', '.queue-wrap'], '#overlayCard'],
+    ['Order Up', page_('order-up/index.html'), [852, 330], [0, 59, 21, 59],
+     '#playBtn', ['.rail', '.stage'], '#card'],
+    ['Mail Run', page_('mail-run/index.html'), [852, 330], [0, 59, 21, 59],
+     '#goBtn', ['.board', '.road', '.pad-drive', '.stick-zone'], '#card'],
+  ];
+  for (const [name, url, [w, h], ins, begin, parts, card] of POSES) {
+    const page = await browser.newPage({ viewport: { width: w, height: h } });
+    await page.goto(url);
+    await page.addStyleTag({ content: ISLAND(...ins) });
+    await page.waitForTimeout(120);
+
+    // the card first, which is fixed to the viewport and misses the surface's own padding
+    const cardClear = await page.evaluate(([sel, ins]) => {
+      const r = document.querySelector(sel).getBoundingClientRect();
+      return r.top >= ins[0] - 0.5 && r.right <= innerWidth - ins[1] + 0.5 &&
+             r.bottom <= innerHeight - ins[2] + 0.5 && r.left >= ins[3] - 0.5;
+    }, [card, ins]);
+
+    await page.evaluate(() => { if (typeof CONFIG !== 'undefined' && 'splashMs' in CONFIG) CONFIG.splashMs = 0; });
+    await page.click(begin);
+    await page.waitForTimeout(420);
+    const under = await page.evaluate(([sel, ins]) => {
+      const bad = [];
+      sel.forEach((s) => {
+        const e = document.querySelector(s);
+        if (!e) return;
+        const r = e.getBoundingClientRect();
+        if (r.top < ins[0] - 0.5 || r.right > innerWidth - ins[1] + 0.5 ||
+            r.bottom > innerHeight - ins[2] + 0.5 || r.left < ins[3] - 0.5) bad.push(s);
+      });
+      return bad;
+    }, [parts, ins]);
+    ck(`${name}: the game clears the island and the home bar`,
+       under.length === 0, under.length ? 'under it: ' + under.join(', ') : ins.join('/') + ' insets');
+    ck(`${name}: and so does the card`, cardClear);
+    await page.close();
+  }
 }
 
 await browser.close();

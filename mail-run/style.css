@@ -351,6 +351,7 @@ button {
   z-index: 10;
   display: grid;
   place-items: center;
+  --play-pad: clamp(10px, 3vmin, 24px);
   padding: clamp(10px, 3vmin, 24px);
   background: rgba(24, 40, 22, .62);
   backdrop-filter: blur(3px);

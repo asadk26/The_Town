@@ -113,9 +113,18 @@ nowhere else. A new game opts in with two lines in the head and three classes:
 
 | class | put it on | what it does |
 |---|---|---|
-| `play-surface` | the gameplay area — the cabinet, not `<body>` | nothing inside selects, highlights, shows the iOS long-press callout or drags out as artwork; taps stop waiting to see if they are double-taps |
+| `play-surface` | the gameplay area — the cabinet, not `<body>` | nothing inside selects, highlights, shows the iOS long-press callout or drags out as artwork; taps stop waiting to see if they are double-taps, and a fast double tap does not zoom the page; the game keeps clear of the notch, the Dynamic Island and the home bar |
 | `play-drag` | anything the game reads gestures on itself — a canvas, a joystick, a hold-to-steer pad | the browser stops scrolling and zooming with the gesture and hands it over |
+| `play-inset` | a card or overlay fixed to the viewport, which misses the surface's own padding | takes the safe-area insets itself, never going below its own `--play-pad` |
 | `play-text` | the rare run of text meant to be read and copied | behaves like the web again |
+
+Two notes on the zoom. `touch-action` does not inherit, so it goes on every
+element inside the surface and not just the surface itself — the browser reads
+it from whatever is actually under the thumb. And a second tap in quick
+succession on the scenery has its default suppressed, while controls keep both
+of their taps: cancelling a tap cancels its click, and tapping the same button
+twice quickly is a move in these games. Pinch zoom is deliberately untouched —
+it is how anyone gets back out of a zoom, or makes the game bigger on purpose.
 
 Text fields keep working inside a surface, buttons still click and still take
 focus, keyboard controls are untouched, and anything outside a `play-surface`
@@ -131,9 +140,20 @@ readable floor *and* actually grows with the screen.
 
 `shared/test/play-surface.mjs` covers all three games at once, since the rules
 are shared: it drags across each one mid-round and checks that nothing
-highlights, that a burst of fast tapping leaves no selection behind, that the
-escape hatches and text fields still work, and that ordinary page text outside
-the game still selects normally.
+highlights, that a burst of fast tapping leaves no selection behind, that every
+element inside a surface refuses double-tap zoom while controls keep both taps,
+that the escape hatches and text fields still work, and that ordinary page text
+outside the game still selects normally.
+
+It also checks that everything fits the screen it is played on. A phone is not
+as tall as it says it is — Safari's bars take a third of a landscape screen, so
+a 852x393 handset plays in about 852x320 — and a card that overflows there
+hides its own Start button behind a scroll nobody expects in a game. Every card
+each game can show is measured at five real sizes, down to 667x280 in landscape
+and 360x520 in portrait. And because the surface reads its safe-area insets
+through custom properties, the suite can pose an iPhone's sensor housing
+without an iPhone: it stands up a 59px island and a 34px home bar and checks
+that no part of any game, or any card, ends up underneath.
 
 Mail Run's is driven by a scripted pure-pursuit driver that runs the whole
 route, which is how the handling and the route length were tuned: it checks

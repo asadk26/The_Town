@@ -11,9 +11,13 @@ collection is just a shelf the games sit on.
 | **Quiet Stacks** | The library | [landscape](https://asadk26.github.io/The_Town/quiet-stacks/landscape/) · [portrait](https://asadk26.github.io/The_Town/quiet-stacks/) |
 | **Order Up** | The lunch counter | [landscape](https://asadk26.github.io/The_Town/order-up/) |
 | **Mail Run** | The postal round | [landscape](https://asadk26.github.io/The_Town/mail-run/) |
+| **One More Room** | The house on the hill | [landscape](https://asadk26.github.io/The_Town/one-more-room/) |
 
-Everything here is plain HTML, CSS and JavaScript. No frameworks, no build
-step, no backend, no dependencies. Open any `index.html` and it runs.
+The first three games are plain HTML, CSS and JavaScript. No frameworks, no
+build step, no backend, no dependencies. Open any `index.html` and it runs.
+One More Room is the exception: a 3D board game in TypeScript and Three.js,
+with its own `package.json`, built by the Pages workflow on publish (see
+[`one-more-room/README.md`](one-more-room/README.md)).
 
 ## Quiet Stacks
 
@@ -71,6 +75,19 @@ every valid kerb on the route, spaced along it and weighted so the demanding
 ones fall late, which means the same round is worth driving twice. An A
 opens the next round; once two are open, Random Run deals one of them.
 
+## One More Room
+
+A Halloween board game for two to six players around one screen. Players
+sneak through a miniature 3D haunted mansion, grab candy from rooms and bank
+it at the Entrance Hall. Each turn two dice are rolled: the player picks one
+to move with, and the other moves the shared ghost — which hunts whoever is
+carrying the most. Ten rounds, then midnight. A follow camera sits behind the
+active miniature; **View board** (or V) switches to a top-down overview that
+plays exactly the same.
+
+The rules are a pure, seeded TypeScript engine with their own test suite;
+the scene only plays back what the engine has decided.
+
 ## Layout
 
 ```
@@ -88,11 +105,14 @@ order-up/
 mail-run/
   index.html  style.css  game.js
   test/mailrun.mjs             regression suite (see below)
+one-more-room/                 TypeScript + React Three Fiber; see its README
+  src/engine/                  the rules, independent of rendering
+  tests/                       rules tests and browser play-throughs
 shared/
   play-surface.css             the gameplay surface: no selecting, no callouts
   play-surface.js              the two events CSS cannot cover
   test/play-surface.mjs        checks it holds, on every game
-.github/workflows/pages.yml    publishes the whole repo on every push to main
+.github/workflows/pages.yml    builds One More Room, then publishes the repo on every push to main
 ```
 
 ## The play surface

@@ -28,14 +28,35 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Everything is static except One More Room, which is TypeScript and
+      # Three.js and has to be built. Its rules tests gate the deploy.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: one-more-room/package-lock.json
+
+      - name: Test and build One More Room
+        run: |
+          npm ci --prefix one-more-room
+          npm test --prefix one-more-room
+          npm run build --prefix one-more-room
+
+      # The site is the repo as it stands, with the built game in place of
+      # its source folder.
+      - name: Assemble the site
+        run: |
+          mkdir _site
+          rsync -a --exclude .git --exclude _site --exclude one-more-room ./ _site/
+          cp -r one-more-room/dist _site/one-more-room
+
       - uses: actions/configure-pages@v5
         with:
           enablement: true
 
-      # The whole repo is the site: static files and nothing to build.
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: _site
 
       - id: deployment
         uses: actions/deploy-pages@v4

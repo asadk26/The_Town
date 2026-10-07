@@ -163,6 +163,7 @@ const SCENES = (() => {
 /* ── the loop ───────────────────────────────────────────── */
 function step(dt) {
   G.t += dt;
+  TOUCH.update();
   if (I.take('MUTE')) { const on = AUDIO.toggleMusic(); if (G.scene === 'play') UI.toast('Music ' + (on ? 'on' : 'off'), '#c8c8f0'); }
   switch (G.scene) {
     case 'title': SCENES.titleUpdate(dt); updateNpcs(dt); break;

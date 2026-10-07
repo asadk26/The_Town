@@ -34,9 +34,12 @@ const I = (() => {
   });
   addEventListener('blur', () => { for (const k in held) held[k] = false; });
   function endFrame() { for (const k in pressed) delete pressed[k]; for (const k in released) delete released[k]; }
+  /* for on-screen buttons */
+  function down(k) { if (typeof AUDIO !== 'undefined') AUDIO.init(); if (!held[k]) pressed[k] = true; held[k] = true; }
+  function up(k) { if (held[k]) released[k] = true; held[k] = false; }
   /* consume a press so two systems don't both act on it */
   function take(k) { if (pressed[k]) { delete pressed[k]; return true; } return false; }
-  return { held, pressed, released, endFrame, take };
+  return { held, pressed, released, endFrame, take, down, up };
 })();
 
 /* ── state ──────────────────────────────────────────────── */

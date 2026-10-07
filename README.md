@@ -11,6 +11,7 @@ collection is just a shelf the games sit on.
 | **Quiet Stacks** | The library | [landscape](https://asadk26.github.io/The_Town/quiet-stacks/landscape/) · [portrait](https://asadk26.github.io/The_Town/quiet-stacks/) |
 | **Order Up** | The lunch counter | [landscape](https://asadk26.github.io/The_Town/order-up/) |
 | **Mail Run** | The postal round | [landscape](https://asadk26.github.io/The_Town/mail-run/) |
+| **Skybreaker** | The arcade cabinet | [keyboard](https://asadk26.github.io/The_Town/skybreaker/) |
 
 Everything here is plain HTML, CSS and JavaScript. No frameworks, no build
 step, no backend, no dependencies. Open any `index.html` and it runs.
@@ -71,6 +72,40 @@ every valid kerb on the route, spaced along it and weighted so the demanding
 ones fall late, which means the same round is worth driving twice. An A
 opens the next round; once two are open, Random Run deals one of them.
 
+## Skybreaker
+
+A handheld-style action RPG at 240x160, scaled up by whole pixels. Hearth
+gets a Notice of Audit: its Vigor Index is 3 out of 1000, and low scorers get
+archived. Juno and Brask, rivals tied at forty-nine wins each, set out to
+raise the score: through Greenreach Fields and the Rustback camp, up Cinder
+Peaks to the Ember Shrine, and into the Interworld Cup run by Auditor Sable.
+Three chapters and an epilogue, about an hour or two.
+
+| key | does |
+|---|---|
+| arrows | move |
+| `Z` | punch (tap again to combo, third hit is a heavy kick) / talk |
+| `X` | ki blast; hold to charge the selected special |
+| `A` | cycle specials |
+| `S` | Vigor Lens (the scouter): enemy levels, hidden chests, current goal |
+| `C` | tag in your partner (a downed fighter tags out automatically) |
+| `Enter` | menu: stats to spend, specials, items, quests, save |
+| `M` | music |
+
+The two play differently. Juno is fast and her ki burns, so her blasts light
+braziers and clear dry brambles. Brask is slow and heavy: his kick, Thunder
+Stomp and Storm Cannon break cracked rock, and armoured enemies don't shrug off
+his punches. Each has three specials learned by level and an Overdrive earned
+in the story. Levels open power barriers, there are side errands and hidden
+chests, and the game saves itself at every area change.
+
+There are no image or audio files. Sprites are built from key points per pose
+and outlined in code (`js/gfx.js`). Terrain is baked per map with ragged,
+noise-driven borders. Music is a four-voice chip synth playing chord
+progressions plus hand-written melodies (`js/audio.js`). Maps are built by
+code, story beats are generator functions, and all tuning lives in
+`js/data.js`.
+
 ## Layout
 
 ```
@@ -88,6 +123,10 @@ order-up/
 mail-run/
   index.html  style.css  game.js
   test/mailrun.mjs             regression suite (see below)
+skybreaker/
+  index.html  style.css
+  js/                          font, gfx, audio, data, engine, ui, maps, story, main
+  test/skybreaker.mjs          smoke test: boots, plays the opening, checks for errors
 shared/
   play-surface.css             the gameplay surface: no selecting, no callouts
   play-surface.js              the two events CSS cannot cover
@@ -166,6 +205,7 @@ reverse.
 npm i playwright-core            # or use an existing install
 node quiet-stacks/test/quietstacks.mjs
 node mail-run/test/mailrun.mjs
+node skybreaker/test/skybreaker.mjs
 node shared/test/play-surface.mjs
 ```
 

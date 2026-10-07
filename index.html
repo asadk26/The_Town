@@ -200,6 +200,28 @@ h1 b { font-weight: 700; color: var(--brass); }
   box-shadow: 0 -3px 10px rgba(0, 0, 0, .4);
 }
 
+.sign-sky {
+  position: relative;
+  background: linear-gradient(180deg, #1a1040 0%, #5a2470 45%, #e8784a 80%, #f8a850 100%);
+}
+.sign-sky::before {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 34%;
+  background: #2a1238;
+  clip-path: polygon(0 60%, 12% 30%, 26% 55%, 40% 15%, 55% 50%, 70% 20%, 84% 45%, 100% 25%, 100% 100%, 0 100%);
+}
+.sign-sky span {
+  position: absolute;
+  left: 50%; top: 38%;
+  transform: translate(-50%, -50%);
+  font: 800 clamp(16px, 4.6vmin, 22px)/1 ui-monospace, "SF Mono", Menlo, monospace;
+  letter-spacing: .18em;
+  color: #ffd84a;
+  text-shadow: 2px 2px 0 #2a0e30, 0 0 14px rgba(255, 216, 74, .5);
+}
+
 .body { padding: clamp(16px, 3.6vmin, 22px); display: flex; flex-direction: column; flex: 1 1 auto; }
 
 .place h2 {
@@ -323,6 +345,20 @@ a.door:focus-visible { outline: 3px solid var(--brass); outline-offset: 3px; }
           Perfect; overshoot and the brake becomes reverse.</p>
         <div class="doors">
           <a class="door" href="mail-run/">Play &mdash; landscape</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="place">
+      <div class="sign sign-sky" aria-hidden="true"><span>SKYBREAKER</span></div>
+      <div class="body">
+        <h2>Skybreaker</h2>
+        <p class="kind">The arcade cabinet</p>
+        <p>A handheld-style action RPG. Two rival fighters, one world scored three
+          out of a thousand by a very tired cosmic auditor, and a tournament between
+          worlds to change her mind. Keyboard: arrows, Z, X, A, S, C and Enter.</p>
+        <div class="doors">
+          <a class="door" href="skybreaker/">Play &mdash; keyboard</a>
         </div>
       </div>
     </section>

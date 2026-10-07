@@ -885,6 +885,19 @@ function updateBoss(b, dt) {
   }
   if (b.ended) return;
   if (b.state === 'intro') { b.t -= dt; if (b.t <= 0) { b.state = 'fight'; b.atk_ = null; } return; }
+  if (G.assist && b.id === 'sable') {
+    G.assist.t -= dt;
+    if (G.assist.t <= 0) {
+      G.assist.t = 8 + Math.random() * 3;
+      const who = Math.random() < 0.5 ? 'braskA' : 'islaA', a = npc(who);
+      if (a) {
+        floatText(a.x, a.y - 40, who === 'braskA' ? 'BRASK!' : 'ISLA!', who === 'braskA' ? '#c8a8ff' : '#8ab8ff');
+        spawnShot({ x: a.x, y: a.y - 20, vx: (b.x - a.x) * 2.2, vy: (b.y - a.y) * 2.2, r: 5, dmg: b.maxHp * 0.035 + b.def * 0.6, team: 'p', color: who === 'braskA' ? '#c8a8ff' : '#7ab8ff', core: '#ffffff', pierce: true, life: 0.8, big: true });
+        AUDIO.sfx('special');
+        b.stun = Math.max(b.stun, 0.35);
+      }
+    }
+  }
   if (b.stun > 0) { b.stun -= dt; return; }
   const phases = b.d.phases;
   const want = phases.length > 1 && b.hp < b.maxHp * 0.5 ? 1 : 0;

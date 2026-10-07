@@ -243,7 +243,7 @@ const UI = (() => {
     FONT.draw(ctx, '@ ' + G.coins, 10, 118, '#ffd84a');
     const pt = Math.floor(G.playTime);
     FONT.draw(ctx, Math.floor(pt / 3600) + ':' + String(Math.floor(pt / 60) % 60).padStart(2, '0') + ':' + String(pt % 60).padStart(2, '0'), 10, 130, '#c8c8f0');
-    FONT.draw(ctx, 'Enter: back', 10, 142, '#8a86b0');
+    FONT.draw(ctx, TOUCH.on ? 'MENU: back' : 'Enter: back', 10, 142, '#8a86b0');
     box(ctx, 70, 4, 166, 152);
     const k = m.sub || MENU[m.sel];
     const h = G.party[m.heroView];
@@ -311,7 +311,8 @@ const UI = (() => {
       FONT.draw(ctx, 'Z or M to toggle', 78, 28, '#c8c8f0');
     } else {
       FONT.draw(ctx, 'CONTROLS', 78, 12, '#ffd84a');
-      [['Arrows', 'Move'], ['Z', 'Punch / talk'], ['X', 'Ki blast'], ['Hold X', 'Charge special'], ['A', 'Cycle special'], ['S', 'Guard / parry'], ['C', 'Tag partner'], ['Enter', 'Menu'], ['M', 'Music']].forEach(([a, b], j) => {
+      (TOUCH.on ? [['Stick', 'Move'], ['A', 'Punch / talk'], ['KI', 'Ki blast'], ['Hold KI', 'Charge special'], ['SP', 'Cycle special'], ['GD', 'Guard / parry'], ['TAG', 'Next fighter'], ['MENU', 'Menu']]
+        : [['Arrows', 'Move'], ['Z', 'Punch / talk'], ['X', 'Ki blast'], ['Hold X', 'Charge special'], ['A', 'Cycle special'], ['S', 'Guard / parry'], ['C', 'Next fighter'], ['Enter', 'Menu'], ['M', 'Music']]).forEach(([a, b], j) => {
         FONT.draw(ctx, a, 80, 28 + j * 12, '#ffffff'); FONT.draw(ctx, b, 140, 28 + j * 12, '#c8c8f0');
       });
     }

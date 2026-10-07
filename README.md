@@ -74,37 +74,45 @@ opens the next round; once two are open, Random Run deals one of them.
 
 ## Skybreaker
 
-A handheld-style action RPG at 240x160, scaled up by whole pixels. Hearth
-gets a Notice of Audit: its Vigor Index is 3 out of 1000, and low scorers get
-archived. Juno and Brask, rivals tied at forty-nine wins each, set out to
-raise the score: through Greenreach Fields and the Rustback camp, up Cinder
-Peaks to the Ember Shrine, and into the Interworld Cup run by Auditor Sable.
-Three chapters and an epilogue, about an hour or two.
+A diorama-style action RPG: pixel-art fighters standing in a small lit 3D
+model of their world, with soft shadows, glowing lamps and a tilt-shift
+blur. Hearth gets a Notice of Audit: its Vigor Index is 3 out of 1000, and
+low scorers get archived. Juno, a brawler from Brindle Village, sets out to
+raise the score. Rei, a wanderer looking for the teacher the Office took
+thirty years ago, walks with her. Oren is Brindle's gentle giant, who swore
+off fighting six years ago, until the day he can't stand by. Brask and Isla,
+the famous pair from Ashford, want to be Hearth's champions instead. Three
+chapters and an epilogue.
 
-| key | does |
-|---|---|
-| arrows | move |
-| `Z` | punch (tap again to combo, third hit is a heavy kick) / talk |
-| `X` | ki blast; hold to charge the selected special |
-| `A` | cycle specials |
-| `S` | Vigor Lens (the scouter): enemy levels, hidden chests, current goal |
-| `C` | tag in your partner (a downed fighter tags out automatically) |
-| `Enter` | menu: stats to spend, specials, items, quests, save |
-| `M` | music |
+| key | touch | does |
+|---|---|---|
+| arrows | stick | move |
+| `Z` | A | punch (tap again to combo, third hit is a heavy kick) / talk |
+| `X` | KI | ki blast; hold to charge the selected special |
+| `A` | SP | cycle specials |
+| `S` | GD | hold to guard; press just before a hit lands to parry |
+| `C` | TAG | tag in the next fighter (a downed fighter tags out automatically) |
+| `Enter` | MENU | stats to spend, specials, items, quests, save |
+| `M` | | music |
 
-The two play differently. Juno is fast and her ki burns, so her blasts light
-braziers and clear dry brambles. Brask is slow and heavy: his kick, Thunder
-Stomp and Storm Cannon break cracked rock, and armoured enemies don't shrug off
-his punches. Each has three specials learned by level and an Overdrive earned
-in the story. Levels open power barriers, there are side errands and hidden
-chests, and the game saves itself at every area change.
+On phones it plays in landscape with an on-screen stick and buttons, and
+drops to a lighter render tier.
 
-There are no image or audio files. Sprites are built from key points per pose
-and outlined in code (`js/gfx.js`). Terrain is baked per map with ragged,
-noise-driven borders. Music is a four-voice chip synth playing chord
-progressions plus hand-written melodies (`js/audio.js`). Maps are built by
-code, story beats are generator functions, and all tuning lives in
-`js/data.js`.
+Each fighter opens different paths. Juno's ki burns, so her blasts light
+braziers and clear dry brambles. Rei's Gale Step crosses chasms. Oren's heavy
+blows shatter cracked rock and ignore armour. Each has three specials
+learned by level and an Overdrive earned in the story. Levels open power
+barriers, there are side errands and hidden chests, and the game saves
+itself at every area change.
+
+The simulation is a flat, top-down world; `js/world3d.js` turns each map
+into the model with three.js (`js/vendor/three.min.js`, MIT, the one
+outside file in the collection): terrain laid on tiles, extruded cliffs,
+sunken water and lava, 3D houses, and sprites leaning toward the camera.
+There are no image or audio files. People are built from a pose skeleton
+with hand-drawn heads for the leads (`js/people.js`), music is a four-voice
+chip synth (`js/audio.js`), maps are built by code, story beats are
+generator functions, and all tuning lives in `js/data.js`.
 
 ## Layout
 
@@ -125,7 +133,8 @@ mail-run/
   test/mailrun.mjs             regression suite (see below)
 skybreaker/
   index.html  style.css
-  js/                          font, gfx, audio, data, engine, ui, maps, story, main
+  js/                          font, gfx, people, audio, data, engine, world3d, ui,
+                               maps, story, touch, main; vendor/three.min.js
   test/skybreaker.mjs          smoke test: boots, plays the opening, checks for errors
 shared/
   play-surface.css             the gameplay surface: no selecting, no callouts

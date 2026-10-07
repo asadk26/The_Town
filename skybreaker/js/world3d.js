@@ -484,13 +484,14 @@ const R3 = (() => {
       const src = (e.flash > 0 || e.flashT > 0) ? GFX.flash(img) : img;
       const tex = texOf(src);
       if (me.material.map !== tex) { me.material.map = tex; me.material.emissiveMap = tex; me.customDepthMaterial.map = tex; }
-      me.scale.set(img.width / 16, img.height / 16, 1);
+      const k = e.scale || (e.d && e.d.scale) || 1;
+      me.scale.set(img.width / 16 * k, img.height / 16 * k, 1);
       let lift = 0;
       if (e.fly) lift = 0.4 + Math.sin(G.t * 5 + (e.bob || 0)) * 0.12;
       if (e.float) lift = 0.25 + Math.sin(G.t * 3) * 0.08;
       let jx = 0;
       if (e.kind === 'enemy' && e.state === 'wind' && !e.boss) jx = Math.sin(G.t * 60) * 0.05;
-      placeLeaning(me, e.x / 16 + jx, e.y / 16, img.width, img.height, e._ox, e._oy, lift);
+      placeLeaning(me, e.x / 16 + jx, e.y / 16, img.width * k, img.height * k, e._ox * k, (e._oy + 1) * k - 1, lift);
       let vis = true;
       if (e.kind === 'player' && e.invuln > 0 && e.state !== 'hurt' && e.state !== 'ko' && Math.floor(G.t * 16) % 2) vis = false;
       me.visible = vis;
@@ -500,7 +501,7 @@ const R3 = (() => {
       me.material.transparent = op < 1; me.material.opacity = op; me.material.alphaTest = op < 1 ? 0.05 : 0.5;
       me.material.emissiveIntensity = e.kind === 'player' && G.player.od ? 0.75 : 0.42;
       const blob = me.userData.blob;
-      const bw = (e.boss && e.d.big ? 30 : e.w + 6) / 16;
+      const bw = (e.boss && e.d.big ? 30 * k : e.w + 6) / 16;
       blob.scale.set(bw, bw * 0.55, 1);
       blob.position.set(e.x / 16, 0.015, e.y / 16 - 0.05);
       blob.visible = a > 0.5 && !(e.kind === 'player' && e.state === 'ko');

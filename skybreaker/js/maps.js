@@ -221,7 +221,7 @@ const MAPS = {
     m.npc('elder', 'elder', 41, 9, 'down', { wander: true });
     m.npc('kid2', 'kid2', 34, 31, 'right', { wander: true });
     m.npc('biscuit', null, 15, 31, 'right', { creature: ['chick', '#f5a04a'], when: () => G.flags.kittenDone, wander: true });
-    m.npc('brask', 'brask', 8, 10, 'left', { when: () => !G.flags.sparDone });
+    m.npc('oren', 'oren', 8, 10, 'left', { when: () => !G.flags.orenJoined || G.flags.ending });
     return m.done({ name: 'Brindle Village', music: () => (G.flags.act2 && !G.flags.overdrive ? 'ember' : 'village'), onEnter: () => STORY.enter('village') });
   } },
 
@@ -240,7 +240,8 @@ const MAPS = {
     m.path([[44, 25], [46, 41]], 2, 'd');
     // the corridor to the camp: trees either side, a barrier, then cracked rock
     for (let x = 44; x <= 55; x++) { for (const y of [20, 21, 28, 29]) { if (!m.occ[y * m.w + x]) m.tree(x, y); } }
-    for (let y = 22; y <= 27; y++) { m.barrier(48, y, 5, 'barrier_camp'); m.boulder(53, y, 'boulder_camp_' + y); }
+    for (let y = 22; y <= 27; y++) m.barrier(48, y, 5, 'barrier_camp');
+    m.fill(51, 22, 2, 6, 'j');
     m.reserve(44, 22, 12, 6);
     // the camp
     m.fill(57, 15, 15, 19, 'd');
@@ -266,7 +267,8 @@ const MAPS = {
     }
     // chests
     m.chest('fields_nw', 24, 6, [['bun', 2]]);
-    m.chest('fields_se', 62, 44, [['coins', 60], ['tonic', 1]]);
+    m.chest('fields_se', 62, 44, [['coins', 90], ['heartroot', 1]]);
+    for (const [x, y] of [[61, 43], [62, 43], [63, 43], [61, 44], [63, 44], [61, 45], [62, 45], [63, 45]]) m.boulder(x, y, 'boulder_se_' + x + '_' + y);
     m.chest('fields_hidden1', 4, 45, [['kicrystal', 1]], true);
     m.chest('fields_hidden2', 70, 4, [['starfruit', 1]], true);
     m.reserve(23, 5, 3, 3).reserve(61, 43, 3, 3).reserve(3, 44, 3, 3).reserve(69, 3, 3, 3);
@@ -275,7 +277,7 @@ const MAPS = {
     for (let x = 22; x < 28; x += 2) for (let y = 27; y < 31; y++) m.prop('scallion', x, y, { solid: false, img: SPR.props.bush, scale: 1 });
     m.reserve(21, 26, 8, 6);
     m.sign(3, 22, 'GREENREACH FIELDS. Wild Puddlets are harmless. Bolt Hares are not.');
-    m.sign(43, 22, 'RUSTBACK CAMP. KEEP OUT. (This means you.) (Yes, you.)');
+    m.sign(43, 22, 'RUSTBACK CAMP. KEEP OUT. (This means you.) (Yes, you.) (We dug a chasm.)');
     m.prop('rock', 26, 12); m.prop('rock', 52, 16); m.prop('rock', 38, 44); m.prop('bush', 8, 30); m.prop('bush', 50, 34); m.prop('stump', 12, 20);
     m.exit(0, 22, 1, 5, 'village', 47, 18, 'left');
     m.reserve(0, 21, 4, 7);
@@ -288,6 +290,8 @@ const MAPS = {
     m.zone(58, 16, 13, 17, [['grunt', 5, 6], ['grunt', 5, 6], ['gunner', 5, 5]], 6, () => !G.flags.rookBeaten);
     m.zone(58, 3, 14, 9, [['grunt', 5, 5], ['gunner', 5, 5]], 3);
     m.zone(58, 37, 14, 10, [['grunt', 5, 5], ['gunner', 5, 5], ['beetle', 5, 5]], 4);
+    m.trigger(24, 21, 4, 7, 'reiIntro', () => STORY.reiMeets(), () => G.flags.notice && !G.flags.reiJoined);
+    m.trigger(53, 21, 2, 8, 'rivals1Intro', () => STORY.rivals1(), () => G.flags.reiJoined && !G.flags.rivals1);
     m.trigger(58, 20, 3, 10, 'rookIntro', () => STORY.rook(), () => !G.flags.rookBeaten);
     return m.done({ name: 'Greenreach Fields', music: 'fields', onEnter: () => STORY.enter('fields') });
   } },
@@ -316,6 +320,12 @@ const MAPS = {
     m.path([[28, 12], [22, 14]], 1, 'a');
     m.fill(24, 5, 8, 4, 'a');
     m.reserve(22, 5, 12, 6);
+    m.fill(10, 36, 13, 2, 'j');
+    m.fill(20, 10, 16, 1, 'c');
+    for (let x = 26; x <= 29; x++) { m.set(x, 10, 'a'); m.boulder(x, 10, 'boulder_summit_' + x); }
+    m.fill(22, 11, 13, 5, 'a');
+    m.reserve(21, 10, 14, 8);
+    m.trigger(23, 12, 12, 4, 'summitIntro', () => STORY.summit(), () => G.flags.act2 && !G.flags.orenJoined);
     m.boulder(9, 10, 'boulder_peak_a');
     m.boulder(45, 52, 'boulder_peak_b');
     m.chest('peak_pocket_a', 5, 10, [['starfruit', 1], ['coins', 80]]);
@@ -376,6 +386,8 @@ const MAPS = {
     m.prop('gate', 14, 2, { solidTiles: [[14, 2]], x: 15 * TS, y: 3 * TS - 1 });
     m.add({ kind: 'prop', type: 'gate2', tx: 15, ty: 2, img: null, solidTiles: [[15, 2], [13, 2], [16, 2]] }, []);
     m.npc('pell', 'pell', 15, 5, 'down', { float: true, state: 'fixed' });
+    m.npc('brask', 'brask', 25, 10, 'left', { talk: 'brask' });
+    m.npc('isla', 'isla', 25, 11, 'left', { talk: 'isla' });
     m.npc('sir', 'sir', 7, 8, 'right', { wander: true });
     m.npc('cactus', 'cactus', 22, 8, 'left', { wander: true });
     m.npc('clerk', 'clerk', 22, 15, 'left', { wander: true });
@@ -400,6 +412,8 @@ const MAPS = {
     const m = new MapBuilder(24, 46, 'v');
     m.path([[10, 45], [10, 14]], 4, 'm', 0);
     m.ellipse(11.5, 8, 9.5, 5.6, 'm');
+    m.fill(10, 31, 4, 2, 'v');
+    m.fill(10, 21, 4, 2, 'v');
     m.ellipse(5, 34, 3.4, 2.6, 'm').ellipse(18, 26, 3.4, 2.6, 'm').ellipse(5, 20, 3, 2.2, 'm');
     m.fill(6, 33, 4, 2, 'm').fill(14, 25, 4, 2, 'm').fill(6, 19, 4, 2, 'm');
     for (const [x, y] of [[4, 4], [19, 4], [3, 11], [20, 11]]) m.prop('pillar', x, y, { solidTiles: [[x, y]] });

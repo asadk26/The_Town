@@ -16,12 +16,13 @@ const URL = pathToFileURL(resolve(fileURLToPath(import.meta.url), '../../index.h
 let failed = 0;
 const check = (ok, what) => { console.log((ok ? '  ok   ' : '  FAIL ') + what); if (!ok) failed++; };
 
-const browser = await chromium.launch(CHROME ? { executablePath: CHROME } : {});
+const GL = ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'];
+const browser = await chromium.launch(CHROME ? { executablePath: CHROME, args: GL } : { args: GL });
 const page = await browser.newPage({ viewport: { width: 960, height: 720 } });
 const errors = [];
 page.on('pageerror', (e) => errors.push(e.message));
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
-await page.goto(URL);
+await page.goto(URL + '?test');
 await page.waitForTimeout(400);
 
 const ev = (fn, arg) => page.evaluate(fn, arg);
@@ -50,28 +51,35 @@ await wait(200);
 await page.keyboard.press('z');
 await wait(200);
 check(await talkThrough(), 'Mags talks');
-check(await ev(() => SKY.G.flags.lens && SKY.G.items.bun === 2), 'Mags hands over the Lens and two buns');
+check(await ev(() => SKY.G.items.bun === 2), 'Mags hands over two buns');
 
-// the spar: weaken Brask through the real hit path until the scene moves on
-await ev(() => { const p = SKY.G.player; p.x = 7 * 16 + 4; p.y = 10 * 16 + 12; p.dir = 'right'; });
-await wait(200);
-await page.keyboard.press('z');
-await wait(200);
-for (let i = 0; i < 400 && !(await ev(() => !!SKY.G.boss)); i++) { await page.keyboard.press('z'); await wait(50); }
-check(await ev(() => SKY.G.boss && SKY.G.boss.id === 'brask_spar'), 'the spar with Brask begins');
-for (let i = 0; i < 60 && (await ev(() => !!SKY.G.boss)); i++) {
-  await ev(() => { const b = SKY.G.boss; if (b) b.hp = Math.max(1, b.hp - 20); });
-  await ev(() => { const b = SKY.G.boss; if (b && b.hp <= b.maxHp * 0.42) b.ended = true; });
-  await wait(60);
-}
-check(await talkThrough(500), 'the spar aftermath plays through');
-check(await ev(() => SKY.G.flags.sparDone && SKY.G.party.brask && SKY.G.party.brask.joined), 'Brask joins the party');
+// Oren at the training ground: meet him, hit the dummies, and the notice falls
+const talkTo = async (x, y, dir) => {
+  await ev(([x, y, dir]) => { const p = SKY.G.player; p.x = x; p.y = y; p.dir = dir; p.state = 'move'; }, [x, y, dir]);
+  await wait(150);
+  await page.keyboard.press('z');
+  await wait(200);
+};
+await talkTo(7 * 16 + 4, 10 * 16 + 12, 'right');
+check(await talkThrough(), 'Oren talks');
+check(await ev(() => SKY.G.flags.metOren), 'Oren asks for a combo on the dummies');
+await ev(() => { for (let i = 0; i < 6; i++) STORY.dummy(); });
+await talkTo(7 * 16 + 4, 10 * 16 + 12, 'right');
+check(await talkThrough(600), 'the notice scene plays through');
+check(await ev(() => SKY.G.flags.notice && SKY.G.flags.act1), 'the notice arrives and chapter one begins');
+
+// Rei on the bridge
+await ev(() => { SKY.loadMap('fields', 22, 24, 'right'); });
+await wait(300);
+for (let i = 0; i < 60 && !(await ev(() => !!SKY.G.script)); i++) { await page.keyboard.down('ArrowRight'); await wait(80); await page.keyboard.up('ArrowRight'); }
+check(await talkThrough(600), "Rei's scene plays through");
+check(await ev(() => SKY.G.party.rei && SKY.G.party.rei.joined), 'Rei joins the party');
 
 // tag in
 await ev(() => { SKY.G.player.state = 'move'; });
 await page.keyboard.press('c');
-await wait(150);
-check(await ev(() => SKY.G.active === 'brask'), 'C tags Brask in');
+await wait(300);
+check(await ev(() => SKY.G.active === 'rei'), 'C tags Rei in');
 
 // every map loads and draws
 for (const id of Object.keys(await ev(() => Object.fromEntries(Object.keys(SKY.MAPS).map((k) => [k, 1]))))) {

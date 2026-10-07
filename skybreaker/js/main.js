@@ -213,7 +213,7 @@ function frame(now) {
 }
 
 function boot() {
-  R3.init(document.getElementById('view'), IS_TOUCH || innerWidth * innerHeight < 600000 ? 'low' : 'high');
+  R3.init(document.getElementById('view'), /[?&]test\b/.test(location.search) ? 'test' : IS_TOUCH || innerWidth * innerHeight < 600000 ? 'low' : 'high');
   SPR.props = GFX.propCanvases();
   SPR.anim = GFX.animatedProps();
   SPR.stamp = GFX.stamp();

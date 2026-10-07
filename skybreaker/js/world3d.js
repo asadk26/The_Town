@@ -73,14 +73,14 @@ const R3 = (() => {
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = quality === 'low' ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
+    renderer.shadowMap.type = quality === 'high' ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
     scene = new THREE.Scene();
     cam = new THREE.PerspectiveCamera(FOV, 16 / 9, 0.5, 120);
     postScene = new THREE.Scene();
     postCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
     postMat = new THREE.ShaderMaterial({
       uniforms: { tex: { value: null }, res: { value: new THREE.Vector2(1, 1) }, focus: { value: 0.42 }, blur: { value: 4.5 },
-        bloom: { value: 1.4 }, grade: { value: new THREE.Vector3(1.04, 1.0, 0.94) }, vign: { value: 0.6 }, hi: { value: quality === 'low' ? 0 : 1 } },
+        bloom: { value: 1.4 }, grade: { value: new THREE.Vector3(1.04, 1.0, 0.94) }, vign: { value: 0.6 }, hi: { value: quality === 'high' ? 1 : 0 } },
       vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0., 1.); }',
       fragmentShader: `
         uniform sampler2D tex; uniform vec2 res; uniform float focus, blur, bloom, vign, hi; uniform vec3 grade; varying vec2 vUv;
@@ -120,7 +120,7 @@ const R3 = (() => {
   function resize() {
     if (!renderer) return;
     const dpr = Math.min(window.devicePixelRatio || 1, quality === 'low' ? 1 : 1.5);
-    const scale = quality === 'low' ? 0.7 : 1;
+    const scale = quality === 'test' ? 0.35 : quality === 'low' ? 0.7 : 1;
     W = Math.max(2, Math.round(innerWidth * dpr * scale));
     H = Math.max(2, Math.round(innerHeight * dpr * scale));
     renderer.setPixelRatio(1);
@@ -130,7 +130,7 @@ const R3 = (() => {
     cam.aspect = W / H;
     cam.updateProjectionMatrix();
     if (rt) rt.dispose();
-    rt = new THREE.WebGLRenderTarget(W, H, { samples: quality === 'low' ? 0 : 4 });
+    rt = new THREE.WebGLRenderTarget(W, H, { samples: quality === 'high' ? 4 : 0 });
     rt.texture.colorSpace = THREE.SRGBColorSpace;
     postMat.uniforms.tex.value = rt.texture;
     postMat.uniforms.res.value.set(W, H);
@@ -280,7 +280,7 @@ const R3 = (() => {
     group.add(hemi);
     const sun = new THREE.DirectionalLight(mood.sun, mood.sunI);
     sun.castShadow = true;
-    const sm = quality === 'low' ? 1024 : 2048;
+    const sm = quality === 'high' ? 2048 : quality === 'test' ? 512 : 1024;
     sun.shadow.mapSize.set(sm, sm);
     Object.assign(sun.shadow.camera, { left: -15, right: 15, top: 15, bottom: -15, near: 1, far: 60 });
     sun.shadow.bias = -0.0009; sun.shadow.normalBias = 0.02; sun.shadow.radius = 3;
@@ -599,7 +599,7 @@ const R3 = (() => {
     let li = 0;
     const lights = world.pool;
     for (const s of G.shots) {
-      const x = s.x / 16, z = (s.y + s.h) / 16, y = s.h / 16 + 0.25;
+      const x = s.x / 16, z = (s.y + s.h) / 16, y = s.h / 16 * 1.05 + 0.2;
       const halo = orbSprite(s.r + 2, s.color, s.color, 0.45, 1.25); halo.position.set(x, y, z);
       const core = orbSprite(s.r, s.color, s.core || '#ffffff', 1); core.position.set(x, y, z + 0.01);
       groundDisc(x, z, s.r / 16 + 0.1, (s.r / 16 + 0.1) * 0.6, '#000000', 0.22);
@@ -613,11 +613,12 @@ const R3 = (() => {
     }
     for (let i = li; i < lights.length; i++) lights[i].intensity = 0;
     if (p && p.guard > 0) groundRing(p.x / 16, p.y / 16, 0.9, 0.7, '#5ad8ff', 0.55 + 0.25 * Math.sin(G.t * 25));
+    if (p && p.state === 'block') groundRing(p.x / 16, p.y / 16, 0.75, 0.55, p.parryT > 0 ? '#ffd84a' : '#9ad4f0', 0.6);
     if (p && p.state === 'beam') {
       const v = DIRV[p.dir], ang = Math.atan2(v[1], v[0]);
-      const len = beamLength(p.x, p.y - 12, p.dir) / 16;
-      beam(p.x / 16 + v[0] * 0.3, 0.75, p.y / 16 + v[1] * 0.3, ang, len, 0.75, H0.kiColor, 0.85);
-      beam(p.x / 16 + v[0] * 0.3, 0.76, p.y / 16 + v[1] * 0.3, ang, len, 0.28, '#ffffff', 0.9);
+      const len = beamLength(p.x, p.y - 20, p.dir) / 16;
+      beam(p.x / 16 + v[0] * 0.3, 1.25, p.y / 16 + v[1] * 0.3, ang, len, 0.75, H0.kiColor, 0.85);
+      beam(p.x / 16 + v[0] * 0.3, 1.26, p.y / 16 + v[1] * 0.3, ang, len, 0.28, '#ffffff', 0.9);
     }
     for (const hz of G.hazards) {
       if (hz.kind === 'shock') {

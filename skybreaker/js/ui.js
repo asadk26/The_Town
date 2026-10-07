@@ -308,7 +308,7 @@ const UI = (() => {
       FONT.draw(ctx, 'Z or M to toggle', 78, 28, '#c8c8f0');
     } else {
       FONT.draw(ctx, 'CONTROLS', 78, 12, '#ffd84a');
-      [['Arrows', 'Move'], ['Z', 'Punch / talk'], ['X', 'Ki blast'], ['Hold X', 'Charge special'], ['A', 'Cycle special'], ['S', 'Lens (scouter)'], ['C', 'Tag partner'], ['Enter', 'Menu'], ['M', 'Music']].forEach(([a, b], j) => {
+      [['Arrows', 'Move'], ['Z', 'Punch / talk'], ['X', 'Ki blast'], ['Hold X', 'Charge special'], ['A', 'Cycle special'], ['S', 'Guard / parry'], ['C', 'Tag partner'], ['Enter', 'Menu'], ['M', 'Music']].forEach(([a, b], j) => {
         FONT.draw(ctx, a, 80, 28 + j * 12, '#ffffff'); FONT.draw(ctx, b, 140, 28 + j * 12, '#c8c8f0');
       });
     }
@@ -383,7 +383,7 @@ const UI = (() => {
     if (p.state === 'charge' && p.t > 0.12 && sp) {
       const S = DATA.SPECIALS[sp];
       const f = Math.min(1, p.t / Math.max(0.2, S.charge));
-      const sp3 = R3.toScreen(p.x, p.y, 2.4);
+      const sp3 = R3.toScreen(p.x, p.y, 3.3);
       const x = Math.round(sp3.x - 10), y = Math.round(sp3.y - 4);
       bar(ctx, x, y, 20, 2, f, 1, f >= 1 ? (h.ki >= S.cost ? (Math.floor(G.t * 12) % 2 ? '#ffffff' : H.kiColor) : '#ff5a5a') : H.kiColor);
     }
@@ -409,29 +409,6 @@ const UI = (() => {
       }
     }
   }
-  function drawScouter(ctx) {
-    const h = hero();
-    ctx.fillStyle = 'rgba(80,255,150,0.07)'; ctx.fillRect(0, 0, VW, VH);
-    ctx.fillStyle = '#7affb0';
-    for (const [x, y, dx, dy] of [[2, 30, 1, 1], [VW - 3, 30, -1, 1], [2, VH - 3, 1, -1], [VW - 3, VH - 3, -1, -1]]) { ctx.fillRect(Math.min(x, x + dx * 10), y, 10, 1); ctx.fillRect(x, Math.min(y, y + dy * 10), 1, 10); }
-    for (let y = (Math.floor(G.t * 40) % 4); y < VH; y += 4) { ctx.fillStyle = 'rgba(122,255,176,0.05)'; ctx.fillRect(0, y, VW, 1); }
-    const cx = G.cam.x, cy = G.cam.y;
-    for (const e of G.enemies) {
-      const x = Math.round(e.x - cx), y = Math.round(e.y - cy - (e.boss && e.d.big ? 50 : 32));
-      if (x < -20 || x > VW + 20 || y < -10 || y > VH) continue;
-      const diff = e.lv - h.lv;
-      const col = e.lv >= 90 ? '#ff4a8a' : diff > 2 ? '#ff6a6a' : diff >= -1 ? '#ffd84a' : '#7affb0';
-      FONT.draw(ctx, e.lv >= 90 ? 'LV ???' : 'LV' + e.lv, x, y - 5, col, { align: 'center' });
-      if (!e.boss) bar(ctx, x - 8, y + 5, 16, 1, e.hp, e.maxHp, col);
-    }
-    for (const pr of G.props) {
-      if (pr.req) FONT.draw(ctx, 'LV' + pr.req, pr.x - cx, pr.y - cy - 34, h.lv >= pr.req ? '#7affb0' : '#ff6a6a', { align: 'center' });
-      if (pr.scanNote) FONT.draw(ctx, pr.scanNote, pr.x - cx, pr.y - cy - 26, '#7affb0', { align: 'center' });
-    }
-    box(ctx, 2, VH - 15, Math.min(VW - 4, FONT.width(STORY.goal()) + 12), 13, 'dark');
-    FONT.draw(ctx, STORY.goal(), 8, VH - 12, '#7affb0');
-  }
-
   function drawToasts(ctx) {
     let y = 50;
     for (const t of toasts) {
@@ -467,7 +444,7 @@ const UI = (() => {
   }
   function drawWorldText(ctx) {
     for (const t of G.texts) {
-      const s = R3.toScreen(t.x, t.y + 24, 1.7 + (0.8 - t.life) * 0.9);
+      const s = R3.toScreen(t.x, t.y + 24, 2.5 + (0.8 - t.life) * 0.9);
       FONT.draw(ctx, t.text, s.x, s.y, t.color, { align: 'center' });
     }
   }

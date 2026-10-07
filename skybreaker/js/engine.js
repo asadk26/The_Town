@@ -60,9 +60,11 @@ function dirFrom(dx, dy) { return Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 'left'
 const SPR = { people: {}, creatures: {}, props: null, anim: null, trees: {}, houses: {}, orbs: {}, shadows: {} };
 function personSheet(look) {
   if (look === 'null') look = nullLook();
-  if (!SPR.people[look]) SPR.people[look] = GFX.person(DATA.LOOKS[look]);
+  if (!SPR.people[look]) SPR.people[look] = PEOPLE.has(look) ? PEOPLE.sheet(look) : GFX.person(DATA.LOOKS[look]);
   return SPR.people[look];
 }
+/* where a sheet's feet are: new 40x52 people stand on (20, 51) */
+function feetOf(sh, ko) { return sh.w === 40 ? (ko ? [26, 34] : [20, 51]) : (ko ? [16, 20] : [12, 31]); }
 function creatureSheet(art) {
   const key = art.join(':');
   if (!SPR.creatures[key]) {
@@ -413,7 +415,7 @@ function updatePlayer(dt) {
       if (p.t < 0.75) {
         if ((p.beamTick -= dt) <= 0) {
           p.beamTick = 0.1;
-          const r = beamRect(p.x, p.y - 12, p.dir, 9, 200);
+          const r = beamRect(p.x, p.y - 20, p.dir, 12, 200);
           for (const e of G.enemies) if (rectHitsBody(r, e)) hitEnemy(e, h.pow * 0.8 * odMul(), DIRV[p.dir][0] * 40, DIRV[p.dir][1] * 40, { quiet: true });
           for (const pr of propsInRect(r)) hitProp(pr, { ki: true, burn: !!H.burns, heavy: !!H.breaks });
           G.shake = Math.max(G.shake, 0.08);
@@ -422,7 +424,13 @@ function updatePlayer(dt) {
       break;
     }
     case 'pose': if (p.t > (p.poseT || 0.3)) { p.state = 'move'; p.t = 0; } break;
-    case 'guard': {
+    case 'block': {
+      const [mx, my] = readMove();
+      if (mx || my) { const l = Math.hypot(mx, my); moveBody(p, mx / l * speed * 0.4 * dt, my / l * speed * 0.4 * dt); }
+      if (!I.held.R || !ctrl) { p.state = 'move'; p.t = 0; }
+      break;
+    }
+    case 'iron': {
       const [mx, my] = readMove();
       if (mx || my) { face(mx, my); const l = Math.hypot(mx, my); moveBody(p, mx / l * speed * 0.45 * dt, my / l * speed * 0.45 * dt); }
       if (p.guard <= 0) { p.state = 'move'; p.t = 0; }
@@ -435,12 +443,11 @@ function updatePlayer(dt) {
     const list = specialsFor(h);
     if (list.length > 1) { h.sel = (h.sel + 1) % list.length; AUDIO.sfx('blip'); UI.specialFlash(); }
   }
-  if (ctrl && I.take('R')) {
-    if (!G.flags.lens) { AUDIO.sfx('deny'); UI.toast("You don't have a Lens yet.", '#c8c8f0'); }
-    else { G.scouter = !G.scouter; AUDIO.sfx('scouter'); if (G.scouter) revealHidden(); }
-  }
+  // R holds a guard; pressing it just before a hit lands parries
+  if (ctrl && I.pressed.R && (p.state === 'move' || p.state === 'block')) { p.parryT = 0.2; if (p.state === 'move') { p.state = 'block'; p.t = 0; } }
+  p.parryT = Math.max(0, (p.parryT || 0) - dt);
   if (ctrl && I.take('SWAP')) trySwap();
-  if (G.scouter && G.t % 0.5 < dt) revealHidden();
+  if (G.t % 0.25 < dt) revealHidden();
 }
 const odMul = () => (G.player.od ? 1.5 : 1);
 
@@ -481,7 +488,7 @@ function fireBlast(p, h) {
   if (h.ki < cost) { AUDIO.sfx('deny'); UI.toast('Out of ki!', '#ff8a8a'); return; }
   h.ki -= cost; p.blastCool = 0.16;
   const H = DATA.HEROES[h.id], v = DIRV[p.dir];
-  spawnShot({ x: p.x + v[0] * 8, y: p.y - 12 + v[1] * 6, vx: v[0] * 210, vy: v[1] * 210, r: 3, dmg: h.pow * 1.1 * odMul(), team: 'p',
+  spawnShot({ x: p.x + v[0] * 8, y: p.y - 20 + v[1] * 6, vx: v[0] * 210, vy: v[1] * 210, r: 3, dmg: h.pow * 1.1 * odMul(), team: 'p',
     color: H.kiColor, core: H.kiCore, burn: !!H.burns, life: 0.9 });
   AUDIO.sfx('blast');
 }
@@ -502,10 +509,10 @@ function doSpecial(k, h) {
       break;
     case 'cannon':
       p.state = 'pose'; p.poseT = 0.3; AUDIO.sfx('special');
-      spawnShot({ x: p.x + v[0] * 10, y: p.y - 12 + v[1] * 8, vx: v[0] * 95, vy: v[1] * 95, r: 7, dmg: h.pow * 2.8 * odMul(), team: 'p',
+      spawnShot({ x: p.x + v[0] * 10, y: p.y - 20 + v[1] * 8, vx: v[0] * 95, vy: v[1] * 95, r: 7, dmg: h.pow * 2.8 * odMul(), team: 'p',
         color: H.kiColor, core: H.kiCore, pierce: true, heavy: true, life: 2.2, big: true });
       break;
-    case 'guard': p.state = 'guard'; p.guard = 2.2; AUDIO.sfx('reflect'); UI.toast('Iron Guard!', '#9af0ff'); break;
+    case 'guard': p.state = 'iron'; p.guard = 2.2; AUDIO.sfx('reflect'); UI.toast('Iron Guard!', '#9af0ff'); break;
     case 'overdrive':
       if (p.od) { endOverdrive(); h.ki += S.cost; p.state = 'move'; break; }
       p.od = true; p.state = 'pose'; p.poseT = 0.6; p.invuln = 0.8;
@@ -537,10 +544,29 @@ function trySwap(forced) {
   return true;
 }
 
-function damagePlayer(amount, fx, fy, opts = {}) {
+function damagePlayer(amount, fx, fy, src) {
   const p = G.player, h = hero();
   if (p.state === 'ko' || p.invuln > 0 || (G.script && !G.script.waiter?.control)) return false;
   if (p.guard > 0) { floatText(p.x, p.y - 26, 'GUARD', '#9af0ff'); AUDIO.sfx('reflect'); p.invuln = 0.2; return false; }
+  // a parry: the guard went up in the instant before the hit
+  if (p.parryT > 0) {
+    p.parryT = 0; p.invuln = 0.35;
+    floatText(p.x, p.y - 30, 'PARRY!', '#ffd84a');
+    AUDIO.sfx('reflect'); AUDIO.sfx('heavy'); G.hitstop = 6; G.shake = 0.2;
+    sparks((p.x + fx) / 2, (p.y + fy) / 2 - 18, '#ffd84a', 12);
+    h.ki = Math.min(h.maxKi, h.ki + 6);
+    if (src && src.kind === 'enemy') { src.stun = Math.max(src.stun || 0, src.boss ? 0.7 : 1.2); src.flash = 0.15; if (src.boss && src.atk_) src.atk_ = null; }
+    return 'parry';
+  }
+  if (p.state === 'block') {
+    const chip = Math.max(1, Math.round(amount * 0.2 - h.def * 0.3));
+    h.hp = Math.max(1, h.hp - chip);
+    floatText(p.x, p.y - 26, 'BLOCK ' + chip, '#9ad4f0');
+    AUDIO.sfx('reflect'); p.invuln = 0.25;
+    const a = Math.atan2(p.y - fy, p.x - fx);
+    p.kbx = Math.cos(a) * 60; p.kby = Math.sin(a) * 60;
+    return 'block';
+  }
   let dmg = Math.max(1, Math.round(amount * rand(0.9, 1.1) - h.def * 0.5));
   if (p.od) dmg = Math.max(1, Math.round(dmg * 0.7));
   h.hp -= dmg;
@@ -596,8 +622,8 @@ function propsInRect(r) {
 }
 function hitProp(pr, how) { if (pr.onHit) pr.onHit(pr, how); }
 function revealHidden() {
-  for (const pr of G.props) if (pr.hidden && !pr.revealed && Math.abs(pr.x - G.player.x) < 130 && Math.abs(pr.y - G.player.y) < 90) {
-    pr.revealed = true; burst(pr.x, pr.y - 6, '#7affb0', 10, 30); AUDIO.sfx('scouter');
+  for (const pr of G.props) if (pr.hidden && !pr.revealed && Math.abs(pr.x - G.player.x) < 34 && Math.abs(pr.y - G.player.y) < 30) {
+    pr.revealed = true; burst(pr.x, pr.y - 6, '#7affb0', 12, 30); AUDIO.sfx('scouter'); UI.toast('Something was hidden here!', '#7affb0');
   }
 }
 
@@ -605,7 +631,7 @@ function revealHidden() {
    ENEMIES
    ════════════════════════════════════════════════════════ */
 function bodyRect(e) {
-  const bh = e.boss && e.d.big ? 36 : e.art && e.art[0] === 'person' ? 22 : 14;
+  const bh = e.boss && e.d.big ? 44 : e.art && (e.art[0] === 'person' || e.art[0] === 'null') ? 36 : 16;
   return { x: e.x - e.w / 2 - 2, y: e.y - bh - (e.fly ? 6 : 0), w: e.w + 4, h: bh + 2 };
 }
 function rectHitsBody(r, e) {
@@ -616,7 +642,7 @@ function overlapBody(p, e, pad = 0) {
   const b = bodyRect(e);
   return p.x + 6 + pad > b.x && p.x - 6 - pad < b.x + b.w && p.y + pad > b.y && p.y - 20 - pad < b.y + b.h;
 }
-function playerBody() { const p = G.player; return { x: p.x - 5, y: p.y - 20, w: 10, h: 20 }; }
+function playerBody() { const p = G.player; return { x: p.x - 6, y: p.y - 34, w: 12, h: 34 }; }
 function rectsOverlap(a, b) { return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y; }
 
 /* returns true if the hit landed */
@@ -678,7 +704,7 @@ function updateEnemies(dt) {
     if (e.aggro && (d > 170 || p.state === 'ko')) e.aggro = false;
     AI[e.d.ai](e, dt, d);
     // touching hurts
-    if (e.state !== 'wind' && e.stun <= 0 && rectsOverlap(playerBody(), bodyRect(e))) damagePlayer(e.atk * 0.8, e.x, e.y);
+    if (e.state !== 'wind' && e.stun <= 0 && rectsOverlap(playerBody(), bodyRect(e))) damagePlayer(e.atk * 0.8, e.x, e.y, e);
   }
   // soft separation so packs don't stack
   for (let i = 0; i < G.enemies.length; i++) for (let j = i + 1; j < G.enemies.length; j++) {
@@ -701,7 +727,7 @@ function wander(e, dt) {
   if (e.state === 'walk') { if (moveBody(e, e.vx * e.spd * 0.5 * dt, e.vy * e.spd * 0.5 * dt)) e.t = 0; }
 }
 function enemyShot(e, angle, speed, color, r = 3, dmgMul = 1) {
-  spawnShot({ x: e.x, y: e.y - (e.fly ? 16 : 12), vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, r, dmg: e.atk * dmgMul, team: 'e', color, core: '#ffffff', life: 2.5 });
+  spawnShot({ x: e.x, y: e.y - (e.fly ? 26 : 20), h: e.fly ? 26 : 20, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, r, dmg: e.atk * dmgMul, team: 'e', color, core: '#ffffff', life: 2.5 });
 }
 const AI = {
   hop(e, dt, d) {
@@ -734,7 +760,7 @@ const AI = {
       e.t -= dt;
       const v = DIRV[e.dir];
       const r = { x: e.x - 9 + v[0] * 12, y: e.y - 20 + v[1] * 12, w: 18, h: 20 };
-      if (rectsOverlap(r, playerBody())) damagePlayer(e.atk * 1.2, e.x, e.y);
+      if (rectsOverlap(r, playerBody())) damagePlayer(e.atk * 1.2, e.x, e.y, e);
       if (e.t <= 0) { e.state = 'rest'; e.t = 0.5; }
       return;
     }
@@ -817,7 +843,7 @@ function updateBoss(b, dt) {
   if (done) b.atk_ = null;
   b.minions = b.minions.filter((m) => !m.dead);
   // contact
-  if (b.alpha > 0.5 && A.k !== 'teleport' && rectsOverlap(playerBody(), bodyRect(b))) damagePlayer(b.atk * (A.k === 'charge' && A.s === 1 ? 1.3 : 0.8), b.x, b.y);
+  if (b.alpha > 0.5 && A.k !== 'teleport' && rectsOverlap(playerBody(), bodyRect(b))) damagePlayer(b.atk * (A.k === 'charge' && A.s === 1 ? 1.3 : 0.8), b.x, b.y, b);
 }
 const BOSS_ATK = {
   chase(b, A, dt, p) {
@@ -832,7 +858,7 @@ const BOSS_ATK = {
       if (A.w > 0.25 && A.w < 0.4) {
         const v = DIRV[b.dir], big = b.d.big ? 1.6 : 1;
         const r = { x: b.x - 10 * big + v[0] * 14 * big, y: b.y - 22 * big + v[1] * 12 * big, w: 20 * big, h: 22 * big };
-        if (rectsOverlap(r, playerBody())) damagePlayer(b.atk * 1.2, b.x, b.y);
+        if (rectsOverlap(r, playerBody())) damagePlayer(b.atk * 1.2, b.x, b.y, b);
       }
       if (A.w > 0.7) A.s = 0;
     }
@@ -928,7 +954,7 @@ const BOSS_ATK = {
       if (w > 0.22 && w < 0.36) {
         const v = DIRV[b.dir];
         const r = { x: b.x - 11 + v[0] * 14, y: b.y - 22 + v[1] * 12, w: 22, h: 22 };
-        if (rectsOverlap(r, playerBody())) damagePlayer(b.atk * 1.3, b.x, b.y);
+        if (rectsOverlap(r, playerBody())) damagePlayer(b.atk * 1.3, b.x, b.y, b);
         if (!A.sw) { A.sw = true; AUDIO.sfx('whiff'); }
       }
       if (w > 0.75) { b.pose = null; return true; }
@@ -988,7 +1014,7 @@ const BOSS_ATK = {
 /* ════════════════════════════════════════════════════════
    SHOTS, HAZARDS, EFFECTS
    ════════════════════════════════════════════════════════ */
-function spawnShot(o) { o.t = 0; o.hit = new Set(); o.h = o.h || 12; G.shots.push(o); return o; }
+function spawnShot(o) { o.t = 0; o.hit = new Set(); o.h = o.h || 20; G.shots.push(o); return o; }
 function circleRect(s, r) {
   const cx = clamp(s.x, r.x, r.x + r.w), cy = clamp(s.y, r.y, r.y + r.h);
   return (s.x - cx) ** 2 + (s.y - cy) ** 2 < s.r * s.r + 4;
@@ -1016,7 +1042,11 @@ function updateShots(dt) {
       if (G.player.guard > 0) {
         s.team = 'p'; s.vx *= -1.4; s.vy *= -1.4; s.dmg = hero().pow * 2; s.hit = new Set(); s.color = DATA.HEROES[G.active].kiColor;
         AUDIO.sfx('reflect'); sparks(s.x, s.y, '#9af0ff', 6);
-      } else if (damagePlayer(s.dmg, s.x - s.vx * 0.1, s.y - s.vy * 0.1)) dead = true;
+      } else {
+        const r = damagePlayer(s.dmg, s.x - s.vx * 0.1, s.y - s.vy * 0.1);
+        if (r === 'parry') { s.team = 'p'; s.vx *= -1.5; s.vy *= -1.5; s.dmg = hero().pow * 2.2; s.hit = new Set(); s.color = DATA.HEROES[G.active].kiColor; }
+        else if (r) dead = true;
+      }
     }
     if (s.big && G.t % 0.03 < dt) G.parts.push({ x: s.x + rand(-3, 3), y: s.y + rand(-3, 3), vx: 0, vy: 0, life: 0.25, max: 0.25, color: s.color, size: 2, glow: true });
     if (dead) G.shots = G.shots.filter((q) => q !== s);
@@ -1132,29 +1162,44 @@ function playerPose(p) {
     case 'blast': case 'beam': return 'blast';
     case 'dash': return 'punch1';
     case 'pose': return p.poseName || 'charge';
-    case 'guard': return 'charge';
+    case 'iron': return 'guard';
+    case 'block': return 'guard';
     case 'hurt': return 'hurt';
   }
   return 'idle';
 }
+/* Null wears whoever is out: their shape, drained of colour. */
 function nullLook() {
-  const base = DATA.LOOKS[DATA.HEROES[G.active].look];
+  const look = DATA.HEROES[G.active].look;
   const key = 'null_' + G.active;
-  if (!DATA.LOOKS[key]) DATA.LOOKS[key] = Object.assign({}, base, { skin: '#2a2440', hair: '#141022', top: '#1a1430', under: '#2a2440', pants: '#100c1c', shoes: '#08060e', eyes: '#ffffff', glowEyes: true, accent: '#8a6aff', belt: '#8a6aff', wrist: '#8a6aff', sleeve: '#2a2440', brows: null, blush: null });
+  if (PEOPLE.has(look) && !PEOPLE.has(key)) {
+    const base = PEOPLE.LOOKS[look];
+    const dark = (c) => GFX.mix(c, '#120e22', 0.78);
+    const tint = {};
+    for (const [k, v] of Object.entries(PEOPLE.HEADS[base.head].pal)) tint[k] = k === 'o' ? v : (k === 'e' ? '#ffffff' : k === 'w' ? '#8a6aff' : dark(v));
+    PEOPLE.LOOKS[key] = Object.assign({}, base, { skin: '#2a2440', pants: '#100c1c', shoes: '#08060e', sole: '#000000', belt: '#8a6aff', buckle: '#8a6aff', sash: base.sash ? '#4a2a9a' : null,
+      wraps: base.wraps ? '#3a2a6a' : null, gloves: base.gloves ? '#1a1430' : null, tattoo: base.tattoo ? '#8a6aff' : null, headTint: tint,
+      top: Object.assign({}, base.top, { color: '#1a1430', inner: base.top.inner ? '#2a2440' : null, collar: null, cuff: base.top.cuff ? '#4a2a9a' : null }) });
+  } else if (!PEOPLE.has(look) && !DATA.LOOKS[key]) {
+    DATA.LOOKS[key] = Object.assign({}, DATA.LOOKS[look], { skin: '#2a2440', hair: '#141022', top: '#1a1430', pants: '#100c1c', shoes: '#08060e', eyes: '#ffffff', glowEyes: true });
+  }
   return key;
 }
 /* The canvas an actor shows right now (also used for afterimages). */
 function actorFrame(e) {
   e._ox = 12; e._oy = 31;
+  const feet = (sh, ko) => { const f = feetOf(sh, ko); e._ox = f[0]; e._oy = f[1]; };
   if (e.kind === 'player') {
     const sh = personSheet(heroLook(hero()));
-    if (e.state === 'ko') { e._ox = 16; e._oy = 20; return sh.ko; }
+    if (e.state === 'ko') { feet(sh, true); return sh.ko; }
+    feet(sh);
     return sh[e.dir][playerPose(e)];
   }
   if (e.kind === 'npc') {
     if (e.creature) { const c = creatureSheet(e.creature); e._ox = c.w / 2; e._oy = c.h - 1; const f = Math.floor(G.t * 3) % c.left.length; return (e.dir === 'right' ? c.right : c.left)[f]; }
     const sh = personSheet(e.look);
-    if (e.ko) { e._ox = 16; e._oy = 20; return sh.ko; }
+    if (e.ko) { feet(sh, true); return sh.ko; }
+    feet(sh);
     const pose = e.pose || (e.walkT > 0 ? ['walk1', 'idle', 'walk2', 'idle'][Math.floor(e.walkT * 7) % 4] : 'idle');
     return sh[e.dir][pose];
   }
@@ -1162,6 +1207,7 @@ function actorFrame(e) {
   if (e.art[0] === 'person' || e.art[0] === 'null') {
     const look = e.art[0] === 'null' ? nullLook() : e.art[1];
     const sh = personSheet(look);
+    feet(sh);
     let pose = e.pose;
     if (!pose) {
       if (e.state === 'wind') pose = 'charge';

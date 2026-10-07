@@ -33,7 +33,7 @@ const STORY = (() => {
   const say = (who, text) => run(function* () { yield S.say(who, text); });
 
   function heal(all = true) {
-    for (const id of ['juno', 'brask']) { const h = G.party[id]; if (h && (all || h.joined)) { h.hp = h.maxHp; h.ki = h.maxKi; } }
+    for (const id of DATA.PARTY_ORDER) { const h = G.party[id]; if (h && (all || h.joined)) { h.hp = h.maxHp; h.ki = h.maxKi; } }
   }
   function joinBrask() {
     const j = G.party.juno;

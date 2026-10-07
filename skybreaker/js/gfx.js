@@ -763,8 +763,8 @@ const GFX = (() => {
        w water   b bridge       f wood floor  r rock   a ash
        l lava    m marble       v void      c cliff    p plaza
        k wall (interior)       n carpet */
-  const SOLID_GROUND = { w: 1, l: 1, v: 1, c: 1, k: 1 };
-  const SPREAD = { g: 5, x: 6, t: 5, d: 2, s: 1, p: 3, r: 4, a: 2, m: 0, f: 0, n: 0, b: 0, w: 0, l: 0, v: 0, c: 0, k: 0 };
+  const SOLID_GROUND = { w: 1, l: 1, v: 1, c: 1, k: 1, j: 1 };
+  const SPREAD = { j: 0, g: 5, x: 6, t: 5, d: 2, s: 1, p: 3, r: 4, a: 2, m: 0, f: 0, n: 0, b: 0, w: 0, l: 0, v: 0, c: 0, k: 0 };
 
   function groundColor(t, px, py, ctxInfo) {
     const n = hash(px, py), m = smooth(px / 7, py / 7);
@@ -847,6 +847,10 @@ const GFX = (() => {
         let c = m > 0.55 ? '#6e5a5c' : '#665254';
         if (n < 0.05) c = '#584648';
         return c;
+      }
+      case 'j': {
+        const v = smooth(px / 6, py / 6, 31);
+        return v > 0.6 ? '#1a1220' : v < 0.3 ? '#0c0810' : '#140e18';
       }
       case 'k': {
         if (ctxInfo.face) {

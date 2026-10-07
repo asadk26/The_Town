@@ -110,7 +110,9 @@ function levelUp(h, quiet) {
   }
 }
 const hero = () => G.party[G.active];
-const partner = () => { const o = G.active === 'juno' ? 'brask' : 'juno'; const h = G.party[o]; return h && h.joined ? h : null; };
+/* the others who can tag in, in party order after whoever is out */
+const partners = () => { const o = DATA.PARTY_ORDER, i = o.indexOf(G.active); const out = []; for (let k = 1; k < o.length; k++) { const h = G.party[o[(i + k) % o.length]]; if (h && h.joined) out.push(h); } return out; };
+const partner = () => partners()[0] || null;
 function specialsFor(h) {
   return DATA.HEROES[h.id].specials.filter((k) => {
     const s = DATA.SPECIALS[k];
@@ -124,7 +126,7 @@ function curSpecial(h = hero()) {
   return list[h.sel];
 }
 function gainXp(n) {
-  for (const id of ['juno', 'brask']) {
+  for (const id of DATA.PARTY_ORDER) {
     const h = G.party[id];
     if (!h || !h.joined) continue;
     h.xp += id === G.active ? n : Math.round(n * 0.6);
@@ -141,7 +143,7 @@ function heroLook(h) { return G.player && G.player.od && h.id === G.active ? DAT
 /* ════════════════════════════════════════════════════════
    MAPS
    ════════════════════════════════════════════════════════ */
-const GROUND_LOW = { w: 1, l: 1, v: 1 }, GROUND_HIGH = { c: 1, k: 1 };
+const GROUND_LOW = { w: 1, l: 1, v: 1, j: 1 }, GROUND_HIGH = { c: 1, k: 1 };
 const groundCache = {};
 
 function loadMap(id, sx, sy, dir) {
@@ -426,7 +428,45 @@ function updatePlayer(dt) {
       } else { p.state = 'move'; p.t = 0; }
       break;
     }
-    case 'pose': if (p.t > (p.poseT || 0.3)) { p.state = 'move'; p.t = 0; } break;
+    case 'pose': if (p.t > (p.poseT || 0.3)) { p.state = 'move'; p.t = 0; p.poseName = null; } break;
+    case 'gale': {
+      const v = DIRV[p.dir];
+      moveBody(p, v[0] * 400 * dt, v[1] * 400 * dt);
+      if (G.t % 0.025 < dt) afterimage(p);
+      for (const e of G.enemies) if (!p.hitSet.has(e) && overlapBody(p, e, 6)) { p.hitSet.add(e); hitEnemy(e, (h.str * 1.2 + h.pow * 0.8) * odMul(), v[0] * 120, v[1] * 120, { heavy: false }); }
+      if (p.t > 0.26) {
+        p.fly = false; p.state = 'move'; p.t = 0;
+        // never land in a chasm or a wall: snap back to where the step began
+        if (boxBlocked(p.x, p.y, p.w, p.h, false, p)) { p.x = p.galeFrom.x; p.y = p.galeFrom.y; UI.toast('Too far to land.', '#c8c8f0'); }
+      }
+      break;
+    }
+    case 'flurry': {
+      p.flurryTick -= dt;
+      if (p.flurryTick <= 0) {
+        p.flurryTick = 0.065; p.hitSet = new Set();
+        AUDIO.sfx('punch');
+        meleeHit(p, h, 0, 0.45);
+        if (Math.random() < 0.5) afterimage(p);
+      }
+      if (p.t > 0.65) { p.state = 'move'; p.t = 0; }
+      break;
+    }
+    case 'swing': {
+      const ring = (dmg) => {
+        for (const e of G.enemies) {
+          const d = Math.hypot(e.x - p.x, e.y - p.y);
+          if (d < 34) { const a = Math.atan2(e.y - p.y, e.x - p.x); hitEnemy(e, dmg, Math.cos(a) * 260, Math.sin(a) * 260, { heavy: true, melee: true }); }
+        }
+        for (const pr of propsNear(p.x, p.y - 4, 26)) hitProp(pr, { melee: true, heavy: true });
+        G.shake = Math.max(G.shake, 0.2);
+      };
+      p.dir = ['down', 'left', 'up', 'right'][Math.floor(p.t * 22) % 4];
+      if (p.swingHits === 0 && p.t > 0.15) { p.swingHits = 1; ring(h.str * 1.6 * odMul()); AUDIO.sfx('heavy'); }
+      if (p.swingHits === 1 && p.t > 0.38) { p.swingHits = 2; ring(h.str * 1.6 * odMul()); AUDIO.sfx('heavy'); }
+      if (p.t > 0.55) { p.state = 'move'; p.t = 0; }
+      break;
+    }
     case 'block': {
       const [mx, my] = readMove();
       if (mx || my) { const l = Math.hypot(mx, my); moveBody(p, mx / l * speed * 0.4 * dt, my / l * speed * 0.4 * dt); }
@@ -468,10 +508,10 @@ function meleeBox(p, step) {
     default: return { x: p.x + 5, y: p.y - 20, w: reach, h: 18 };
   }
 }
-function meleeHit(p, h, step) {
+function meleeHit(p, h, step, multOverride) {
   const r = meleeBox(p, step);
   const H = DATA.HEROES[h.id];
-  const mult = [1, 1.05, 1.7][step];
+  const mult = multOverride || [1, 1.05, 1.7][step];
   for (const e of G.enemies) {
     if (p.hitSet.has(e) || !rectHitsBody(r, e)) continue;
     p.hitSet.add(e);
@@ -515,6 +555,20 @@ function doSpecial(k, h) {
       spawnShot({ x: p.x + v[0] * 10, y: p.y - 20 + v[1] * 8, vx: v[0] * 95, vy: v[1] * 95, r: 7, dmg: h.pow * 2.8 * odMul(), team: 'p',
         color: H.kiColor, core: H.kiCore, pierce: true, heavy: true, life: 2.2, big: true });
       break;
+    case 'gale':
+      p.state = 'gale'; p.hitSet = new Set(); p.invuln = Math.max(p.invuln, 0.35); p.galeFrom = { x: p.x, y: p.y }; p.fly = true;
+      AUDIO.sfx('warp'); break;
+    case 'crescent':
+      p.state = 'pose'; p.poseT = 0.28; p.poseName = 'blast'; AUDIO.sfx('special');
+      spawnShot({ x: p.x + v[0] * 10, y: p.y - 20 + v[1] * 8, vx: v[0] * 175, vy: v[1] * 175, r: 8, dmg: h.pow * 2.2 * odMul(), team: 'p',
+        color: H.kiColor, core: '#ffffff', pierce: true, life: 1.0, big: true, wide: true });
+      break;
+    case 'flurry': p.state = 'flurry'; p.flurryTick = 0; AUDIO.sfx('special'); break;
+    case 'quake':
+      p.state = 'pose'; p.poseT = 0.32; p.poseName = 'charge'; AUDIO.sfx('crack'); G.shake = 0.4;
+      addHazard({ kind: 'shock', x: p.x, y: p.y - 4, r: 0, maxR: 50, speed: 210, team: 'p', dmg: h.str * 1.5 * odMul(), color: H.kiColor, stun: 1.3, heavy: true, kb: 140 });
+      break;
+    case 'swing': p.state = 'swing'; p.swingHits = 0; AUDIO.sfx('whiff'); break;
     case 'guard': p.state = 'iron'; p.guard = 2.2; AUDIO.sfx('reflect'); UI.toast('Iron Guard!', '#9af0ff'); break;
     case 'overdrive':
       if (p.od) { endOverdrive(); h.ki += S.cost; p.state = 'move'; break; }
@@ -533,10 +587,11 @@ function endOverdrive() {
 }
 
 function trySwap(forced) {
-  const o = partner();
+  const list = partners();
   const p = G.player;
-  if (!o) { if (!forced) { AUDIO.sfx('deny'); } return false; }
-  if (o.hp <= 0) { if (!forced) { UI.toast(DATA.HEROES[o.id].name + ' is down. Heal them first.', '#ff8a8a'); AUDIO.sfx('deny'); } return false; }
+  if (!list.length) { if (!forced) { AUDIO.sfx('deny'); if (G.flags.locked) UI.toast('No one else can fight right now.', '#c8c8f0'); } return false; }
+  const o = list.find((h) => h.hp > 0 && !(G.flags.locked || []).includes?.(h.id));
+  if (!o) { if (!forced) { UI.toast('Nobody is able to tag in. Heal them first.', '#ff8a8a'); AUDIO.sfx('deny'); } return false; }
   if (!forced && p.state !== 'move') return false;
   if (p.od) endOverdrive();
   G.active = o.id;
@@ -1163,7 +1218,9 @@ function playerPose(p) {
     case 'punch': return ['punch1', 'punch2', 'kick'][p.combo];
     case 'charge': return p.t > 0.18 ? 'charge' : 'blast';
     case 'blast': case 'beam': return 'blast';
-    case 'dash': return 'punch1';
+    case 'dash': case 'gale': return 'punch1';
+    case 'flurry': return Math.floor(p.t * 30) % 2 ? 'punch1' : 'punch2';
+    case 'swing': return 'kick';
     case 'pose': return p.poseName || 'charge';
     case 'iron': return 'guard';
     case 'block': return 'guard';

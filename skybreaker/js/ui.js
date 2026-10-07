@@ -10,6 +10,9 @@
 const SPEAKERS = {
   juno: { name: 'Juno', look: 'juno', color: '#ff9a7a' },
   brask: { name: 'Brask', look: 'brask', color: '#c8a8ff' },
+  rei: { name: 'Rei', look: 'rei', color: '#9ae8ff' },
+  oren: { name: 'Oren', look: 'oren', color: '#ffc88a' },
+  isla: { name: 'Isla', look: 'isla', color: '#8ab8ff' },
   mags: { name: 'Mags', look: 'mags', color: '#9ad4f0' },
   pell: { name: 'Pell', look: 'pell', color: '#f2d06a' },
   sable: { name: 'Auditor Sable', look: 'sable', color: '#d8c8ff' },
@@ -164,12 +167,12 @@ const UI = (() => {
     const m = { kind: 'menu', sel: 0, sub: null, subSel: 0, heroView: G.active, t: 0 };
     m.update = (dt) => {
       m.t += dt;
-      const heroes = ['juno', 'brask'].filter((id) => G.party[id] && G.party[id].joined);
+      const heroes = DATA.PARTY_ORDER.filter((id) => G.party[id] && G.party[id].joined);
       if (!m.sub) {
         if (I.take('START') || I.take('B')) { AUDIO.sfx('back'); pop(m); return; }
         if (I.take('up')) { m.sel = (m.sel + MENU.length - 1) % MENU.length; AUDIO.sfx('blip'); }
         if (I.take('down')) { m.sel = (m.sel + 1) % MENU.length; AUDIO.sfx('blip'); }
-        if ((I.take('left') || I.take('right')) && heroes.length > 1) { m.heroView = m.heroView === 'juno' ? 'brask' : 'juno'; AUDIO.sfx('blip'); }
+        if (heroes.length > 1) { const d = I.take('right') ? 1 : I.take('left') ? -1 : 0; if (d) { m.heroView = heroes[(heroes.indexOf(m.heroView) + d + heroes.length) % heroes.length] || heroes[0]; AUDIO.sfx('blip'); } }
         if (I.take('A')) {
           const k = MENU[m.sel];
           if (k === 'Close') { AUDIO.sfx('back'); pop(m); }
@@ -184,7 +187,7 @@ const UI = (() => {
         const h = G.party[m.heroView];
         if (I.take('up')) { m.subSel = (m.subSel + 4) % 5; AUDIO.sfx('blip'); }
         if (I.take('down')) { m.subSel = (m.subSel + 1) % 5; AUDIO.sfx('blip'); }
-        if ((I.take('left') || I.take('right')) && heroes.length > 1) { m.heroView = m.heroView === 'juno' ? 'brask' : 'juno'; AUDIO.sfx('blip'); }
+        if (heroes.length > 1) { const d = I.take('right') ? 1 : I.take('left') ? -1 : 0; if (d) { m.heroView = heroes[(heroes.indexOf(m.heroView) + d + heroes.length) % heroes.length] || heroes[0]; AUDIO.sfx('blip'); } }
         if (I.take('A')) {
           if (h.pts <= 0) { AUDIO.sfx('deny'); return; }
           h.pts--;
@@ -198,7 +201,7 @@ const UI = (() => {
         m.subSel = Math.min(m.subSel, list.length - 1);
         if (I.take('up')) { m.subSel = (m.subSel + list.length - 1) % list.length; AUDIO.sfx('blip'); }
         if (I.take('down')) { m.subSel = (m.subSel + 1) % list.length; AUDIO.sfx('blip'); }
-        if ((I.take('left') || I.take('right')) && heroes.length > 1) { m.heroView = m.heroView === 'juno' ? 'brask' : 'juno'; AUDIO.sfx('blip'); }
+        if (heroes.length > 1) { const d = I.take('right') ? 1 : I.take('left') ? -1 : 0; if (d) { m.heroView = heroes[(heroes.indexOf(m.heroView) + d + heroes.length) % heroes.length] || heroes[0]; AUDIO.sfx('blip'); } }
         if (I.take('A')) useItem(list[m.subSel], G.party[m.heroView]);
       }
     };
@@ -244,7 +247,7 @@ const UI = (() => {
     box(ctx, 70, 4, 166, 152);
     const k = m.sub || MENU[m.sel];
     const h = G.party[m.heroView];
-    const heroes = ['juno', 'brask'].filter((id) => G.party[id] && G.party[id].joined);
+    const heroes = DATA.PARTY_ORDER.filter((id) => G.party[id] && G.party[id].joined);
     const heroHeader = () => {
       ctx.drawImage(personSheet(DATA.HEROES[h.id].look).face, 78, 10);
       FONT.draw(ctx, DATA.HEROES[h.id].name, 98, 10, '#ffd84a');
@@ -358,15 +361,15 @@ const UI = (() => {
     const lowHp = h.hp < h.maxHp * 0.25 && Math.floor(G.t * 4) % 2;
     bar(ctx, 24, 14, 56, 4, h.hp, h.maxHp, lowHp ? '#ff5a5a' : h.hp < h.maxHp * 0.5 ? '#f0d040' : '#5ae07a');
     bar(ctx, 24, 21, 56, 3, h.ki, h.maxKi, p.od ? (Math.floor(G.t * 8) % 2 ? H.kiColor : '#ffffff') : '#5ab8ff');
-    const o = partner();
-    if (o) {
-      box(ctx, 2, 28, 40, 16, 'dark');
+    partners().slice(0, 2).forEach((o, i) => {
+      const y = 28 + i * 18;
+      box(ctx, 2, y, 40, 16, 'dark');
       ctx.globalAlpha = o.hp <= 0 ? 0.45 : 1;
-      ctx.drawImage(personSheet(DATA.HEROES[o.id].look).face, 0, 2, 16, 11, 4, 31, 16, 11);
+      ctx.drawImage(personSheet(DATA.HEROES[o.id].look).face, 0, 2, 16, 11, 4, y + 3, 16, 11);
       ctx.globalAlpha = 1;
-      bar(ctx, 22, 35, 16, 3, o.hp, o.maxHp, o.hp <= 0 ? '#ff5a5a' : '#5ae07a');
-      FONT.draw(ctx, 'C', 34, 29, '#8a86b0', { shadow: false });
-    }
+      bar(ctx, 22, y + 7, 16, 3, o.hp, o.maxHp, o.hp <= 0 ? '#ff5a5a' : '#5ae07a');
+    });
+    if (partners().length) FONT.draw(ctx, TOUCH.on ? 'TAG' : 'C', 44, 30, '#8a86b0', { shadow: '#000000' });
     // special
     const sp = curSpecial(h);
     if (sp) {
@@ -388,13 +391,14 @@ const UI = (() => {
       bar(ctx, x, y, 20, 2, f, 1, f >= 1 ? (h.ki >= S.cost ? (Math.floor(G.t * 12) % 2 ? '#ffffff' : H.kiColor) : '#ff5a5a') : H.kiColor);
     }
     // boss
-    const b = G.boss;
-    if (b && !b.gone && b.state !== 'intro') {
-      box(ctx, 20, VH - 18, VW - 40, 15, 'dark');
-      FONT.draw(ctx, b.name, 26, VH - 15, '#ff8a8a');
+    const bosses = G.enemies.filter((e) => e.boss && !e.gone && e.state !== 'intro');
+    bosses.slice(0, 2).forEach((b, i) => {
+      const y = VH - 18 - i * 16;
+      box(ctx, 20, y, VW - 40, 15, 'dark');
+      FONT.draw(ctx, b.name, 26, y + 3, '#ff8a8a');
       const nx = 30 + FONT.width(b.name);
-      bar(ctx, nx, VH - 12, VW - 40 - (nx - 20) - 8, 4, b.invulnerable ? b.maxHp : b.hp, b.maxHp, b.invulnerable ? (Math.floor(G.t * 3) % 2 ? '#c8a8ff' : '#8a6ad0') : '#ff5a5a');
-    }
+      bar(ctx, nx, y + 6, VW - 40 - (nx - 20) - 8, 4, b.invulnerable ? b.maxHp : b.hp, b.maxHp, b.invulnerable ? (Math.floor(G.t * 3) % 2 ? '#c8a8ff' : '#8a6ad0') : '#ff5a5a');
+    });
     // area name
     if (area) {
       area.t += 1 / 60;
@@ -508,6 +512,7 @@ const SCRIPT = (() => {
     const w = W((dt) => {
       if (!b) {
         b = spawnBoss(id, tx * TS + 8, ty * TS + 12, opts);
+        if (opts.with) { w.b2 = spawnBoss(opts.with[0], opts.with[1] * TS + 8, opts.with[2] * TS + 12, opts); G.boss = b; }
         if (opts.lock) G.lock = { x: opts.lock[0] * TS, y: opts.lock[1] * TS, w: opts.lock[2] * TS, h: opts.lock[3] * TS };
         AUDIO.play(opts.music || 'battle');
         G.noKO = !!opts.noKO;
@@ -515,8 +520,9 @@ const SCRIPT = (() => {
       }
       w.t += dt;
       if (G.player.state === 'ko') return false;
-      const over = b.gone || b.ended || (opts.until && opts.until(w.t, b));
+      const over = (b.gone && (!w.b2 || w.b2.gone)) || b.ended || (opts.until && opts.until(w.t, b));
       if (over) {
+        if (w.b2 && !w.b2.gone) { w.b2.gone = true; G.enemies = G.enemies.filter((e) => e !== w.b2); }
         G.lock = null; G.noKO = false;
         for (const m of b.minions || []) { m.dead = true; burst(m.x, m.y - 8, '#ffffff', 8, 40); }
         G.enemies = G.enemies.filter((e) => !(b.minions || []).includes(e) && (e !== b || !b.ended && !opts.until));
@@ -565,7 +571,7 @@ const SAVE = (() => {
   function apply(s, heal) {
     G.party = s.party; G.active = s.active; G.items = s.items; G.coins = s.coins; G.flags = s.flags; G.playTime = s.playTime || 0;
     for (const id in G.party) { const h = G.party[id]; if (heal || h.hp <= 0 && heal !== false) { h.hp = h.maxHp; h.ki = h.maxKi; } }
-    if (G.party[G.active].hp <= 0) { const o = G.active === 'juno' ? 'brask' : 'juno'; if (G.party[o] && G.party[o].joined && G.party[o].hp > 0) G.active = o; else G.party[G.active].hp = G.party[G.active].maxHp; }
+    if (G.party[G.active].hp <= 0) { const o = DATA.PARTY_ORDER.find((id) => G.party[id] && G.party[id].joined && G.party[id].hp > 0); if (o) G.active = o; else G.party[G.active].hp = G.party[G.active].maxHp; }
     G.player = null;
     loadMap(s.at.map, s.at.x, s.at.y, s.at.dir);
   }

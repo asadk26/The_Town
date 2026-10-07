@@ -39,19 +39,30 @@ const DATA = (() => {
   const HEROES = {
     juno: {
       name: 'Juno', look: 'juno', od: 'junoOD',
-      base: { hp: 60, ki: 40, str: 6, pow: 8, def: 4 },
-      grow: { hp: 7, ki: 4, str: 1, pow: 1, def: 0.5 },
-      speed: 82, kiColor: '#ff8a2a', kiCore: '#fff2a0', burns: true,
+      base: { hp: 62, ki: 42, str: 6, pow: 8, def: 4 },
+      grow: { hp: 7, ki: 4, str: 1, pow: 1.1, def: 0.5 },
+      speed: 84, kiColor: '#ff8a2a', kiCore: '#fff2a0', burns: true,
       specials: ['comet', 'lance', 'nova', 'overdrive'],
+      field: 'Her ki burns: blasts light braziers and clear dry brambles.',
     },
-    brask: {
-      name: 'Brask', look: 'brask', od: 'braskOD',
-      base: { hp: 80, ki: 30, str: 9, pow: 6, def: 6 },
-      grow: { hp: 9, ki: 3, str: 1, pow: 0.5, def: 1 },
-      speed: 70, kiColor: '#5ad8ff', kiCore: '#e8fcff', breaks: true,
-      specials: ['stomp', 'cannon', 'guard', 'overdrive'],
+    rei: {
+      name: 'Rei', look: 'rei', od: 'reiOD',
+      base: { hp: 60, ki: 44, str: 7, pow: 7, def: 4 },
+      grow: { hp: 6, ki: 4, str: 1.1, pow: 0.9, def: 0.5 },
+      speed: 92, kiColor: '#7ae0ff', kiCore: '#ffffff', dashes: true,
+      specials: ['gale', 'crescent', 'flurry', 'overdrive'],
+      field: 'Gale Step carries him across chasms and through enemies.',
+    },
+    oren: {
+      name: 'Oren', look: 'oren', od: 'orenOD',
+      base: { hp: 110, ki: 30, str: 11, pow: 5, def: 8 },
+      grow: { hp: 11, ki: 2.5, str: 1.3, pow: 0.5, def: 1 },
+      speed: 66, kiColor: '#ffb04a', kiCore: '#fff4d0', breaks: true,
+      specials: ['quake', 'swing', 'guard', 'overdrive'],
+      field: 'Hits like a rockslide: heavy blows shatter cracked stone. Armour means nothing to him.',
     },
   };
+  const PARTY_ORDER = ['juno', 'rei', 'oren'];
 
   /* name, ki cost, charge time (s), level needed (or a story flag) */
   const SPECIALS = {
@@ -61,6 +72,11 @@ const DATA = (() => {
     stomp:     { name: 'Thunder Stomp', cost: 8,  charge: 0.4,  lv: 1, desc: 'Shockwave. Stuns. Breaks rock.' },
     cannon:    { name: 'Storm Cannon',  cost: 14, charge: 0.6,  lv: 4, desc: 'A slow orb that tears through a crowd.' },
     guard:     { name: 'Iron Guard',    cost: 10, charge: 0.3,  lv: 9, desc: 'Shrug off everything. Reflect shots.' },
+    gale:      { name: 'Gale Step',     cost: 7,  charge: 0.3,  lv: 1, desc: 'A blink-fast dash. Crosses chasms. Cuts through foes.' },
+    crescent:  { name: 'Crescent Wave', cost: 12, charge: 0.55, lv: 4, desc: 'A wide blade of ki that cuts through a line.' },
+    flurry:    { name: 'Thousand Edge', cost: 16, charge: 0.6,  lv: 9, desc: 'A storm of strikes in front of you.' },
+    quake:     { name: 'Quake',         cost: 9,  charge: 0.4,  lv: 1, desc: 'Shake the ground. Stuns. Shatters rock.' },
+    swing:     { name: 'Giant Swing',   cost: 14, charge: 0.5,  lv: 4, desc: 'Spin and sweep everything around you away.' },
     overdrive: { name: 'Overdrive',     cost: 10, charge: 0.8,  flag: 'overdrive', desc: 'Burn hotter. Drains ki until you stop.' },
   };
 
@@ -90,6 +106,16 @@ const DATA = (() => {
   const BOSSES = {
     brask_spar: { name: 'Brask', art: ['person', 'brask'], lv: 2, hp: 110, atk: 6, def: 3, spd: 52, w: 12, h: 7, endAt: 0.4,
       phases: [[{ k: 'chase', t: 2.2 }, { k: 'slam', r: 34 }, { k: 'chase', t: 1.6 }, { k: 'charge' }]] },
+    // Brask and Isla, the other contenders: three meetings, each harder
+    brask_a: { name: 'Brask', art: ['person', 'brask'], lv: 7, hp: 360, atk: 11, def: 5, spd: 52, w: 12, h: 7, xp: 150, coins: 80,
+      phases: [[{ k: 'chase', t: 2 }, { k: 'slam', r: 40 }, { k: 'charge' }, { k: 'aimed', n: 3, spread: 0.25, speed: 120, color: '#c8a8ff' }]] },
+    isla_a: { name: 'Isla', art: ['person', 'isla'], lv: 7, hp: 280, atk: 10, def: 3, spd: 66, w: 10, h: 6, xp: 150, coins: 80,
+      phases: [[{ k: 'aimed', n: 3, spread: 0.4, speed: 140, color: '#7ab8ff' }, { k: 'teleport' }, { k: 'aimed', n: 5, spread: 0.7, speed: 130, color: '#7ab8ff' }, { k: 'chase', t: 1.2 }]] },
+    brask_b: { name: 'Brask', art: ['person', 'brask'], lv: 11, hp: 620, atk: 14, def: 7, spd: 56, w: 12, h: 7, xp: 260, coins: 140,
+      phases: [[{ k: 'chase', t: 2 }, { k: 'slam', r: 50 }, { k: 'charge' }], [{ k: 'charge' }, { k: 'slam', r: 56 }, { k: 'aimed', n: 5, spread: 0.5, speed: 130, color: '#c8a8ff' }, { k: 'charge' }]] },
+    isla_b: { name: 'Isla', art: ['person', 'isla'], lv: 11, hp: 500, atk: 13, def: 5, spd: 70, w: 10, h: 6, xp: 260, coins: 140,
+      phases: [[{ k: 'aimed', n: 5, spread: 0.6, speed: 145, color: '#7ab8ff' }, { k: 'teleport', strike: true }, { k: 'ring', n: 12, speed: 100, color: '#7ab8ff' }],
+               [{ k: 'beam', t: 0.8 }, { k: 'teleport', strike: true }, { k: 'spiral', t: 2, color: '#7ab8ff' }, { k: 'aimed', n: 7, spread: 0.9, speed: 150, color: '#7ab8ff' }]] },
     rook: { name: 'Captain Rook', art: ['person', 'rook'], lv: 6, hp: 340, atk: 10, def: 4, spd: 50, w: 12, h: 7, xp: 140, coins: 120,
       phases: [
         [{ k: 'chase', t: 2 }, { k: 'aimed', n: 3, spread: 0.3, speed: 110, color: '#ffb03a' }, { k: 'charge' }, { k: 'chase', t: 1.5 }, { k: 'summon', what: 'grunt', n: 2, max: 3 }],
@@ -145,5 +171,5 @@ const DATA = (() => {
     vending: ['bun', 'tonic', 'starfruit'],
   };
 
-  return { LOOKS, HEROES, SPECIALS, xpTo, ENEMIES, BOSSES, ITEMS, SHOPS };
+  return { LOOKS, HEROES, PARTY_ORDER, SPECIALS, xpTo, ENEMIES, BOSSES, ITEMS, SHOPS };
 })();

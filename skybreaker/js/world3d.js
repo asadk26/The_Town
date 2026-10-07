@@ -149,7 +149,7 @@ const R3 = (() => {
 
   /* ── map building ─────────────────────────────────────── */
   const SOLID_TALL = { c: 1.25, k: 1.7 };
-  const SUNK = { w: -0.16, l: -0.12 };
+  const SUNK = { w: -0.16, l: -0.12, j: -2.2 };
 
   function faceCanvas(kind) {
     const c = GFX.canvas(16, 32), x = c.getContext('2d');
@@ -228,7 +228,7 @@ const R3 = (() => {
         const o = at(x + dx, y + dy);
         const oh = hOf(o);
         if (oh >= h - 0.001) continue;
-        let kind = SOLID_TALL[t] ? t : (o === 'w' || o === 'l') ? 'bank' : (o === 'v') ? 'void' : 'edge';
+        let kind = SOLID_TALL[t] ? t : (o === 'w' || o === 'l') ? 'bank' : (o === 'v') ? 'void' : (o === 'j') ? 'c' : 'edge';
         const s = sides[kind];
         const hh = h - oh;
         // the edge segment, in world space

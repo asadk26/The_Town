@@ -56,3 +56,4 @@ html, body { margin: 0; height: 100%; background: var(--night); overflow: hidden
 .tturn h2 { margin: 0 0 8px; font-size: 22px; }
 .tturn p { margin: 0; color: #b8a8d0; }
 @keyframes tturn { 0%, 30% { transform: rotate(0); } 60%, 100% { transform: rotate(-90deg); } }
+.tpad.quiet .tstick { opacity: .12; }

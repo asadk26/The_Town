@@ -75,6 +75,7 @@ const TOUCH = (() => {
   function update() {
     const busy = !!(typeof UI !== 'undefined' && UI.modal());
     right.classList.toggle('quiet', busy);
+    pad.classList.toggle('quiet', busy);
     const portrait = innerHeight > innerWidth;
     turn.classList.toggle('show', portrait);
   }

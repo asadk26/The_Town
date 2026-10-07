@@ -149,7 +149,7 @@ const R3 = (() => {
 
   /* ── map building ─────────────────────────────────────── */
   const SOLID_TALL = { c: 1.25, k: 1.7 };
-  const SUNK = { w: -0.16, l: -0.12, j: -2.2 };
+  const SUNK = { w: -0.16, l: -0.12, j: -0.95 };
 
   function faceCanvas(kind) {
     const c = GFX.canvas(16, 32), x = c.getContext('2d');
@@ -163,6 +163,10 @@ const R3 = (() => {
         col = py < 2 ? '#8a7276' : strata === 0 ? '#2a1e22' : (py > 24 ? '#3a2c30' : (GFX.hash(px, py) > 0.8 ? '#5a4648' : '#4e3c40'));
       } else if (kind === 'bank') {
         col = py < 3 ? '#6a5a3a' : (GFX.hash(px, py, 3) > 0.7 ? '#4a3a26' : '#5a4630');
+      } else if (kind === 'pit') {
+        const k = py / 32, strata = (px + Math.floor(GFX.smooth(px / 3, py / 6) * 4)) % 6;
+        const base = py < 2 ? '#a08a7a' : strata === 0 ? '#3a2c28' : GFX.hash(px, py, 4) > 0.8 ? '#7a6458' : '#6a5448';
+        col = GFX.mix(base, '#120c14', Math.min(1, k * 1.15));
       } else if (kind === 'void') {
         col = py < 3 ? '#b4aca0' : (py < 10 ? '#5a5268' : '#2a2238');
       } else {
@@ -212,7 +216,7 @@ const R3 = (() => {
 
     // terrain
     const gt = texOf(m.ground);
-    const top = new Soup(), sides = { c: new Soup(), k: new Soup(), bank: new Soup(), void: new Soup(), edge: new Soup() };
+    const top = new Soup(), sides = { c: new Soup(), k: new Soup(), bank: new Soup(), void: new Soup(), edge: new Soup(), pit: new Soup() };
     const water = new Soup(), lava = new Soup();
     const at = (x, y) => (x < 0 || y < 0 || x >= m.w || y >= m.h) ? null : m.rows[y][x];
     const hOf = (t) => t === null ? -0.7 : t === 'v' ? -0.9 : SOLID_TALL[t] || SUNK[t] || 0;
@@ -228,7 +232,7 @@ const R3 = (() => {
         const o = at(x + dx, y + dy);
         const oh = hOf(o);
         if (oh >= h - 0.001) continue;
-        let kind = SOLID_TALL[t] ? t : (o === 'w' || o === 'l') ? 'bank' : (o === 'v') ? 'void' : (o === 'j') ? 'c' : 'edge';
+        let kind = SOLID_TALL[t] ? t : (o === 'w' || o === 'l') ? 'bank' : (o === 'v') ? 'void' : (o === 'j') ? 'pit' : 'edge';
         const s = sides[kind];
         const hh = h - oh;
         // the edge segment, in world space
@@ -237,7 +241,7 @@ const R3 = (() => {
         else if (dy === -1) { a = [x + 1, y]; b = [x, y]; }
         else if (dx === 1) { a = [x + 1, y + 1]; b = [x + 1, y]; }
         else { a = [x, y]; b = [x, y + 1]; }
-        const vt = kind === 'k' ? 1 : hh / 2;
+        const vt = kind === 'k' || kind === 'pit' ? 1 : hh / 2;
         s.quad([a[0], h, a[1]], [a[0], oh, a[1]], [b[0], oh, b[1]], [b[0], h, b[1]], [0, 1], [0, 1 - vt], [1, 1 - vt], [1, 1], [nx, 0, nz]);
       }
     }

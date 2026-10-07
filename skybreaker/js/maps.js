@@ -112,15 +112,15 @@ class MapBuilder {
     return this.prop('boulder', tx, ty, { flag, scanNote: 'CRACKED',
       onHit: (p, how) => {
         if (how.heavy) { G.flags[flag] = true; removeProp(p); AUDIO.sfx('crack'); G.shake = 0.25; burst(p.x, p.y - 8, '#b4a492', 16, 70); burst(p.x, p.y - 8, '#7a6a5a', 10, 40); }
-        else if (G.bumpCool <= 0) { G.bumpCool = 1.5; p.wobble = 0.15; UI.toast(G.party.brask && G.party.brask.joined ? 'Cracked rock. Brask could smash it.' : 'Cracked rock. You need something heavier.', '#c8c8f0'); }
+        else if (G.bumpCool <= 0) { G.bumpCool = 1.5; p.wobble = 0.15; UI.toast(G.party.oren && G.party.oren.joined ? (G.active === 'oren' ? 'Cracked rock. Hit it harder: third punch, Quake or Giant Swing.' : 'Cracked rock. Oren could smash it.') : 'Cracked rock. You need someone much heavier.', '#c8c8f0'); }
       },
-      onBump: () => UI.toast(G.party.brask && G.party.brask.joined ? "Cracked rock. Brask's heavy hits break these." : 'A cracked boulder blocks the way.', '#c8c8f0') });
+      onBump: () => UI.toast(G.party.oren && G.party.oren.joined ? "Cracked rock. Oren's heavy hits break these." : 'A cracked boulder blocks the way.', '#c8c8f0') });
   }
   brambles(tx, ty, flag) {
     return this.prop('brambles', tx, ty, { flag, scanNote: 'DRY',
       onHit: (p, how) => {
         if (how.burn) { G.flags[flag] = true; removeProp(p); AUDIO.sfx('burn'); burst(p.x, p.y - 8, '#ff8a2a', 14, 50); burst(p.x, p.y - 8, '#ffd84a', 8, 30); burst(p.x, p.y - 6, '#4a3a3a', 8, 20); }
-        else if (G.bumpCool <= 0) { G.bumpCool = 1.5; p.wobble = 0.15; UI.toast("Dry brambles. Juno's fire would burn them.", '#c8c8f0'); }
+        else if (G.bumpCool <= 0) { G.bumpCool = 1.5; p.wobble = 0.15; UI.toast(G.active === 'juno' ? 'Dry brambles. A ki blast would set them alight.' : "Dry brambles. Juno's fire would burn them.", '#c8c8f0'); }
       },
       onBump: () => UI.toast('Thorny, bone-dry brambles.', '#c8c8f0') });
   }
@@ -387,7 +387,7 @@ const MAPS = {
     m.add({ kind: 'prop', type: 'gate2', tx: 15, ty: 2, img: null, solidTiles: [[15, 2], [13, 2], [16, 2]] }, []);
     m.npc('pell', 'pell', 15, 5, 'down', { float: true, state: 'fixed' });
     m.npc('brask', 'brask', 25, 10, 'left', { talk: 'brask' });
-    m.npc('isla', 'isla', 25, 11, 'left', { talk: 'isla' });
+    m.npc('isla', 'isla', 23, 10, 'right', { talk: 'isla' });
     m.npc('sir', 'sir', 7, 8, 'right', { wander: true });
     m.npc('cactus', 'cactus', 22, 8, 'left', { wander: true });
     m.npc('clerk', 'clerk', 22, 15, 'left', { wander: true });

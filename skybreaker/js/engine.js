@@ -335,6 +335,7 @@ function updatePlayer(dt) {
   const p = G.player, h = hero(), H = DATA.HEROES[h.id];
   p.invuln = Math.max(0, p.invuln - dt);
   p.blastCool = Math.max(0, p.blastCool - dt);
+  p.comboT = Math.max(0, (p.comboT || 0) - dt);
   p.flashT = Math.max(0, p.flashT - dt);
   if (p.state === 'ko') { p.t += dt; return; }
   const ctrl = canControl();
@@ -376,7 +377,7 @@ function updatePlayer(dt) {
         p.walkT += dt;
         if (bump && bump.tx !== undefined) onBump(bump.tx, bump.ty);
       } else p.walkT = 0;
-      if (ctrl && I.take('A')) { if (!tryInteract()) startPunch(0); }
+      if (ctrl && I.take('A')) { if (!tryInteract()) startPunch(p.comboT > 0 ? p.comboNext : 0); p.comboT = 0; }
       else if (ctrl && I.pressed.B) { p.state = 'charge'; p.t = 0; p.readySounded = false; }
       break;
     }
@@ -388,7 +389,7 @@ function updatePlayer(dt) {
       if (ctrl && I.take('A')) p.queued = true;
       if (p.t >= dur) {
         if (p.queued && p.combo < 2) startPunch(p.combo + 1);
-        else { p.state = 'move'; p.t = 0; p.combo = 0; }
+        else { p.comboT = p.combo < 2 ? 0.32 : 0; p.comboNext = p.combo + 1; p.state = 'move'; p.t = 0; p.combo = 0; }
       }
       break;
     }

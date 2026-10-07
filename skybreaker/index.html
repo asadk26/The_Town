@@ -2,34 +2,26 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Skybreaker</title>
-<meta name="description" content="A handheld-style action RPG: two rival fighters, one world on the chopping block, and an interworld tournament run by a very tired auditor.">
+<meta name="description" content="A diorama-style action RPG: three fighters, one world on the chopping block, and an interworld tournament run by a very tired auditor.">
 <meta name="theme-color" content="#0b0818">
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="../shared/play-surface.css">
 </head>
 <body>
-<a class="back" href="../">&larr; The Town</a>
-<div class="cabinet play-surface">
-  <canvas id="screen" width="240" height="160" aria-label="Skybreaker"></canvas>
-  <p class="keys">
-    <span><kbd>&larr;&uarr;&darr;&rarr;</kbd> move</span>
-    <span><kbd>Z</kbd> punch / talk</span>
-    <span><kbd>X</kbd> ki &middot; hold to charge</span>
-    <span><kbd>A</kbd> switch special</span>
-    <span><kbd>S</kbd> Lens (scouter)</span>
-    <span><kbd>C</kbd> tag partner</span>
-    <span><kbd>Enter</kbd> menu</span>
-    <span><kbd>M</kbd> music</span>
-  </p>
+<div class="cabinet play-surface" id="cabinet">
+  <canvas id="view" class="play-drag" aria-hidden="true"></canvas>
+  <canvas id="screen" class="play-drag" aria-label="Skybreaker"></canvas>
 </div>
 <script src="../shared/play-surface.js"></script>
+<script src="js/vendor/three.min.js"></script>
 <script src="js/font.js"></script>
 <script src="js/gfx.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/data.js"></script>
 <script src="js/engine.js"></script>
+<script src="js/world3d.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/maps.js"></script>
 <script src="js/story.js"></script>

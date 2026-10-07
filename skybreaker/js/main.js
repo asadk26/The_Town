@@ -7,16 +7,23 @@
 
 const screen = document.getElementById('screen');
 const ctx = screen.getContext('2d');
-ctx.imageSmoothingEnabled = false;
+const IS_TOUCH = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
 
+/* The pixel UI is drawn at a small logical size (about 180 tall) and scaled up
+   by a whole number, so text and boxes stay crisp at any screen shape.  The 3D
+   world underneath renders at the screen's own resolution. */
 function fit() {
-  const legend = document.querySelector('.keys');
-  const lh = legend && getComputedStyle(legend).display !== 'none' ? legend.offsetHeight + 12 : 0;
-  const k = Math.max(1, Math.floor(Math.min((innerWidth - 16) / VW, (innerHeight - 16 - lh) / VH)));
+  const k = Math.max(1, Math.round(innerHeight / 184));
+  VH = Math.ceil(innerHeight / k);
+  VW = Math.max(240, Math.ceil(innerWidth / k));
+  screen.width = VW; screen.height = VH;
   screen.style.width = VW * k + 'px';
   screen.style.height = VH * k + 'px';
+  ctx.imageSmoothingEnabled = false;
+  R3.resize();
 }
 addEventListener('resize', fit);
+addEventListener('orientationchange', () => setTimeout(fit, 200));
 
 /* ── scenes ─────────────────────────────────────────────── */
 const SCENES = (() => {
@@ -24,6 +31,7 @@ const SCENES = (() => {
 
   function newGame() {
     UI.reset();
+    G.titleMode = false; G.camOverride = null;
     Object.assign(G, { party: { juno: newHero('juno', 1) }, active: 'juno', items: {}, coins: 0, flags: {}, player: null, playTime: 0, script: null, queue: [], scouter: false, fade: 1, hideHud: false });
     G.scene = 'play';
     loadMap('home', 3, 4, 'down');
@@ -32,6 +40,7 @@ const SCENES = (() => {
     const s = SAVE.latest();
     if (!s) return newGame();
     UI.reset();
+    G.titleMode = false; G.camOverride = null;
     Object.assign(G, { script: null, queue: [], scouter: false, fade: 0, hideHud: false });
     G.scene = 'play';
     SAVE.apply(s, false);
@@ -42,6 +51,10 @@ const SCENES = (() => {
   function toTitle() {
     UI.reset();
     G.scene = 'title'; G.script = null; G.fade = 0;
+    // the village stands behind the title, with nobody in control
+    Object.assign(G, { party: { juno: newHero('juno', 1) }, active: 'juno', flags: { act1: true }, player: null, titleMode: true });
+    loadMap('village', 24, 21, 'down');
+    UI.reset();
     title = { t: 0, sel: SAVE.has() ? 1 : 0 };
     AUDIO.play('title');
   }
@@ -60,54 +73,25 @@ const SCENES = (() => {
   }
   function titleDraw(c) {
     const t = title.t;
-    // sky
-    const bands = ['#120a2a', '#1a1040', '#28165a', '#3a1c6a', '#5a2470', '#8a3070', '#c04a5a', '#e8784a', '#f8a850'];
-    for (let i = 0; i < bands.length; i++) { c.fillStyle = bands[i]; c.fillRect(0, i * 12, VW, 12); }
-    for (let i = 0; i < 40; i++) {
-      const x = GFX.hash(i, 1) * VW, y = GFX.hash(i, 2) * 60;
-      if (Math.sin(t * 2 + i) > -0.3) { c.fillStyle = i % 5 ? '#c8c0ff' : '#ffffff'; c.fillRect(Math.round(x), Math.round(y), 1, 1); }
-    }
-    // a streak across the sky
-    const sx = ((t * 40) % 400) - 80;
-    c.fillStyle = '#fff2c0'; c.fillRect(Math.round(sx), 28, 3, 1); c.fillStyle = '#ffb06a'; c.fillRect(Math.round(sx) - 8, 28, 8, 1);
-    // mountains
-    for (let x = 0; x < VW; x++) {
-      const h = 88 + Math.round(GFX.smooth(x / 30, 1) * 30 + GFX.smooth(x / 9, 2) * 6);
-      c.fillStyle = '#4a2050'; c.fillRect(x, h, 1, VH - h);
-      const h2 = 110 + Math.round(GFX.smooth(x / 22 + 9, 3) * 20);
-      c.fillStyle = '#2a1238'; c.fillRect(x, h2, 1, VH - h2);
-    }
-    // the cliff they stand on
-    c.fillStyle = '#1a0c22'; c.fillRect(120, 128, 120, 32);
-    for (let x = 120; x < VW; x++) { const h = 124 + Math.round(GFX.smooth(x / 6, 7) * 5); c.fillRect(x, h, 1, 8); }
-    c.fillStyle = '#3a1c40'; for (let x = 124; x < VW; x += 2) c.fillRect(x, 126 + Math.round(GFX.smooth(x / 6, 7) * 5) - 2, 1, 1);
-    // heroes, at 2x, hair moving in the wind
-    const f = Math.floor(t * 3) % 2 ? 'walk1' : 'idle';
-    const ju = personSheet('juno'), br = personSheet('brask');
-    c.drawImage(br.left.idle, 0, 0, 24, 32, 168, 64, 48, 64);
-    c.drawImage(ju.left[Math.floor(t * 2) % 4 === 0 ? 'charge' : 'idle'], 0, 0, 24, 32, 140, 66, 48, 64);
-    if (Math.floor(t * 2) % 4 === 0) {
-      c.globalCompositeOperation = 'lighter';
-      for (let i = 0; i < 6; i++) { c.fillStyle = i % 2 ? '#ff8a2a' : '#fff2a0'; c.fillRect(150 + Math.round(GFX.hash(i, Math.floor(t * 10)) * 30), 70 + Math.round(GFX.hash(i, Math.floor(t * 10) + 5) * 50), 2, 2); }
-      c.globalCompositeOperation = 'source-over';
-    }
-    void f;
-    // logo
-    const lx = 66, ly = 18;
-    for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1], [2, 2], [1, 2], [2, 1]]) FONT.draw(c, 'SKYBREAKER', lx + dx, ly + dy, '#2a0e30', { align: 'center', scale: 2, shadow: false });
-    FONT.draw(c, 'SKYBREAKER', lx, ly, '#ffd84a', { align: 'center', scale: 2, shadow: false });
-    c.fillStyle = '#fff2a0'; c.fillRect(lx - 60, ly + 2, 120, 1);
-    FONT.draw(c, 'The Interworld Cup', lx, ly + 24, '#ffe0c8', { align: 'center' });
-    // menu
+    // a slow drift over the village, behind the menu
+    G.camOverride = { x: 24.5 + Math.sin(t * 0.08) * 6, z: 20 + Math.cos(t * 0.06) * 3 };
+    const g = c.createLinearGradient(0, 0, 0, VH);
+    g.addColorStop(0, 'rgba(12,6,28,0.72)'); g.addColorStop(0.45, 'rgba(12,6,28,0.15)'); g.addColorStop(1, 'rgba(12,6,28,0.55)');
+    c.fillStyle = g; c.fillRect(0, 0, VW, VH);
+    const lx = Math.round(VW / 2), ly = Math.round(VH * 0.16);
+    for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1], [2, 2], [1, 2], [2, 1]]) FONT.draw(c, 'SKYBREAKER', lx + dx, ly + dy, '#2a0e30', { align: 'center', scale: 3, shadow: false });
+    FONT.draw(c, 'SKYBREAKER', lx, ly, '#ffd84a', { align: 'center', scale: 3, shadow: false });
+    FONT.draw(c, 'The Interworld Cup', lx, ly + 32, '#ffe0c8', { align: 'center' });
     const items = titleItems();
-    UI.box(c, 14, 74, 104, items.length * 13 + 10, 'dark');
+    const bw = 110, bh = items.length * 13 + 10, bx = Math.round(lx - bw / 2), by = Math.round(VH * 0.56);
+    UI.box(c, bx, by, bw, bh, 'dark');
     items.forEach((k, i) => {
       const label = k === 'Music' ? 'Music: ' + (AUDIO.musicOn ? 'On' : 'Off') : k;
       const sel = i === title.sel;
-      FONT.draw(c, label, 30, 80 + i * 13, sel ? '#ffd84a' : '#ffffff');
-      if (sel) FONT.draw(c, '>', 21 + (Math.floor(t * 4) % 2), 80 + i * 13, '#ffd84a');
+      FONT.draw(c, label, bx + 18, by + 6 + i * 13, sel ? '#ffd84a' : '#ffffff');
+      if (sel) FONT.draw(c, '>', bx + 9 + (Math.floor(t * 4) % 2), by + 6 + i * 13, '#ffd84a');
     });
-    FONT.draw(c, 'Z or Enter to choose', 14, 148, '#e8b8c8');
+    FONT.draw(c, IS_TOUCH ? 'Tap A to choose' : 'Z or Enter to choose', lx, VH - 14, '#e8b8c8', { align: 'center' });
   }
 
   /* game over */
@@ -125,14 +109,13 @@ const SCENES = (() => {
       if (over.sel === 1) { toTitle(); return; }
       const s = (() => { try { return JSON.parse(localStorage.getItem('skybreaker.auto.v1')); } catch (e) { return null; } })() || SAVE.latest();
       UI.reset();
-      Object.assign(G, { script: null, queue: [], scouter: false, fade: 0 });
+      Object.assign(G, { script: null, queue: [], scouter: false, fade: 0, titleMode: false, camOverride: null });
       G.scene = 'play';
       if (s) { SAVE.apply(s, true); G.coins = Math.floor(G.coins * 0.9); UI.toast('Back on your feet. (Lost a few coins.)', '#ffd84a'); }
       else newGame();
     }
   }
   function overDraw(c) {
-    drawWorld(c);
     c.fillStyle = 'rgba(10,0,16,' + Math.min(0.8, over.t) + ')'; c.fillRect(0, 0, VW, VH);
     if (over.t < 0.5) return;
     FONT.draw(c, 'DOWN FOR', VW / 2, 34, '#ff6a6a', { align: 'center', scale: 2 });
@@ -157,7 +140,7 @@ const SCENES = (() => {
     ['An original game for The Town.', 1], ['Code, pixels, music & story', 1], ['made from scratch in a browser.', 1], ['', 0], ['', 0],
     ['THANK YOU FOR PLAYING', 1], ['', 0], ['', 0], ['Your save is kept. Continue to', 1], ['wander, train, and find every chest.', 1],
   ];
-  function rollCredits() { G.scene = 'credits'; credits = { y: VH + 10, t: 0 }; AUDIO.play('title'); G.fade = 0; }
+  function rollCredits() { G.camOverride = null; G.scene = 'credits'; credits = { y: VH + 10, t: 0 }; AUDIO.play('title'); G.fade = 0; }
   function creditsUpdate(dt) {
     credits.t += dt;
     credits.y -= dt * (I.held.A || I.held.START ? 60 : 16);
@@ -182,7 +165,7 @@ function step(dt) {
   G.t += dt;
   if (I.take('MUTE')) { const on = AUDIO.toggleMusic(); if (G.scene === 'play') UI.toast('Music ' + (on ? 'on' : 'off'), '#c8c8f0'); }
   switch (G.scene) {
-    case 'title': SCENES.titleUpdate(dt); break;
+    case 'title': SCENES.titleUpdate(dt); updateNpcs(dt); break;
     case 'over': SCENES.overUpdate(dt); break;
     case 'credits': SCENES.creditsUpdate(dt); break;
     case 'play': {
@@ -196,20 +179,18 @@ function step(dt) {
   }
   I.endFrame();
 }
-function draw() {
+function draw(dt) {
+  if (G.scene === 'play' || G.scene === 'over' || G.scene === 'title') R3.render(dt);
+  ctx.clearRect(0, 0, VW, VH);
   switch (G.scene) {
     case 'title': SCENES.titleDraw(ctx); UI.draw(ctx); break;
-    case 'over': SCENES.overDraw(ctx); break;
+    case 'over': SCENES.overDraw(ctx); UI.draw(ctx); break;
     case 'credits': SCENES.creditsDraw(ctx); break;
-    case 'play':
-      drawWorld(ctx);
-      UI.draw(ctx);
-      break;
+    case 'play': UI.draw(ctx); break;
   }
   if (G.flashA > 0) { ctx.globalAlpha = G.flashA; ctx.fillStyle = G.flashColor || '#ffffff'; ctx.fillRect(0, 0, VW, VH); ctx.globalAlpha = 1; }
   if (G.fade > 0) {
     ctx.globalAlpha = Math.min(1, G.fade); ctx.fillStyle = '#000000'; ctx.fillRect(0, 0, VW, VH); ctx.globalAlpha = 1;
-    // dialogue over a black screen still needs to be read
     if (G.scene === 'play' && UI.modal()) UI.modal().draw(ctx);
   }
 }
@@ -223,7 +204,7 @@ function frame(now) {
   try {
     while (acc >= DT && n < 5) { step(DT); acc -= DT; n++; }
     if (n === 5) acc = 0;
-    draw();
+    draw(Math.max(DT, n * DT));
   } catch (e) {
     // one bad frame should never freeze the cabinet
     console.error(e);
@@ -232,6 +213,7 @@ function frame(now) {
 }
 
 function boot() {
+  R3.init(document.getElementById('view'), IS_TOUCH || innerWidth * innerHeight < 600000 ? 'low' : 'high');
   SPR.props = GFX.propCanvases();
   SPR.anim = GFX.animatedProps();
   SPR.stamp = GFX.stamp();
@@ -242,4 +224,4 @@ function boot() {
 boot();
 
 /* A handle for the test suite, and for anyone curious in the console. */
-window.SKY = { G, SCENES, STORY, SAVE, loadMap, newHero, levelUp, giveItem, hero, I, step, draw, MAPS, DATA };
+window.SKY = { G, SCENES, STORY, SAVE, loadMap, newHero, levelUp, giveItem, hero, I, step, draw, MAPS, DATA, R3 };

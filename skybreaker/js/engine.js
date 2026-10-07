@@ -6,7 +6,8 @@
    throwing ki, taking hits, and the effects that sell all of it. */
 'use strict';
 
-const VW = 240, VH = 160, TS = 16;
+let VW = 240, VH = 160;
+const TS = 16;
 
 /* ── input ──────────────────────────────────────────────── */
 const I = (() => {
@@ -163,6 +164,8 @@ function loadMap(id, sx, sy, dir) {
   p.state = 'move'; p.t = 0; p.kbx = p.kby = 0; p.invuln = 0.5;
   G.lastEntry = { map: id, x: sx, y: sy, dir: p.dir };
   snapCamera();
+  m.mood = def.mood || (typeof m.mood === 'string' ? m.mood : 'day');
+  R3.buildMap(m);
   AUDIO.play(typeof m.music === 'function' ? m.music() : m.music);
   UI.areaName(m.name);
   if (m.onEnter) m.onEnter();

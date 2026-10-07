@@ -383,7 +383,8 @@ const UI = (() => {
     if (p.state === 'charge' && p.t > 0.12 && sp) {
       const S = DATA.SPECIALS[sp];
       const f = Math.min(1, p.t / Math.max(0.2, S.charge));
-      const x = Math.round(p.x - G.cam.x - 10), y = Math.round(p.y - G.cam.y - 38);
+      const sp3 = R3.toScreen(p.x, p.y, 2.4);
+      const x = Math.round(sp3.x - 10), y = Math.round(sp3.y - 4);
       bar(ctx, x, y, 20, 2, f, 1, f >= 1 ? (h.ki >= S.cost ? (Math.floor(G.t * 12) % 2 ? '#ffffff' : H.kiColor) : '#ff5a5a') : H.kiColor);
     }
     // boss
@@ -394,7 +395,6 @@ const UI = (() => {
       const nx = 30 + FONT.width(b.name);
       bar(ctx, nx, VH - 12, VW - 40 - (nx - 20) - 8, 4, b.invulnerable ? b.maxHp : b.hp, b.maxHp, b.invulnerable ? (Math.floor(G.t * 3) % 2 ? '#c8a8ff' : '#8a6ad0') : '#ff5a5a');
     }
-    if (G.scouter) drawScouter(ctx);
     // area name
     if (area) {
       area.t += 1 / 60;
@@ -465,7 +465,14 @@ const UI = (() => {
     else if (G.scene === 'play' && !G.script && I.take('START') && G.player.state !== 'ko') { pauseMenu(); AUDIO.sfx('select'); }
     if (gameOverAt > 0) { gameOverAt -= dt; if (gameOverAt <= 0) SCENES.gameOver(); }
   }
+  function drawWorldText(ctx) {
+    for (const t of G.texts) {
+      const s = R3.toScreen(t.x, t.y + 24, 1.7 + (0.8 - t.life) * 0.9);
+      FONT.draw(ctx, t.text, s.x, s.y, t.color, { align: 'center' });
+    }
+  }
   function draw(ctx) {
+    if ((G.scene === 'play' || G.scene === 'over') && R3.ready) drawWorldText(ctx);
     if (G.scene === 'play' && !G.hideHud) drawHUD(ctx);
     drawToasts(ctx);
     drawBanner(ctx);

@@ -142,7 +142,7 @@ class MapBuilder {
 
 const MAPS = {
   /* ── Juno's house ─────────────────────────────────────── */
-  home: { build() {
+  home: { mood: 'indoor', build() {
     const m = new MapBuilder(12, 9, 'f');
     m.fill(0, 0, 12, 2, 'k').fill(0, 0, 1, 9, 'k').fill(11, 0, 1, 9, 'k');
     m.fill(0, 8, 12, 1, 'k').fill(5, 8, 2, 1, 'f');
@@ -157,7 +157,7 @@ const MAPS = {
   } },
 
   /* ── Brindle Village ──────────────────────────────────── */
-  village: { build() {
+  village: { mood: 'golden', build() {
     const m = new MapBuilder(50, 38, 'g');
     // ground
     m.ellipse(14, 33, 9, 3, 't').ellipse(36, 9, 5, 2, 't').ellipse(5, 24, 3, 6, 't').ellipse(44, 15, 3, 2, 't');
@@ -226,7 +226,7 @@ const MAPS = {
   } },
 
   /* ── Greenreach Fields ────────────────────────────────── */
-  fields: { build() {
+  fields: { mood: 'fields', build() {
     const m = new MapBuilder(76, 50, 'g');
     m.ellipse(18, 14, 8, 5, 't').ellipse(44, 40, 7, 4, 't').ellipse(64, 8, 5, 3, 't').ellipse(8, 40, 5, 4, 'x').ellipse(48, 10, 6, 5, 'x');
     m.fill(30, 0, 5, 50, 's');
@@ -293,7 +293,7 @@ const MAPS = {
   } },
 
   /* ── Cinder Peaks ─────────────────────────────────────── */
-  peaks: { build() {
+  peaks: { mood: 'volcano', build() {
     const m = new MapBuilder(56, 60, 'r');
     m.fill(0, 0, 56, 5, 'c').fill(0, 0, 2, 60, 'c').fill(54, 0, 2, 60, 'c').fill(0, 58, 26, 2, 'c').fill(30, 58, 26, 2, 'c');
     // lava
@@ -352,7 +352,7 @@ const MAPS = {
   } },
 
   /* ── the shrine at the top ────────────────────────────── */
-  shrine: { build() {
+  shrine: { mood: 'shrine', build() {
     const m = new MapBuilder(20, 16, 'a');
     m.fill(0, 0, 20, 3, 'c').fill(0, 0, 2, 16, 'c').fill(18, 0, 2, 16, 'c').fill(0, 15, 9, 1, 'c').fill(11, 15, 9, 1, 'c');
     m.ellipse(9.5, 8, 6, 4, 'r');
@@ -363,7 +363,7 @@ const MAPS = {
   } },
 
   /* ── the Interworld lobby ─────────────────────────────── */
-  lobby: { build() {
+  lobby: { mood: 'cosmic', build() {
     const m = new MapBuilder(30, 22, 'v');
     m.fill(2, 3, 26, 17, 'm');
     m.fill(13, 1, 4, 2, 'm');
@@ -388,7 +388,7 @@ const MAPS = {
   } },
 
   /* ── the ring ─────────────────────────────────────────── */
-  arena: { build() {
+  arena: { mood: 'cosmic', build() {
     const m = new MapBuilder(22, 17, 'v');
     m.ellipse(10.5, 8.5, 9.2, 6.8, 'm');
     for (const [x, y] of [[3, 3], [18, 3], [3, 14], [18, 14]]) m.prop('pillar', x, y, { solidTiles: [[x, y]] });
@@ -396,7 +396,7 @@ const MAPS = {
   } },
 
   /* ── the Ledger Vault ─────────────────────────────────── */
-  vault: { build() {
+  vault: { mood: 'cosmic', build() {
     const m = new MapBuilder(24, 46, 'v');
     m.path([[10, 45], [10, 14]], 4, 'm', 0);
     m.ellipse(11.5, 8, 9.5, 5.6, 'm');

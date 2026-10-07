@@ -19,13 +19,13 @@ const PEOPLE = (() => {
      `chin` the row that sits on the neck.  Side views face left. */
   const HEADS = {
     juno: {
-      pal: { o: INK, H: '#c8562c', h: '#923a1c', d: '#5e2412', g: '#f08a54', W: '#f4f0e6', V: '#c4bcb4', S: '#f4cba6', s: '#d99e7a', t: '#b47a5c', e: '#1e1630', w: '#ffffff', m: '#c0646a' },
+      pal: { o: INK, H: '#c8562c', h: '#923a1c', d: '#5e2412', g: '#f08a54', W: '#3c3a58', V: '#2a2840', B: '#3c3a58', b: '#2a2840', S: '#f4cba6', s: '#d99e7a', t: '#b47a5c', e: '#1e1630', w: '#ffffff', m: '#c0646a' },
       front: { cx: 8.5, chin: 13, rows: [
         '....oooooooooo....',
-        '..ooHHHHHHHHHHoo..',
+        '..ooHHHHgHHHHHoo..',
         '.oHHgHHHHHHHHgHHo.',
-        '.oWWWWWWWWWWWWWWo.',
-        'oHVWWWWWWWWWWWWVHo',
+        '.oBBBBBBBBBBBBBBo.',
+        'oHbbbbbbbbbbbbbbHo',
         'oHHhHHhHHHHhHHhHHo',
         'ohHHSHHSHHSHHSHHho',
         'ohhSSSSSSSSSSSShho',
@@ -36,30 +36,31 @@ const PEOPLE = (() => {
         '.oHsSSSSttSSSSsHo.',
         '..ooosSSmmSSsooo..'] },
       side: { cx: 8, chin: 13, rows: [
-        '.....ooooooo.....',
-        '...ooHHgHHHHoo...',
-        '..oHHgHHHHHHHHo..',
-        '.oWWWWWWWWWWWWWo.',
-        '.oVWWWWWWWWWWWWVo',
-        'oHHhHHhHHHHHhHHo.',
-        'oSHHSHHhHHhHHHHho',
-        'oSSSSSShHHhHHhHho',
-        '.oSddSSShHHhHHho.',
-        '.oSewSSSsHHHhho..',
-        'oSSSSSSSshHHho...',
-        '.osSSSSSSohho....',
-        '..omSSSSso.o.....',
-        '...oossoo........'] },
+        '......oooooo......',
+        '....ooHHgHHHoo....',
+        '...oHHgHHHHHHHo...',
+        '..oBBBBBBBBBBBBo..',
+        '..obbbbbbbbbbbbBo.',
+        '.oHHhHHHHhHHHHHHBo',
+        '.oHSHHShHHHhHHHHbo',
+        'oSSSSSShHHHhHHHHo.',
+        'oSddSSSShHHHhHHHo.',
+        'oSweSSSSsHHhHHHho.',
+        'SSSSSSSStsoHHhHo..',
+        '.oSSSSSSso.oHHHo..',
+        '.omSSSSSo...oho...',
+        '..oSSSSSo....o....',
+        '...ooooo..........'] },
       back: { cx: 8.5, chin: 13, rows: [
         '....oooooooooo....',
         '..ooHHgHHHHHHHoo..',
         '.oHHHHHHHHHHHgHHo.',
-        '.oWWWWWWWWWWWWWWo.',
-        'oHWWWWWWWWWWWWWWHo',
-        'oHHhHHHhHHHhHHHVVo',
-        'ohHHhHHHhHHHhHhVWo',
-        'ohhHHhHHHhHHhHhoVo',
-        'ohhhHHhHHHhHHhho..',
+        '.oBBBBBBBBBBBBBBo.',
+        'oHbbbbbbbBBbbbbbHo',
+        'oHHhHHHhHBBhHHHHHo',
+        'ohHHhHHHobbohHhHho',
+        'ohhHHhHHobBohHhHho',
+        'ohhhHHhHHobohHhho.',
         'ohhhhHhhHhhHhhhho.',
         '.ohhhhhhhhhhhhho..',
         '..ohhhhhhhhhhho...',
@@ -84,20 +85,21 @@ const PEOPLE = (() => {
         '...osSSSmmSSso....',
         '....oosSSSSoo.....'] },
       side: { cx: 8, chin: 13, rows: [
-        '.....ooooooo.....',
-        '...ooHHgHHHHoo...',
-        '..oHgHHHHHHHHHo..',
-        '.oHHHHHHHhHHHHHo.',
-        'oHHHHHhHHHHhHHHHo',
-        'oHHhHHSHhHHHhHHHo',
-        '.oHHSSSShHHhHHHo.',
-        '.oHSSSSShHHhHHo..',
-        '.oSddSSSShHHho...',
-        '.oSewSSSshHho....',
-        'oSSSSSSSsoho.....',
-        '.osSSSSSSo.......',
-        '..omSSSSo........',
-        '...oossoo........'] },
+        '......ooooooo.....',
+        '....ooHHHgHHHoo...',
+        '...oHHgHHHHHHHHo..',
+        '..oHHHHHHHhHHHHHo.',
+        '.oHHHHHhHHHHhHHHHo',
+        'oHHHHhHHHHhHHHHHHo',
+        'oHHhSSShHHHhHHHHo.',
+        'oHhSSSSSShHHhHHHo.',
+        '.oSddSSSSshHHhHHo.',
+        '.oSweSSSSsshHHHo..',
+        'oSSSSSSSStsoHhHo..',
+        '.oSSSSSSSso.oHo...',
+        '.omSSSSSSo...o....',
+        '..oSSSSSo.........',
+        '...ooooo..........'] },
       back: { cx: 8.5, chin: 13, rows: [
         '....oooooooooo....',
         '..ooHHgHHHHHHHoo..',
@@ -135,23 +137,24 @@ const PEOPLE = (() => {
         'oHHHho........ohHHHo',
         'oHHoo..........ooHHo'] },
       side: { cx: 8, chin: 13, rows: [
-        '.....ooooooo......',
-        '...ooHHHHHHHoo....',
-        '..oHHXHHHHHHHHo...',
-        '.oHHXHHHHHHHhHHo..',
-        'oHHXHHHHhHHHHHHHo.',
-        'oHXhHHSHHHhHHHhHo.',
-        'oXHSSSSShHHHhHHHHo',
-        '.oSSSSSSShHHHhHHHo',
-        '.oSddSSSShHHhHHHHo',
-        '.oSewSSSshHHHhHHHo',
-        'oSSSSSSSsoHHhHHHHo',
-        '.osSSSSSSoHHHhHHHo',
-        '..omSSSSsoHhHHhHHo',
-        '...oossooHHHhHHHHo',
-        '........oHHhHHHHHo',
-        '........ohHHhHHHo.',
-        '.........ooooooo..'] },
+        '......ooooooo.....',
+        '....ooHHHHHHHoo...',
+        '...oHHXHHHHHHHHo..',
+        '..oHHXHHHHHhHHHHo.',
+        '.oHHXHHHHHHHHHhHHo',
+        '.oHXHHHHhHHHHHHHHo',
+        'oHXhSSShHHHHhHHHHo',
+        'oXhSSSSSShHHHHhHHo',
+        '.oSddSSSSshHHhHHHo',
+        '.oSweSSSSsshHHHHHo',
+        'oSSSSSSSStsoHhHHHo',
+        '.oSSSSSSSsoHHHhHHo',
+        '.omSSSSSSoHHhHHHHo',
+        '..oSSSSSoHHHHhHHo.',
+        '...oooooHHhHHHHHo.',
+        '........oHHHHhHHo.',
+        '........ohHHHHho..',
+        '.........oooooo...'] },
       back: { cx: 9.5, chin: 13, rows: [
         '.....oooooooooo.....',
         '...ooHHHHHHHHHHoo...',
@@ -192,21 +195,22 @@ const PEOPLE = (() => {
         '..osSSSSSSSSso..',
         '...oosSSSSsoo...'] },
       side: { cx: 8, chin: 14, rows: [
-        '........ooooo...',
-        '.......oHHHHHo..',
-        '......oHgHHHHHo.',
-        '.....oHHHHHHHHo.',
-        '...oooHHHHHHHo..',
-        '..oddddoooooddo.',
-        '.oSSSSSdddddddo.',
-        '.oSSSSSSSddddo..',
-        '.oSddSSSSsddo...',
-        '.oSewSSSSssdo...',
-        'oSSSSSSSSsso....',
-        '.oSSSSSSSso.....',
-        '..omSSSSSo......',
-        '...osSSSo.......',
-        '....oooo........'] },
+        '......oooooo......',
+        '.....oHHHgHHo.....',
+        '....oHgHHHHHHo....',
+        '...oddHHHHHHHddo..',
+        '..oddddHHHHHHdddo.',
+        '..odddddHHHHHdddo.',
+        '.oSSSSSddddddddddo',
+        '.oSSSSSSddddddddo.',
+        '.oShhSSSSsdddddo..',
+        '.oSweSSSSssddddo..',
+        'oSSSSSSSStsoddo...',
+        '.oSSSSSSSso.oo....',
+        '.omSSSSSSo........',
+        '..osSSSSSo........',
+        '...osSSSo.........',
+        '....oooo..........'] },
       back: { cx: 7.5, chin: 14, rows: [
         '......oooo......',
         '.....oHHHHo.....',
@@ -238,18 +242,20 @@ const PEOPLE = (() => {
         '....oHhHmmmmHhHo....',
         '....oHHHHHHHHHHo....',
         '.....oHHHHHHHHo.....'] },
-      side: { cx: 8, chin: 10, rows: [
-        '....ooooooo.....',
-        '...oSLSSSSSoo...',
-        '..oSLSSSSSSSSo..',
-        '..oSSSSSSSSSSo..',
-        '..oHHSSSSSsSSo..',
-        '.oSewSSSSssSo...',
-        'oSSSSSSSSsSso...',
-        '.oHSSSSSHHso....',
-        '.oHHmHHHHHo.....',
-        '..oHHHHHHo......',
-        '...oHHHHo.......'] },
+      side: { cx: 7, chin: 10, rows: [
+        '....oooooo.....',
+        '..ooSSLSSSoo...',
+        '.oSSLSSSSSSSo..',
+        '.oSSSSSSSSSSso.',
+        '.oHHSSSSSSSsso.',
+        '.oewSSSSSttSso.',
+        'oSSSSSSSSssSso.',
+        '.oHSSSSSSSSso..',
+        '.oHHmHHHSSso...',
+        '.oHHHHHHHso....',
+        '..oHHHHHHo.....',
+        '...oHHHHo......',
+        '....oooo.......'] },
       back: { cx: 9.5, chin: 10, rows: [
         '......oooooooo......',
         '.....oSSSSLSSSo.....',
@@ -406,6 +412,18 @@ const PEOPLE = (() => {
       }
     }
   }
+  function leg(b, x0, y0, x1, y1, w, R, far) {
+    const kx = x0 + (x1 - x0) * 0.5, ky = y0 + (y1 - y0) * 0.5;
+    limb(b, x0, y0, kx, ky, w + 1, R, far);
+    limb(b, kx, ky, x1, y1, w, R, far);
+  }
+  function cap(b, x, y, r, R, far) {
+    for (let j = -Math.ceil(r); j <= Math.ceil(r); j++) for (let i = -Math.ceil(r); i <= Math.ceil(r); i++) {
+      if (i * i + j * j > r * r + 0.4) continue;
+      const c = j < 0 && i <= 0 ? R.hi : i >= r - 1 ? R.s : R.b;
+      b.set(Math.round(x + i), Math.round(y + j), far ? shade(c, -0.22) : c);
+    }
+  }
   function fist(b, x, y, sz, R, far) {
     for (let j = 0; j < sz; j++) for (let i = 0; i < sz; i++) {
       const c = j === 0 && i === 0 ? R.hi : (i === sz - 1 || j === sz - 1) ? R.s : R.b;
@@ -435,6 +453,7 @@ const PEOPLE = (() => {
       const upper = sl === 'none' ? skin : topR;
       const lower = (sl === 'long') ? topR : skin;
       const w = B.armW;
+      cap(b, sx, sy + 0.5, w / 2 + 0.9, upper, far);
       limb(b, sx, sy, ex, ey, w, upper, far);
       if (sl === 'short') limb(b, sx, sy, sx + (ex - sx) * 0.5, sy + (ey - sy) * 0.5, w + (w > 2 ? 0 : 0), topR, far);
       limb(b, ex, ey, hx, hy, w, lower, far);
@@ -456,7 +475,7 @@ const PEOPLE = (() => {
       const liftL = walk === 2 ? 2 : 0, liftR = walk === 1 ? 2 : 0;
       const legDown = (x, lift, far) => {
         const top = beltY + 1, bot = GROUND - 2 - lift;
-        limb(b, x, top, x, bot, B.legW, pants, far);
+        leg(b, x, top, x, bot, B.legW, pants, far);
         const sw = B.legW + 1;
         for (let j = 0; j < 2 + (L.boots ? 2 : 0); j++) for (let i = 0; i < sw; i++) b.set(Math.round(x - sw / 2 + i + (front ? 0 : 0)), bot - (L.boots ? 2 : 0) + j + (j >= 2 + (L.boots ? 2 : 0) - 2 ? 0 : 0), i === 0 && j === 0 ? shoes.hi : j === (L.boots ? 3 : 1) ? (L.sole || shoes.s) : shoes.b);
       };
@@ -545,7 +564,7 @@ const PEOPLE = (() => {
       if (cape && front) { b.rect(Math.round(CX - half - 2), shY, 2, B.torso, cape.s); b.rect(Math.round(CX + half), shY, 2, B.torso, cape.s); }
     } else {
       // profile, facing left
-      const d = Math.max(6, Math.round(B.sh * 0.62) + 1);
+      const d = Math.max(7, Math.round(B.sh * 0.72) + 1);
       const x0 = Math.round(CX - d / 2 + 0.5);
       const hipX = CX;
       if (cape) b.rect(x0 + d - 2, shY, 4, B.torso + 10, cape.b);
@@ -556,17 +575,17 @@ const PEOPLE = (() => {
         for (let j = 0; j < h2; j++) for (let i = 0; i < L2; i++) b.set(Math.round(x - B.legW / 2 - 2 + i), y - h2 + 1 + j, j === h2 - 1 ? (L.sole || R.s) : (i === 0 ? R.hi : R.b));
       };
       if (pose === 'kick') {
-        limb(b, hipX + 1, beltY + 1, hipX + 1, GROUND - 2, B.legW, pants, true); shoe(hipX + 1, GROUND, true);
-        limb(b, hipX, beltY + 1, hipX - 10, beltY + 3, B.legW, pants);
+        leg(b, hipX + 1, beltY + 1, hipX + 1, GROUND - 2, B.legW, pants, true); shoe(hipX + 1, GROUND, true);
+        leg(b, hipX, beltY + 1, hipX - 10, beltY + 3, B.legW, pants);
         fist(b, hipX - 12, beltY + 3, B.legW + 2, shoes);
       } else if (walk) {
         const a = walk === 1 ? -4 : 4;
-        limb(b, hipX, beltY + 1, hipX - a, GROUND - 2, B.legW, pants, true); shoe(hipX - a, GROUND, true);
-        limb(b, hipX, beltY + 1, hipX + a, GROUND - 2, B.legW, pants); shoe(hipX + a, GROUND);
+        leg(b, hipX, beltY + 1, hipX - a, GROUND - 2, B.legW, pants, true); shoe(hipX - a, GROUND, true);
+        leg(b, hipX, beltY + 1, hipX + a, GROUND - 2, B.legW, pants); shoe(hipX + a, GROUND);
       } else {
         const sp = crouch ? 2 : 0;
-        limb(b, hipX + 1 + sp, beltY + 1, hipX + 1 + sp, GROUND - 2, B.legW, pants, true); shoe(hipX + 1 + sp, GROUND, true);
-        limb(b, hipX - 1 - sp, beltY + 1, hipX - 1 - sp, GROUND - 2, B.legW, pants); shoe(hipX - 1 - sp, GROUND);
+        leg(b, hipX + 1 + sp, beltY + 1, hipX + 1 + sp, GROUND - 2, B.legW, pants, true); shoe(hipX + 1 + sp, GROUND, true);
+        leg(b, hipX - 1 - sp, beltY + 1, hipX - 1 - sp, GROUND - 2, B.legW, pants); shoe(hipX - 1 - sp, GROUND);
       }
       const sx = CX, sy = shY + 1;
       let fe = [sx + 1, shY + B.torso * 0.5], fh = [sx + 1, beltY + 2], ne = [sx - 1, shY + B.torso * 0.5], nh = [sx - 1, beltY + 2];
@@ -581,17 +600,19 @@ const PEOPLE = (() => {
       if (pose === 'kick') { ne = [sx + 3, shY + 4]; nh = [sx + 1, shY]; fe = [sx - 3, shY + 3]; fh = [sx - 4, shY]; nfist = ffist = true; }
       if (pose === 'guard') { ne = [sx - 3, shY + 6]; nh = [sx - 4, shY - 1]; fe = [sx - 2, shY + 7]; fh = [sx - 3, shY]; nfist = ffist = true; }
       arm(sx + 1, sy, fe[0], fe[1], fh[0], fh[1], 'R', true, ffist);
-      // torso
+      // torso, with a little anatomy: chest forward, shoulder blades back, waist in
       for (let y = shY; y < beltY; y++) {
         const t = (y - shY) / Math.max(1, B.torso - 1);
-        const dd = Math.round(d - (B.sh - B.wa) * 0.25 * Math.min(1, t * 1.2));
-        const xx = Math.round(CX - dd / 2 + 0.5) + lean;
-        for (let x = xx; x < xx + dd; x++) {
-          let c = x >= xx + dd - 1 ? topR.s : x === xx ? topR.hi : topR.b;
-          if (L.top.type === 'open' && inner && x <= xx + 1) c = inner.b;
-          if (L.top.type === 'singlet') c = (t >= 0.22 && x <= xx + dd - 2) || (t < 0.25 && x === xx + Math.round(dd / 2)) ? topR.b : skin.b;
-          if (L.top.type === 'apron' && x <= xx && t > 0.25) c = L.top.apron;
-          if (L.top.type === 'suit' && x === xx && t < 0.8) c = L.top.tie || inner.b;
+        const dd = Math.round(d - (B.sh - B.wa) * 0.22 * Math.min(1, t * 1.2));
+        const chest = t > 0.12 && t < 0.5 ? 1 : 0, blades = t > 0.06 && t < 0.4 ? 1 : 0, waist = t > 0.6 && t < 0.9 ? 1 : 0;
+        const xl = Math.round(CX - dd / 2 + 0.5) + lean - chest + waist, xr = Math.round(CX - dd / 2 + 0.5) + lean + dd - 1 + blades - waist;
+        const rounded = y === shY;
+        for (let x = xl + (rounded ? 1 : 0); x <= xr - (rounded ? 1 : 0); x++) {
+          let c = x >= xr - 1 ? topR.s : x <= xl ? topR.hi : x >= xr - 2 ? topR.m : topR.b;
+          if (L.top.type === 'open' && inner && x <= xl + 1) c = inner.b;
+          if (L.top.type === 'singlet') c = (t >= 0.22 && x <= xr - 1) || (t < 0.25 && x === xl + Math.round(dd / 2)) ? topR.b : skin.b;
+          if (L.top.type === 'apron' && x <= xl && t > 0.25) c = L.top.apron;
+          if (L.top.type === 'suit' && x === xl && t < 0.8) c = L.top.tie || inner.b;
           b.set(x, y, c);
         }
       }
